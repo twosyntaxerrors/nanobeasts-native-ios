@@ -1,0 +1,772 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		023C03CC11DCE8F38DC55261 /* NanoTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04B07D2491F65D95341247FF /* NanoTheme.swift */; };
+		053133B097D11018BE75C1B6 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = C7C23F2A3B087E3DE265F4C1 /* RevenueCatUI */; };
+		0DEAB5B4D7711857736CB979 /* SDWebImage in Frameworks */ = {isa = PBXBuildFile; productRef = 77A1E2025811B2373254C449 /* SDWebImage */; };
+		0FB006B216CAD3D02D41CA72 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2BE5D20E3855483907F2BFB /* WidgetSnapshot.swift */; };
+		152B0DD9A3207F7C40DBBB3E /* SpaceMono_400Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CEBE772CDEFFAEE45F2EA1E1 /* SpaceMono_400Regular.ttf */; };
+		168BBFC2A5F8049BD4E28468 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2BE5D20E3855483907F2BFB /* WidgetSnapshot.swift */; };
+		32E81C82DC1723082710F49C /* StatsCalendarCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5A00EF4D1E1D0A56280F240 /* StatsCalendarCard.swift */; };
+		49C0D1DAF25B6CBA2C092594 /* WidgetSnapshotWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99567E0E6223E9E0C9AE7567 /* WidgetSnapshotWriter.swift */; };
+		4C82280224E759E6D874C179 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7120E22E464324EDAAC61846 /* StatsView.swift */; };
+		51790D041718BD210E5EDF1B /* RemoteArtwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43651F962B35823A78896183 /* RemoteArtwork.swift */; };
+		7229B00545C80BE38F2D8AF6 /* SpaceMono_700Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5490E15EB04B5013B5FD57B2 /* SpaceMono_700Bold.ttf */; };
+		72F00C8BCC955A46CA180FB8 /* NanobeastsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 073C0BE16B3122F2D1A8F119 /* NanobeastsApp.swift */; };
+		76F39F9A97CB2A31C0A2D6B4 /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 402C641B5AEFF0D8633F834D /* CoreMotion.framework */; };
+		7A41BD9A03FAF66FB122D9B4 /* CreatureModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD58ED5FCF9FC74E056AEA86 /* CreatureModels.swift */; };
+		7CB2009589F63D893EF4965A /* Aldrich_400Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F71666E6FDE7E18BD0CED383 /* Aldrich_400Regular.ttf */; };
+		83CF2382E8D5C3686E46D2B0 /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14F66223E287359D3D441B46 /* AppStore.swift */; };
+		89F85618436BAC9BB62AB0D4 /* LabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE777600852058010F877B65 /* LabView.swift */; };
+		9BABA964D9321EAC4D9FB1F4 /* Charts.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C31C3C4A391F94189BC90B64 /* Charts.framework */; };
+		9DB8F3B00FBD02DEFCB83A3D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8E15620BA40F8F4EDC0AF537 /* Assets.xcassets */; };
+		A15D88ADD6AD7CACD441FD7B /* NanobeastsWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3032BCCEF0B4BA67E83B57D /* NanobeastsWidgets.swift */; };
+		A1609DD7A30A85FA65054196 /* NanobeastsWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B0D08876B243279E3B90F2A8 /* NanobeastsWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B4AC6B6B40C5AC8A26C67DFC /* SDWebImageWebPCoder in Frameworks */ = {isa = PBXBuildFile; productRef = 0C380183C0A76424705354FA /* SDWebImageWebPCoder */; };
+		B4C9FCBB0D193DED3ED65337 /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4DBA2D51A67BE7D278607BF /* OnboardingFlowView.swift */; };
+		B94F8F03F7A3E9CCC35A2E0A /* HealthKitClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DEE6A6396F3EB4931A83331 /* HealthKitClient.swift */; };
+		BB3CE763B49814B729F64CEF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C0517627428A45D78D71858 /* SettingsView.swift */; };
+		BD0CFB3D81E1CCD754320E7D /* HealthKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7C4EF918849303E16B68980F /* HealthKit.framework */; };
+		C08D2B609449C70D5310F3CD /* StatsInsightComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B60C5F42DFA7A71078D55E05 /* StatsInsightComponents.swift */; };
+		D67EA7691EA72573C9E13E5B /* StatsSummaryComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B03C217D21273932F6ADF2 /* StatsSummaryComponents.swift */; };
+		D867626DB379B579293A32BA /* creatures-by-family.json in Resources */ = {isa = PBXBuildFile; fileRef = BCDC79962D319D23C13AC516 /* creatures-by-family.json */; };
+		DB6265D75A1D233E7A7EE4CA /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = 279E1759D6DA15EAA194BF92 /* RevenueCat */; };
+		E103EF701D77CB27B4EA1180 /* AppRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 081645D42D7D5B244A7CCD54 /* AppRootView.swift */; };
+		E3BD0E0E944B1D641529EB77 /* NanoComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54721BCA1C8D2C7A3CCEA519 /* NanoComponents.swift */; };
+		EF6E520259DD8B20C1D09D1C /* RevenueCatPaywallScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = D62B34E916C1A5520A6F4CEC /* RevenueCatPaywallScreen.swift */; };
+		F00B1470F734BD3B095EA13D /* PressStart2P_400Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C9888442E06A3B613910C9EE /* PressStart2P_400Regular.ttf */; };
+		F8002A3C2D6C60F670FC1659 /* DexView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64DB4B0240991B8B08848C71 /* DexView.swift */; };
+		FFE21CD29D3A7B957CAFC32D /* ActionableInsights.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9278263DA26903D084749EC /* ActionableInsights.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CFE0DCE4F3B2F633F55F3E28 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F08AC81B56938CB20271A43E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3E41EEBFBCD8ABBACC4F6034;
+			remoteInfo = NanobeastsWidgets;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		400EA10D66877E231399DD31 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A1609DD7A30A85FA65054196 /* NanobeastsWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		04B07D2491F65D95341247FF /* NanoTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NanoTheme.swift; sourceTree = "<group>"; };
+		073C0BE16B3122F2D1A8F119 /* NanobeastsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NanobeastsApp.swift; sourceTree = "<group>"; };
+		081645D42D7D5B244A7CCD54 /* AppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRootView.swift; sourceTree = "<group>"; };
+		14F66223E287359D3D441B46 /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
+		3DEE6A6396F3EB4931A83331 /* HealthKitClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitClient.swift; sourceTree = "<group>"; };
+		402C641B5AEFF0D8633F834D /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
+		43651F962B35823A78896183 /* RemoteArtwork.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteArtwork.swift; sourceTree = "<group>"; };
+		4C0517627428A45D78D71858 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		54721BCA1C8D2C7A3CCEA519 /* NanoComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NanoComponents.swift; sourceTree = "<group>"; };
+		5490E15EB04B5013B5FD57B2 /* SpaceMono_700Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = SpaceMono_700Bold.ttf; sourceTree = "<group>"; };
+		64DB4B0240991B8B08848C71 /* DexView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DexView.swift; sourceTree = "<group>"; };
+		7120E22E464324EDAAC61846 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
+		7B1D08B3F26DDDC2D9E05E89 /* Nanobeasts.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Nanobeasts.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7C4EF918849303E16B68980F /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
+		8E15620BA40F8F4EDC0AF537 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		99567E0E6223E9E0C9AE7567 /* WidgetSnapshotWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotWriter.swift; sourceTree = "<group>"; };
+		A8B03C217D21273932F6ADF2 /* StatsSummaryComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsSummaryComponents.swift; sourceTree = "<group>"; };
+		A9278263DA26903D084749EC /* ActionableInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionableInsights.swift; sourceTree = "<group>"; };
+		B0D08876B243279E3B90F2A8 /* NanobeastsWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = NanobeastsWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B3032BCCEF0B4BA67E83B57D /* NanobeastsWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NanobeastsWidgets.swift; sourceTree = "<group>"; };
+		B5A00EF4D1E1D0A56280F240 /* StatsCalendarCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsCalendarCard.swift; sourceTree = "<group>"; };
+		B60C5F42DFA7A71078D55E05 /* StatsInsightComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsInsightComponents.swift; sourceTree = "<group>"; };
+		BCDC79962D319D23C13AC516 /* creatures-by-family.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "creatures-by-family.json"; sourceTree = "<group>"; };
+		C31C3C4A391F94189BC90B64 /* Charts.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Charts.framework; path = System/Library/Frameworks/Charts.framework; sourceTree = SDKROOT; };
+		C9888442E06A3B613910C9EE /* PressStart2P_400Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = PressStart2P_400Regular.ttf; sourceTree = "<group>"; };
+		CD58ED5FCF9FC74E056AEA86 /* CreatureModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureModels.swift; sourceTree = "<group>"; };
+		CEBE772CDEFFAEE45F2EA1E1 /* SpaceMono_400Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = SpaceMono_400Regular.ttf; sourceTree = "<group>"; };
+		D4DBA2D51A67BE7D278607BF /* OnboardingFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowView.swift; sourceTree = "<group>"; };
+		D62B34E916C1A5520A6F4CEC /* RevenueCatPaywallScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevenueCatPaywallScreen.swift; sourceTree = "<group>"; };
+		DE777600852058010F877B65 /* LabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabView.swift; sourceTree = "<group>"; };
+		F2BE5D20E3855483907F2BFB /* WidgetSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
+		F71666E6FDE7E18BD0CED383 /* Aldrich_400Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Aldrich_400Regular.ttf; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CCA35CD188F53D79915781BD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BD0CFB3D81E1CCD754320E7D /* HealthKit.framework in Frameworks */,
+				76F39F9A97CB2A31C0A2D6B4 /* CoreMotion.framework in Frameworks */,
+				9BABA964D9321EAC4D9FB1F4 /* Charts.framework in Frameworks */,
+				DB6265D75A1D233E7A7EE4CA /* RevenueCat in Frameworks */,
+				053133B097D11018BE75C1B6 /* RevenueCatUI in Frameworks */,
+				0DEAB5B4D7711857736CB979 /* SDWebImage in Frameworks */,
+				B4AC6B6B40C5AC8A26C67DFC /* SDWebImageWebPCoder in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		03DFC97DDE0F46C937167C89 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				D4DBA2D51A67BE7D278607BF /* OnboardingFlowView.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		09335ADE73652403AB8332A7 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				7B1D08B3F26DDDC2D9E05E89 /* Nanobeasts.app */,
+				B0D08876B243279E3B90F2A8 /* NanobeastsWidgets.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		231F2A5AB7F1CEA64F3A4034 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				3DEE6A6396F3EB4931A83331 /* HealthKitClient.swift */,
+				43651F962B35823A78896183 /* RemoteArtwork.swift */,
+				99567E0E6223E9E0C9AE7567 /* WidgetSnapshotWriter.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		26C69B37C21095410AE7034E /* Dex */ = {
+			isa = PBXGroup;
+			children = (
+				64DB4B0240991B8B08848C71 /* DexView.swift */,
+			);
+			path = Dex;
+			sourceTree = "<group>";
+		};
+		2C90C2E6D4FC26C9F603F785 /* Lab */ = {
+			isa = PBXGroup;
+			children = (
+				DE777600852058010F877B65 /* LabView.swift */,
+			);
+			path = Lab;
+			sourceTree = "<group>";
+		};
+		35BFE28ABDA4E84129809684 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				081645D42D7D5B244A7CCD54 /* AppRootView.swift */,
+				073C0BE16B3122F2D1A8F119 /* NanobeastsApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		5E2E339C166BC790A9EE1BE5 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				26C69B37C21095410AE7034E /* Dex */,
+				2C90C2E6D4FC26C9F603F785 /* Lab */,
+				03DFC97DDE0F46C937167C89 /* Onboarding */,
+				8E58A5EBACC1BF358B376940 /* Paywall */,
+				7C8C12FE9B9FFB9FC033A967 /* Settings */,
+				806871B835D93A23CADB1E88 /* Stats */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		60206CF23CE689CAD718EC35 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				8E15620BA40F8F4EDC0AF537 /* Assets.xcassets */,
+				BCDC79962D319D23C13AC516 /* creatures-by-family.json */,
+				F3142605B27AF9D6201B61A8 /* Fonts */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		7C8C12FE9B9FFB9FC033A967 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				4C0517627428A45D78D71858 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		806871B835D93A23CADB1E88 /* Stats */ = {
+			isa = PBXGroup;
+			children = (
+				A9278263DA26903D084749EC /* ActionableInsights.swift */,
+				B5A00EF4D1E1D0A56280F240 /* StatsCalendarCard.swift */,
+				B60C5F42DFA7A71078D55E05 /* StatsInsightComponents.swift */,
+				A8B03C217D21273932F6ADF2 /* StatsSummaryComponents.swift */,
+				7120E22E464324EDAAC61846 /* StatsView.swift */,
+			);
+			path = Stats;
+			sourceTree = "<group>";
+		};
+		8E58A5EBACC1BF358B376940 /* Paywall */ = {
+			isa = PBXGroup;
+			children = (
+				D62B34E916C1A5520A6F4CEC /* RevenueCatPaywallScreen.swift */,
+			);
+			path = Paywall;
+			sourceTree = "<group>";
+		};
+		A99A5F0877214EDEAC1969AA /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				C31C3C4A391F94189BC90B64 /* Charts.framework */,
+				402C641B5AEFF0D8633F834D /* CoreMotion.framework */,
+				7C4EF918849303E16B68980F /* HealthKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		B15429A031E54F75E9489228 /* NanobeastsShared */ = {
+			isa = PBXGroup;
+			children = (
+				F2BE5D20E3855483907F2BFB /* WidgetSnapshot.swift */,
+			);
+			path = NanobeastsShared;
+			sourceTree = "<group>";
+		};
+		B7C3EEFFFD483C509CF91C89 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				04B07D2491F65D95341247FF /* NanoTheme.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		B9FA35B3C268EFB04AC602EF /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				54721BCA1C8D2C7A3CCEA519 /* NanoComponents.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		D5EF7B8A7A5B05D78E34D171 = {
+			isa = PBXGroup;
+			children = (
+				FFFF8A3EAD1559E5EFC584CB /* Nanobeasts */,
+				B15429A031E54F75E9489228 /* NanobeastsShared */,
+				E9E7834D4EABB525A5DDCB32 /* NanobeastsWidgets */,
+				A99A5F0877214EDEAC1969AA /* Frameworks */,
+				09335ADE73652403AB8332A7 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E9E7834D4EABB525A5DDCB32 /* NanobeastsWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				B3032BCCEF0B4BA67E83B57D /* NanobeastsWidgets.swift */,
+			);
+			path = NanobeastsWidgets;
+			sourceTree = "<group>";
+		};
+		F3142605B27AF9D6201B61A8 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				F71666E6FDE7E18BD0CED383 /* Aldrich_400Regular.ttf */,
+				C9888442E06A3B613910C9EE /* PressStart2P_400Regular.ttf */,
+				CEBE772CDEFFAEE45F2EA1E1 /* SpaceMono_400Regular.ttf */,
+				5490E15EB04B5013B5FD57B2 /* SpaceMono_700Bold.ttf */,
+			);
+			path = Fonts;
+			sourceTree = "<group>";
+		};
+		F4672254C06CEF05B0BC6B05 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				14F66223E287359D3D441B46 /* AppStore.swift */,
+				CD58ED5FCF9FC74E056AEA86 /* CreatureModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		FFFF8A3EAD1559E5EFC584CB /* Nanobeasts */ = {
+			isa = PBXGroup;
+			children = (
+				35BFE28ABDA4E84129809684 /* App */,
+				B9FA35B3C268EFB04AC602EF /* Components */,
+				B7C3EEFFFD483C509CF91C89 /* DesignSystem */,
+				5E2E339C166BC790A9EE1BE5 /* Features */,
+				F4672254C06CEF05B0BC6B05 /* Models */,
+				60206CF23CE689CAD718EC35 /* Resources */,
+				231F2A5AB7F1CEA64F3A4034 /* Services */,
+			);
+			path = Nanobeasts;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		32651383AF6A7FACC4B0F2D8 /* Nanobeasts */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B0DCF421DC3B80064D38C00F /* Build configuration list for PBXNativeTarget "Nanobeasts" */;
+			buildPhases = (
+				E998BE68729F8D9063B020A9 /* Sources */,
+				647D6D09A540929CA12444EC /* Resources */,
+				CCA35CD188F53D79915781BD /* Frameworks */,
+				400EA10D66877E231399DD31 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				8490828E5B7B1C4B3EF77C31 /* PBXTargetDependency */,
+			);
+			name = Nanobeasts;
+			packageProductDependencies = (
+				279E1759D6DA15EAA194BF92 /* RevenueCat */,
+				C7C23F2A3B087E3DE265F4C1 /* RevenueCatUI */,
+				77A1E2025811B2373254C449 /* SDWebImage */,
+				0C380183C0A76424705354FA /* SDWebImageWebPCoder */,
+			);
+			productName = Nanobeasts;
+			productReference = 7B1D08B3F26DDDC2D9E05E89 /* Nanobeasts.app */;
+			productType = "com.apple.product-type.application";
+		};
+		3E41EEBFBCD8ABBACC4F6034 /* NanobeastsWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6B12F28E463280B1766963C6 /* Build configuration list for PBXNativeTarget "NanobeastsWidgets" */;
+			buildPhases = (
+				CD8B980B381DFE2DE7A771EA /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NanobeastsWidgets;
+			packageProductDependencies = (
+			);
+			productName = NanobeastsWidgets;
+			productReference = B0D08876B243279E3B90F2A8 /* NanobeastsWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F08AC81B56938CB20271A43E /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					32651383AF6A7FACC4B0F2D8 = {
+						DevelopmentTeam = C48J72F8MH;
+					};
+					3E41EEBFBCD8ABBACC4F6034 = {
+						DevelopmentTeam = C48J72F8MH;
+					};
+				};
+			};
+			buildConfigurationList = 5BEBE0727747660A173FC8B2 /* Build configuration list for PBXProject "Nanobeasts" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = D5EF7B8A7A5B05D78E34D171;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				680826964116A10FF4F64C37 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
+				4B7036340B7D0BC828B2FF43 /* XCRemoteSwiftPackageReference "SDWebImage" */,
+				49AC9F43A54B79D899D62E2B /* XCRemoteSwiftPackageReference "SDWebImageWebPCoder" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 09335ADE73652403AB8332A7 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				32651383AF6A7FACC4B0F2D8 /* Nanobeasts */,
+				3E41EEBFBCD8ABBACC4F6034 /* NanobeastsWidgets */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		647D6D09A540929CA12444EC /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7CB2009589F63D893EF4965A /* Aldrich_400Regular.ttf in Resources */,
+				9DB8F3B00FBD02DEFCB83A3D /* Assets.xcassets in Resources */,
+				F00B1470F734BD3B095EA13D /* PressStart2P_400Regular.ttf in Resources */,
+				152B0DD9A3207F7C40DBBB3E /* SpaceMono_400Regular.ttf in Resources */,
+				7229B00545C80BE38F2D8AF6 /* SpaceMono_700Bold.ttf in Resources */,
+				D867626DB379B579293A32BA /* creatures-by-family.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		CD8B980B381DFE2DE7A771EA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A15D88ADD6AD7CACD441FD7B /* NanobeastsWidgets.swift in Sources */,
+				168BBFC2A5F8049BD4E28468 /* WidgetSnapshot.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E998BE68729F8D9063B020A9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FFE21CD29D3A7B957CAFC32D /* ActionableInsights.swift in Sources */,
+				E103EF701D77CB27B4EA1180 /* AppRootView.swift in Sources */,
+				83CF2382E8D5C3686E46D2B0 /* AppStore.swift in Sources */,
+				7A41BD9A03FAF66FB122D9B4 /* CreatureModels.swift in Sources */,
+				F8002A3C2D6C60F670FC1659 /* DexView.swift in Sources */,
+				B94F8F03F7A3E9CCC35A2E0A /* HealthKitClient.swift in Sources */,
+				89F85618436BAC9BB62AB0D4 /* LabView.swift in Sources */,
+				E3BD0E0E944B1D641529EB77 /* NanoComponents.swift in Sources */,
+				023C03CC11DCE8F38DC55261 /* NanoTheme.swift in Sources */,
+				72F00C8BCC955A46CA180FB8 /* NanobeastsApp.swift in Sources */,
+				B4C9FCBB0D193DED3ED65337 /* OnboardingFlowView.swift in Sources */,
+				51790D041718BD210E5EDF1B /* RemoteArtwork.swift in Sources */,
+				EF6E520259DD8B20C1D09D1C /* RevenueCatPaywallScreen.swift in Sources */,
+				BB3CE763B49814B729F64CEF /* SettingsView.swift in Sources */,
+				32E81C82DC1723082710F49C /* StatsCalendarCard.swift in Sources */,
+				C08D2B609449C70D5310F3CD /* StatsInsightComponents.swift in Sources */,
+				D67EA7691EA72573C9E13E5B /* StatsSummaryComponents.swift in Sources */,
+				4C82280224E759E6D874C179 /* StatsView.swift in Sources */,
+				0FB006B216CAD3D02D41CA72 /* WidgetSnapshot.swift in Sources */,
+				49C0D1DAF25B6CBA2C092594 /* WidgetSnapshotWriter.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		8490828E5B7B1C4B3EF77C31 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3E41EEBFBCD8ABBACC4F6034 /* NanobeastsWidgets */;
+			targetProxy = CFE0DCE4F3B2F633F55F3E28 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1D3BDBE5A2F1711EF56FDC55 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = NanobeastsWidgets/NanobeastsWidgets.entitlements;
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = C48J72F8MH;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = NanobeastsWidgets/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.twosyntaxerrors.nanobeasts.native.widgets;
+				PRODUCT_NAME = NanobeastsWidgets;
+				PROVISIONING_PROFILE_SPECIFIER = "Nanobeasts Native Widgets Development";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		29CBD4D7E8E5AA9F5C245113 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Nanobeasts/Nanobeasts.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = C48J72F8MH;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Nanobeasts/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.twosyntaxerrors.nanobeasts.native;
+				PRODUCT_NAME = Nanobeasts;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		33EF4D34E44CF22FFAED86C9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		4D8D5E485AC678C98E9A333C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		A3C292ADFCA22CA666C2CC6B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = NanobeastsWidgets/NanobeastsWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = C48J72F8MH;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = NanobeastsWidgets/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.twosyntaxerrors.nanobeasts.native.widgets;
+				PRODUCT_NAME = NanobeastsWidgets;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		C92437F064714F7E3E105B59 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Nanobeasts/Nanobeasts.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = C48J72F8MH;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Nanobeasts/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.twosyntaxerrors.nanobeasts.native;
+				PRODUCT_NAME = Nanobeasts;
+				PROVISIONING_PROFILE_SPECIFIER = "Nanobeasts Native Development";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		5BEBE0727747660A173FC8B2 /* Build configuration list for PBXProject "Nanobeasts" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				33EF4D34E44CF22FFAED86C9 /* Debug */,
+				4D8D5E485AC678C98E9A333C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		6B12F28E463280B1766963C6 /* Build configuration list for PBXNativeTarget "NanobeastsWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1D3BDBE5A2F1711EF56FDC55 /* Debug */,
+				A3C292ADFCA22CA666C2CC6B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B0DCF421DC3B80064D38C00F /* Build configuration list for PBXNativeTarget "Nanobeasts" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C92437F064714F7E3E105B59 /* Debug */,
+				29CBD4D7E8E5AA9F5C245113 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		49AC9F43A54B79D899D62E2B /* XCRemoteSwiftPackageReference "SDWebImageWebPCoder" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SDWebImage/SDWebImageWebPCoder.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.3.0;
+			};
+		};
+		4B7036340B7D0BC828B2FF43 /* XCRemoteSwiftPackageReference "SDWebImage" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SDWebImage/SDWebImage.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.21.7;
+			};
+		};
+		680826964116A10FF4F64C37 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0C380183C0A76424705354FA /* SDWebImageWebPCoder */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 49AC9F43A54B79D899D62E2B /* XCRemoteSwiftPackageReference "SDWebImageWebPCoder" */;
+			productName = SDWebImageWebPCoder;
+		};
+		279E1759D6DA15EAA194BF92 /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 680826964116A10FF4F64C37 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
+			productName = RevenueCat;
+		};
+		77A1E2025811B2373254C449 /* SDWebImage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4B7036340B7D0BC828B2FF43 /* XCRemoteSwiftPackageReference "SDWebImage" */;
+			productName = SDWebImage;
+		};
+		C7C23F2A3B087E3DE265F4C1 /* RevenueCatUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 680826964116A10FF4F64C37 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
+			productName = RevenueCatUI;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = F08AC81B56938CB20271A43E /* Project object */;
+}
