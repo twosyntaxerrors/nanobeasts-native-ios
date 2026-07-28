@@ -33,21 +33,28 @@ struct NanobeastsProgressWidget: Widget {
 struct NanobeastsWidgetEntry: TimelineEntry {
     let date: Date
     let snapshot: WidgetSnapshot
+    let artworkData: Data?
 }
 
 struct NanobeastsTimelineProvider: TimelineProvider {
     func placeholder(in context: Context) -> NanobeastsWidgetEntry {
-        NanobeastsWidgetEntry(date: Date(), snapshot: .placeholder)
+        NanobeastsWidgetEntry(
+            date: Date(),
+            snapshot: .placeholder,
+            artworkData: nil
+        )
     }
 
     func getSnapshot(
         in context: Context,
         completion: @escaping (NanobeastsWidgetEntry) -> Void
     ) {
+        let snapshot = context.isPreview ? WidgetSnapshot.placeholder : WidgetSnapshotStore.load()
         completion(
             NanobeastsWidgetEntry(
                 date: Date(),
-                snapshot: context.isPreview ? .placeholder : WidgetSnapshotStore.load()
+                snapshot: snapshot,
+                artworkData: context.isPreview ? nil : artworkData(for: snapshot)
             )
         )
     }
@@ -56,13 +63,25 @@ struct NanobeastsTimelineProvider: TimelineProvider {
         in context: Context,
         completion: @escaping (Timeline<NanobeastsWidgetEntry>) -> Void
     ) {
+        let snapshot = WidgetSnapshotStore.load()
         let entry = NanobeastsWidgetEntry(
             date: Date(),
-            snapshot: WidgetSnapshotStore.load()
+            snapshot: snapshot,
+            artworkData: artworkData(for: snapshot)
         )
         let nextRefresh = Calendar.current.date(byAdding: .minute, value: 30, to: Date())
             ?? Date().addingTimeInterval(1_800)
         completion(Timeline(entries: [entry], policy: .after(nextRefresh)))
+    }
+
+    private func artworkData(for snapshot: WidgetSnapshot) -> Data? {
+        guard
+            let filename = snapshot.artworkFilename,
+            let url = WidgetSnapshotStore.artworkURL(filename: filename)
+        else {
+            return nil
+        }
+        return try? Data(contentsOf: url, options: .mappedIfSafe)
     }
 }
 
@@ -105,7 +124,7 @@ private struct NanobeastsWidgetView: View {
 
             ZStack {
                 EvolutionRing(progress: entry.snapshot.evolutionProgress, width: 8)
-                WidgetCreatureArtwork(filename: entry.snapshot.artworkFilename)
+                WidgetCreatureArtwork(data: entry.artworkData)
                     .padding(14)
             }
 
@@ -125,7 +144,7 @@ private struct NanobeastsWidgetView: View {
         HStack(spacing: 14) {
             ZStack {
                 EvolutionRing(progress: entry.snapshot.evolutionProgress, width: 9)
-                WidgetCreatureArtwork(filename: entry.snapshot.artworkFilename)
+                WidgetCreatureArtwork(data: entry.artworkData)
                     .padding(17)
             }
             .frame(width: 116, height: 116)
@@ -229,16 +248,10 @@ private struct EvolutionRing: View {
 }
 
 private struct WidgetCreatureArtwork: View {
-    let filename: String?
+    let data: Data?
 
     private var image: UIImage? {
-        guard
-            let filename,
-            let url = WidgetSnapshotStore.artworkURL(filename: filename)
-        else {
-            return nil
-        }
-        return UIImage(contentsOfFile: url.path())
+        data.flatMap(UIImage.init(data:))
     }
 
     var body: some View {
