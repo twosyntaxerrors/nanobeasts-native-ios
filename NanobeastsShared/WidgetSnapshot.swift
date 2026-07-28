@@ -33,6 +33,7 @@ enum WidgetSnapshotStore {
     static let appGroupID = "group.com.twosyntaxerrors.nanobeasts.native"
     static let widgetKind = "NanobeastsProgressWidget"
     private static let snapshotKey = "nanobeasts.widget.snapshot.v1"
+    private static let artworkDataKey = "nanobeasts.widget.artwork-data.v1"
     private static let snapshotFilename = "nanobeasts-widget-snapshot.json"
 
     static func load() -> WidgetSnapshot {
@@ -79,6 +80,41 @@ enum WidgetSnapshotStore {
 
     static func artworkURL(filename: String) -> URL? {
         sharedCacheDirectoryURL()?.appendingPathComponent(filename)
+    }
+
+    static func loadArtworkData(filename: String) -> Data? {
+        if let data = UserDefaults(suiteName: appGroupID)?.data(forKey: artworkDataKey) {
+            return data
+        }
+        guard let url = artworkURL(filename: filename) else { return nil }
+        return try? Data(contentsOf: url, options: .mappedIfSafe)
+    }
+
+    static func hasInlineArtworkData() -> Bool {
+        UserDefaults(suiteName: appGroupID)?.data(forKey: artworkDataKey) != nil
+    }
+
+    static func saveArtworkData(_ data: Data, filename: String) {
+        if let url = artworkURL(filename: filename) {
+            try? data.write(to: url, options: .atomic)
+        }
+        if let defaults = UserDefaults(suiteName: appGroupID) {
+            defaults.set(data, forKey: artworkDataKey)
+            defaults.synchronize()
+        }
+    }
+
+    static func removeArtworkData(filename: String) {
+        if
+            let url = artworkURL(filename: filename),
+            FileManager.default.fileExists(atPath: url.path())
+        {
+            try? FileManager.default.removeItem(at: url)
+        }
+        if let defaults = UserDefaults(suiteName: appGroupID) {
+            defaults.removeObject(forKey: artworkDataKey)
+            defaults.synchronize()
+        }
     }
 
     private static func sharedCacheDirectoryURL() -> URL? {

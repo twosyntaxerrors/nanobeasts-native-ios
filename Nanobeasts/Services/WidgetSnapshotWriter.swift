@@ -1,4 +1,6 @@
 import Foundation
+import ImageIO
+import UIKit
 import WidgetKit
 
 @MainActor
@@ -43,13 +45,15 @@ final class WidgetSnapshotWriter {
         let cachedSource = sharedDefaults?.string(forKey: artworkSourceKey)
         if
             cachedSource == sourceURL.absoluteString,
-            FileManager.default.fileExists(atPath: destination.path())
+            FileManager.default.fileExists(atPath: destination.path()),
+            WidgetSnapshotStore.hasInlineArtworkData()
         {
             return
         }
 
         artworkTask?.cancel()
         let sourceKey = artworkSourceKey
+        let filename = artworkFilename
         artworkTask = Task.detached(priority: .utility) {
             do {
                 let (data, response) = try await URLSession.shared.data(from: sourceURL)
@@ -60,8 +64,10 @@ final class WidgetSnapshotWriter {
                 else {
                     return
                 }
-                try data.write(to: destination, options: .atomic)
+                let widgetData = WidgetSnapshotWriter.preparedArtworkData(from: data) ?? data
+                WidgetSnapshotStore.saveArtworkData(widgetData, filename: filename)
                 sharedDefaults?.set(sourceURL.absoluteString, forKey: sourceKey)
+                sharedDefaults?.synchronize()
                 await MainActor.run {
                     WidgetSnapshotWriter.shared.scheduleTimelineReload()
                 }
@@ -73,12 +79,7 @@ final class WidgetSnapshotWriter {
 
     func clear() {
         artworkTask?.cancel()
-        if
-            let url = WidgetSnapshotStore.artworkURL(filename: artworkFilename),
-            FileManager.default.fileExists(atPath: url.path())
-        {
-            try? FileManager.default.removeItem(at: url)
-        }
+        WidgetSnapshotStore.removeArtworkData(filename: artworkFilename)
         UserDefaults(suiteName: WidgetSnapshotStore.appGroupID)?
             .removeObject(forKey: artworkSourceKey)
         WidgetSnapshotStore.save(.placeholder)
@@ -92,5 +93,24 @@ final class WidgetSnapshotWriter {
             guard !Task.isCancelled else { return }
             WidgetCenter.shared.reloadTimelines(ofKind: WidgetSnapshotStore.widgetKind)
         }
+    }
+
+    nonisolated private static func preparedArtworkData(from data: Data) -> Data? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
+            return nil
+        }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: 320
+        ]
+        guard let thumbnail = CGImageSourceCreateThumbnailAtIndex(
+            source,
+            0,
+            options as CFDictionary
+        ) else {
+            return nil
+        }
+        return UIImage(cgImage: thumbnail).pngData()
     }
 }

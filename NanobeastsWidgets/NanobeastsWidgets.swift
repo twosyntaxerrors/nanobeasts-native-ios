@@ -75,13 +75,8 @@ struct NanobeastsTimelineProvider: TimelineProvider {
     }
 
     private func artworkData(for snapshot: WidgetSnapshot) -> Data? {
-        guard
-            let filename = snapshot.artworkFilename,
-            let url = WidgetSnapshotStore.artworkURL(filename: filename)
-        else {
-            return nil
-        }
-        return try? Data(contentsOf: url, options: .mappedIfSafe)
+        guard let filename = snapshot.artworkFilename else { return nil }
+        return WidgetSnapshotStore.loadArtworkData(filename: filename)
     }
 }
 
