@@ -74,6 +74,7 @@ struct LabView: View {
 
                         DailyMetricsPanel(
                             distanceKilometers: store.distanceKilometersToday,
+                            distanceUnit: store.distanceUnit,
                             calories: store.caloriesToday,
                             activeMinutes: store.activeMinutesToday
                         )
@@ -96,7 +97,12 @@ struct LabView: View {
                     HStack {
                         Spacer()
                         Button {
+                            let wasAlreadyComplete =
+                                store.todaySteps >= store.dailyGoal
                             store.addTestingSteps()
+                            if wasAlreadyComplete {
+                                presentDailyGoalCelebrationIfNeeded()
+                            }
                             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                         } label: {
                             Label("+100", systemImage: "figure.walk.motion")
@@ -177,9 +183,6 @@ struct LabView: View {
                 return
             }
 
-            let crossedDailyGoal =
-                store.stepSyncFromTodaySteps < store.dailyGoal
-                && store.todaySteps >= store.dailyGoal
             animatedTodaySteps = Double(store.stepSyncFromTodaySteps)
             animatedHatchProgress = store.stepSyncFromHatchProgress
             hasInitializedActivityAnimation = true
@@ -191,12 +194,16 @@ struct LabView: View {
             }
             try? await Task.sleep(for: .seconds(store.stepSyncDuration * 0.72))
             guard !Task.isCancelled else { return }
-            if crossedDailyGoal {
-                presentDailyGoalCelebrationIfNeeded()
-            }
             withAnimation(.easeOut(duration: 0.46)) {
                 stepAnimationEnergy = 0
             }
+        }
+        .task(id: store.dailyGoalCelebrationID) {
+            guard store.dailyGoalCelebrationID != nil else { return }
+            let revealDelay = max(store.stepSyncDuration * 0.72, 0.2)
+            try? await Task.sleep(for: .seconds(revealDelay))
+            guard !Task.isCancelled else { return }
+            presentDailyGoalCelebrationIfNeeded()
         }
         .onChange(of: store.pendingLifecycleEvents.count) {
             guard pendingDailyGoalCelebration, store.pendingLifecycleEvents.isEmpty else {
@@ -743,6 +750,7 @@ private struct CountingStepText: View, Animatable {
 
 private struct DailyMetricsPanel: View {
     let distanceKilometers: Double
+    let distanceUnit: DistanceUnitPreference
     let calories: Int
     let activeMinutes: Int
 
@@ -750,9 +758,9 @@ private struct DailyMetricsPanel: View {
         HStack(spacing: 0) {
             MetricColumn(
                 icon: "point.bottomleft.forward.to.point.topright.scurvepath",
-                value: (distanceKilometers * 0.621371)
+                value: distanceUnit.value(fromKilometers: distanceKilometers)
                     .formatted(.number.precision(.fractionLength(1))),
-                unit: "MI",
+                unit: distanceUnit.abbreviation,
                 title: "DISTANCE",
                 color: NanoTheme.teal
             )

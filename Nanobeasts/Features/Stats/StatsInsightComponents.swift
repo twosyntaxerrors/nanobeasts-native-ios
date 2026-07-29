@@ -21,7 +21,8 @@ enum StatsBadgeCatalog {
     static func make(
         records: [DailyStepRecord],
         dailyGoal: Int,
-        discoveredStages: [CreatureStage]
+        discoveredStages: [CreatureStage],
+        distanceUnit: DistanceUnitPreference
     ) -> [StatsBadgeSection] {
         let ordered = records.sorted { $0.day < $1.day }
         let totalSteps = ordered.reduce(0) { $0 + max($1.steps, 0) }
@@ -39,36 +40,47 @@ enum StatsBadgeCatalog {
             discoveredCreatures.filter { $0.stage >= 3 }.map(\.familyID)
         ).count
 
-        let distanceTargets: [(Double, String)] = [
-            (1, "First Steps"), (5, "5KM Walked"), (10, "10KM Walked"),
-            (15, "15KM Hiker"), (25, "25KM Explorer"), (50, "50KM Expedition"),
-            (75, "75KM Trekker"), (100, "100KM Journey"),
-            (150, "150KM Adventurer"), (200, "200KM Voyager"),
-            (300, "300KM Wanderer"), (350, "350KM Wayfarer"),
-            (400, "400KM Trailblazer"), (450, "450KM Ranger"),
-            (500, "500KM Pathfinder"), (750, "750KM Pilgrim"),
+        let distanceTargets: [(kilometers: Double, descriptor: String)] = [
+            (1, "First Steps"), (5, "Walked"), (10, "Walked"),
+            (15, "Hiker"), (25, "Explorer"), (50, "Expedition"),
+            (75, "Trekker"), (100, "Journey"),
+            (150, "Adventurer"), (200, "Voyager"),
+            (300, "Wanderer"), (350, "Wayfarer"),
+            (400, "Trailblazer"), (450, "Ranger"),
+            (500, "Pathfinder"), (750, "Pilgrim"),
             (1_000, "The Proclaimer")
         ]
-        var distanceBadges = distanceTargets.map { target, title in
-            badge(
-                id: "distance-\(Int(target))",
-                symbol: target >= 100 ? "figure.hiking" : "figure.walk",
+        var distanceBadges = distanceTargets.map { target in
+            let displayDistance = formattedDistance(
+                kilometers: target.kilometers,
+                unit: distanceUnit
+            )
+            let title =
+                target.kilometers == 1 || target.descriptor == "The Proclaimer"
+                    ? target.descriptor
+                    : "\(displayDistance) \(distanceUnit.abbreviation) \(target.descriptor)"
+            return badge(
+                id: "distance-\(Int(target.kilometers))",
+                symbol: target.kilometers >= 100 ? "figure.hiking" : "figure.walk",
                 title: title,
-                description: "Walk a total of \(Int(target)) kilometers",
+                description:
+                    "Walk a total of \(displayDistance) \(distanceUnit.pluralName)",
                 tint: NanoTheme.purple,
-                unlocked: distanceKilometers >= target,
+                unlocked: distanceKilometers >= target.kilometers,
                 completedAt: cumulativeCompletionDate(
                     records: ordered,
-                    targetSteps: Int((target / 0.000762).rounded(.up))
+                    targetSteps: Int((target.kilometers / 0.000762).rounded(.up))
                 )
             )
         }
+        let sprintDistance = formattedDistance(kilometers: 10, unit: distanceUnit)
         distanceBadges.append(
             badge(
                 id: "distance-sprint",
                 symbol: "figure.run",
                 title: "Sprint Master",
-                description: "Walk 10 kilometers in a single day",
+                description:
+                    "Walk \(sprintDistance) \(distanceUnit.pluralName) in a single day",
                 tint: NanoTheme.purple,
                 unlocked: maximumSteps >= 13_124,
                 completedAt: ordered.first(where: { $0.steps >= 13_124 })?.day
@@ -190,6 +202,17 @@ enum StatsBadgeCatalog {
             StatsBadgeSection(id: "consistency", title: "Consistency", badges: consistencyBadges),
             StatsBadgeSection(id: "intensity", title: "Intensity", badges: intensityBadges)
         ]
+    }
+
+    private static func formattedDistance(
+        kilometers: Double,
+        unit: DistanceUnitPreference
+    ) -> String {
+        let value = unit.value(fromKilometers: kilometers)
+        let isEffectivelyWhole = abs(value.rounded() - value) < 0.01
+        return value.formatted(
+            .number.precision(.fractionLength(isEffectivelyWhole ? 0 : 1))
+        )
     }
 
     private static func badge(

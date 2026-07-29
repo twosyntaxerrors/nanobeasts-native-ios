@@ -51,6 +51,10 @@ struct SettingsView: View {
 
                         SettingsDivider()
 
+                        SettingsDistanceUnitRow(selection: $store.distanceUnit)
+
+                        SettingsDivider()
+
                         SettingsToggleRow(
                             title: "Haptic Feedback",
                             subtitle: "Tactile responses for key actions.",
@@ -368,6 +372,37 @@ private struct SettingsStatusRow: View {
             .frame(minHeight: 52)
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct SettingsDistanceUnitRow: View {
+    @Binding var selection: DistanceUnitPreference
+
+    var body: some View {
+        HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Distance Unit")
+                    .font(NanoFont.aldrich(13))
+                    .foregroundStyle(.white)
+                Text("Choose how distances and badges are displayed.")
+                    .font(NanoFont.aldrich(9))
+                    .foregroundStyle(NanoTheme.secondaryText)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 10)
+
+            Picker("Distance Unit", selection: $selection) {
+                Text("MI").tag(DistanceUnitPreference.miles)
+                Text("KM").tag(DistanceUnitPreference.kilometers)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 126)
+            .accessibilityHint("Changes distance displays throughout Nanobeasts")
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 66)
     }
 }
 
@@ -1075,14 +1110,16 @@ struct EvolutionLifecycleExperience: View {
 
     private func hatchPortal(_ media: TransitionMedia) -> some View {
         ZStack {
+            DeferredAnimatedCreatureArtworkView(
+                stage: displayStage,
+                shouldPlay: transitionFinished
+            )
+            .padding(18)
+            .opacity(transitionFinished ? 1 : 0)
+            .scaleEffect(transitionFinished ? 1 : 0.96)
+
             transitionMediaView(media, shouldPlay: portalOpened && !transitionFinished)
                 .opacity(transitionFinished ? 0 : 1)
-
-            if transitionFinished {
-                AnimatedCreatureArtworkView(stage: displayStage)
-                    .padding(18)
-                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
-            }
 
             if portalOpened, !transitionLoaded, !transitionFailed {
                 ProgressView()
@@ -1116,21 +1153,23 @@ struct EvolutionLifecycleExperience: View {
 
     private func evolutionReveal(_ media: TransitionMedia) -> some View {
         ZStack {
-            AnimatedCreatureArtworkView(stage: previousStage ?? displayStage)
+            AnimatedCreatureArtworkView(
+                stage: previousStage ?? displayStage,
+                isPlaying: !evolutionPlaybackStarted
+            )
                 .padding(18)
                 .opacity(evolutionPlaybackStarted ? 0 : 1)
+
+            PreloadingStaticCreatureArtworkView(stage: displayStage)
+            .padding(8)
+            .opacity(transitionFinished ? 1 : 0)
+            .scaleEffect(transitionFinished ? 1 : 0.94)
 
             transitionMediaView(
                 media,
                 shouldPlay: evolutionPlaybackStarted && !transitionFinished
             )
             .opacity(evolutionPlaybackStarted && !transitionFinished ? 1 : 0)
-
-            if transitionFinished {
-                AnimatedCreatureArtworkView(stage: displayStage)
-                    .padding(8)
-                    .transition(.opacity.combined(with: .scale(scale: 0.94)))
-            }
 
             if evolutionPlaybackStarted, !transitionLoaded, !transitionFailed {
                 ProgressView()
@@ -1153,17 +1192,17 @@ struct EvolutionLifecycleExperience: View {
     ) -> some View {
         switch media {
         case .transparentWebP(let url, _):
-            if shouldPlay {
-                RemoteAnimatedWebPView(
-                    url: url,
-                    loopCount: 1,
-                    freezesOnLastFrame: true
-                ) { succeeded in
-                    transitionLoaded = succeeded
-                    transitionFailed = !succeeded
-                }
-                .id(url)
+            RemoteAnimatedWebPView(
+                url: url,
+                isPlaying: shouldPlay,
+                loopCount: 1,
+                freezesOnLastFrame: true,
+                preloadsAllFrames: true
+            ) { succeeded in
+                transitionLoaded = succeeded
+                transitionFailed = !succeeded
             }
+            .id(url)
         case .video(let url, _):
             RemoteTransitionVideoView(
                 url: url,

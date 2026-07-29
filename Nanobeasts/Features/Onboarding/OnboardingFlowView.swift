@@ -619,7 +619,8 @@ private struct ProfessorChatView: View {
             RemoteAnimatedWebPView(
                 url: R2TransitionManifest.onboardingGlitchletEvolutionURL,
                 loopCount: 1,
-                freezesOnLastFrame: true
+                freezesOnLastFrame: true,
+                preloadsAllFrames: true
             ) { _ in }
             .id("glitchlet-devicore-onboarding")
             .frame(width: 188, height: 188)

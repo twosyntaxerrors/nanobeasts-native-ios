@@ -20,9 +20,10 @@ struct LifetimeMovementCard: View {
     let unlockedBadges: Int
     let totalBadges: Int
     let rangeLabel: String
+    let distanceUnit: DistanceUnitPreference
 
-    private var distanceMiles: Double {
-        Double(steps) * 0.000473
+    private var distance: Double {
+        distanceUnit.value(forSteps: steps)
     }
 
     private var completion: Double {
@@ -79,8 +80,8 @@ struct LifetimeMovementCard: View {
         HStack(spacing: 0) {
             LifetimeMetric(
                 icon: "location.fill",
-                value: distanceMiles.formatted(.number.precision(.fractionLength(1))),
-                unit: "MI",
+                value: distance.formatted(.number.precision(.fractionLength(1))),
+                unit: distanceUnit.abbreviation,
                 label: "TOTAL DISTANCE"
             )
             .padding(.trailing, 16)

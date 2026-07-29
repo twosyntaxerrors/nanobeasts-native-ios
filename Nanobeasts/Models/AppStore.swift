@@ -1,6 +1,42 @@
 import Foundation
 import Observation
 
+enum DistanceUnitPreference: String, Codable, CaseIterable, Identifiable, Sendable {
+    case miles
+    case kilometers
+
+    var id: String { rawValue }
+
+    var abbreviation: String {
+        switch self {
+        case .miles: "MI"
+        case .kilometers: "KM"
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .miles: "Miles"
+        case .kilometers: "Kilometers"
+        }
+    }
+
+    var pluralName: String {
+        displayName.lowercased()
+    }
+
+    func value(forSteps steps: Int) -> Double {
+        value(fromKilometers: Double(max(steps, 0)) * 0.000762)
+    }
+
+    func value(fromKilometers kilometers: Double) -> Double {
+        switch self {
+        case .miles: kilometers * 0.621371
+        case .kilometers: kilometers
+        }
+    }
+}
+
 @MainActor
 @Observable
 final class AppStore {
@@ -15,6 +51,7 @@ final class AppStore {
         var lastHealthTodaySteps = 0
         var hapticsEnabled = true
         var reduceMotion = false
+        var distanceUnit: DistanceUnitPreference?
         var onboardingCompleted: Bool?
         var playerName: String?
         var onboardingWantsHealth: Bool?
@@ -64,6 +101,9 @@ final class AppStore {
     var reduceMotion: Bool {
         didSet { persist() }
     }
+    var distanceUnit: DistanceUnitPreference {
+        didSet { persist() }
+    }
     var onboardingCompleted: Bool {
         didSet { persist() }
     }
@@ -91,6 +131,7 @@ final class AppStore {
     private(set) var badgeEvaluationID = UUID()
     private(set) var isSyncingSteps = false
     private(set) var stepSyncAnimationID = UUID()
+    private(set) var dailyGoalCelebrationID: UUID?
     private(set) var stepSyncFromTodaySteps = 0
     private(set) var stepSyncFromHatchProgress = 0.0
     private(set) var stepSyncDuration = 1.0
@@ -135,6 +176,7 @@ final class AppStore {
         lastHealthTodaySteps = restored.lastHealthTodaySteps
         hapticsEnabled = restored.hapticsEnabled
         reduceMotion = restored.reduceMotion
+        distanceUnit = restored.distanceUnit ?? .miles
         onboardingCompleted = restored.onboardingCompleted ?? false
         playerName = restored.playerName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         onboardingWantsHealth = restored.onboardingWantsHealth ?? true
@@ -430,6 +472,7 @@ final class AppStore {
         stepSyncFromTodaySteps = 0
         stepSyncFromHatchProgress = 0
         stepSyncAnimationID = UUID()
+        dailyGoalCelebrationID = nil
         lastConsumedStepSyncAnimationID = stepSyncAnimationID
         evolutionEventID = UUID()
         discoveryEvents.removeAll()
@@ -446,6 +489,7 @@ final class AppStore {
         dailyGoal = 6_500
         onboardingWantsHealth = true
         onboardingWantsReminders = false
+        distanceUnit = .miles
         onboardingCompleted = false
         persist()
     }
@@ -583,6 +627,10 @@ final class AppStore {
         stepSyncFromHatchProgress = previousProgress
         stepSyncDuration = 0.88
         stepSyncAnimationID = UUID()
+        recordDailyGoalCrossing(
+            from: previousToday,
+            to: todaySteps
+        )
         badgeEvaluationID = UUID()
         persist()
     }
@@ -766,6 +814,10 @@ final class AppStore {
                 1.65
             )
             stepSyncAnimationID = UUID()
+            recordDailyGoalCrossing(
+                from: oldToday,
+                to: todaySteps
+            )
         }
         badgeEvaluationID = UUID()
 
@@ -777,6 +829,13 @@ final class AppStore {
             }
         }
         persist()
+    }
+
+    private func recordDailyGoalCrossing(from previousSteps: Int, to currentSteps: Int) {
+        guard previousSteps < dailyGoal, currentSteps >= dailyGoal else {
+            return
+        }
+        dailyGoalCelebrationID = UUID()
     }
 
     private func ensureJourneyStarted() {
@@ -850,6 +909,7 @@ final class AppStore {
             lastHealthTodaySteps: lastHealthTodaySteps,
             hapticsEnabled: hapticsEnabled,
             reduceMotion: reduceMotion,
+            distanceUnit: distanceUnit,
             onboardingCompleted: onboardingCompleted,
             playerName: playerName,
             onboardingWantsHealth: onboardingWantsHealth,

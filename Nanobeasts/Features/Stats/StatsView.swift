@@ -4,18 +4,9 @@ struct StatsView: View {
     @Environment(AppStore.self) private var store
     @State private var calendarScope: StatsCalendarScope = .month
     @State private var monthOffset = 0
+    @State private var presentation = StatsPresentationSnapshot.empty
 
     var body: some View {
-        let discoveredStages = store.catalog.creatureStages.filter {
-            store.isDiscovered($0) || store.isCurrent($0)
-        }
-        let badgeSections = StatsBadgeCatalog.make(
-            records: store.dailyHistory,
-            dailyGoal: store.dailyGoal,
-            discoveredStages: discoveredStages
-        )
-        let allBadges = badgeSections.flatMap(\.badges)
-
         ZStack {
             NanoTheme.background.ignoresSafeArea()
             LabGridBackground().ignoresSafeArea()
@@ -25,11 +16,12 @@ struct StatsView: View {
                     StatsScreenHeader()
 
                     LifetimeMovementCard(
-                        steps: store.analyticsHistory.reduce(0) { $0 + $1.steps },
-                        activeDays: store.analyticsHistory.filter { $0.steps > 0 }.count,
-                        unlockedBadges: allBadges.filter(\.unlocked).count,
-                        totalBadges: allBadges.count,
-                        rangeLabel: store.analyticsRangeLabel
+                        steps: presentation.totalSteps,
+                        activeDays: presentation.activeDays,
+                        unlockedBadges: presentation.unlockedBadgeCount,
+                        totalBadges: presentation.totalBadgeCount,
+                        rangeLabel: presentation.rangeLabel,
+                        distanceUnit: store.distanceUnit
                     )
 
                     ActivityConsistencyHeader(scope: $calendarScope)
@@ -39,7 +31,8 @@ struct StatsView: View {
                         monthOffset: $monthOffset,
                         records: store.analyticsHistory,
                         dailyGoal: store.dailyGoal,
-                        discoveryEvents: store.discoveryEvents
+                        discoveryEvents: store.discoveryEvents,
+                        distanceUnit: store.distanceUnit
                     )
 
                     ActionableInsightsCard(
@@ -55,7 +48,7 @@ struct StatsView: View {
                         creatureName: store.currentStage.name
                     )
 
-                    RecentAchievementsRow(sections: badgeSections)
+                    RecentAchievementsRow(sections: presentation.badgeSections)
                 }
                 .padding(.horizontal, 18)
                 .padding(.top, 14)
@@ -67,6 +60,90 @@ struct StatsView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .task(
+            id: "\(store.badgeEvaluationID.uuidString)-\(store.distanceUnit.rawValue)"
+        ) {
+            let input = StatsPresentationInput(
+                analyticsRecords: store.analyticsHistory,
+                journeyRecords: store.dailyHistory,
+                dailyGoal: store.dailyGoal,
+                discoveredStages: store.catalog.creatureStages.filter {
+                    store.isDiscovered($0) || store.isCurrent($0)
+                },
+                rangeLabel: store.analyticsRangeLabel,
+                distanceUnit: store.distanceUnit
+            )
+
+            // Commit the tab transition first, then calculate the badge catalog
+            // away from the main actor. The retained snapshot makes repeat
+            // visits immediate while fresh Health data is processed.
+            await Task.yield()
+            let prepared = await Task.detached(priority: .userInitiated) {
+                StatsPresentationSnapshot(input: input)
+            }.value
+            guard !Task.isCancelled else { return }
+            presentation = prepared
+        }
+    }
+}
+
+private struct StatsPresentationInput: Sendable {
+    let analyticsRecords: [DailyStepRecord]
+    let journeyRecords: [DailyStepRecord]
+    let dailyGoal: Int
+    let discoveredStages: [CreatureStage]
+    let rangeLabel: String
+    let distanceUnit: DistanceUnitPreference
+}
+
+private struct StatsPresentationSnapshot {
+    let totalSteps: Int
+    let activeDays: Int
+    let unlockedBadgeCount: Int
+    let totalBadgeCount: Int
+    let rangeLabel: String
+    let badgeSections: [StatsBadgeSection]
+
+    static let empty = StatsPresentationSnapshot(
+        totalSteps: 0,
+        activeDays: 0,
+        unlockedBadgeCount: 0,
+        totalBadgeCount: 0,
+        rangeLabel: "YOUR JOURNEY",
+        badgeSections: []
+    )
+
+    init(input: StatsPresentationInput) {
+        let badgeSections = StatsBadgeCatalog.make(
+            records: input.journeyRecords,
+            dailyGoal: input.dailyGoal,
+            discoveredStages: input.discoveredStages,
+            distanceUnit: input.distanceUnit
+        )
+        let allBadges = badgeSections.flatMap(\.badges)
+
+        totalSteps = input.analyticsRecords.reduce(0) { $0 + $1.steps }
+        activeDays = input.analyticsRecords.lazy.filter { $0.steps > 0 }.count
+        unlockedBadgeCount = allBadges.lazy.filter(\.unlocked).count
+        totalBadgeCount = allBadges.count
+        rangeLabel = input.rangeLabel
+        self.badgeSections = badgeSections
+    }
+
+    private init(
+        totalSteps: Int,
+        activeDays: Int,
+        unlockedBadgeCount: Int,
+        totalBadgeCount: Int,
+        rangeLabel: String,
+        badgeSections: [StatsBadgeSection]
+    ) {
+        self.totalSteps = totalSteps
+        self.activeDays = activeDays
+        self.unlockedBadgeCount = unlockedBadgeCount
+        self.totalBadgeCount = totalBadgeCount
+        self.rangeLabel = rangeLabel
+        self.badgeSections = badgeSections
     }
 }
 

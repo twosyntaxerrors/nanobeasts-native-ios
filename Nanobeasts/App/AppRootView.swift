@@ -228,7 +228,8 @@ struct AppRootView: View {
         return StatsBadgeCatalog.make(
             records: store.dailyHistory,
             dailyGoal: store.dailyGoal,
-            discoveredStages: discoveredStages
+            discoveredStages: discoveredStages,
+            distanceUnit: store.distanceUnit
         )
     }
 

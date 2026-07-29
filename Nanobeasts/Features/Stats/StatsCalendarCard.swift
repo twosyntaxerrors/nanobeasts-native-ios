@@ -6,6 +6,7 @@ struct ActivityCalendarCard: View {
     let records: [DailyStepRecord]
     let dailyGoal: Int
     let discoveryEvents: [CreatureDiscoveryEvent]
+    let distanceUnit: DistanceUnitPreference
 
     @State private var weekOffset = 0
     @State private var selectedDay: StatsCalendarDay?
@@ -28,10 +29,9 @@ struct ActivityCalendarCard: View {
     }
 
     private var recordsByDay: [Date: Int] {
-        Dictionary(
-            records.map { (calendar.startOfDay(for: $0.day), $0.steps) },
-            uniquingKeysWith: { _, latest in latest }
-        )
+        records.reduce(into: [Date: Int]()) { result, record in
+            result[calendar.startOfDay(for: record.day)] = record.steps
+        }
     }
 
     private var monthDays: [StatsCalendarDay] {
@@ -43,6 +43,10 @@ struct ActivityCalendarCard: View {
         }
 
         let leading = max(calendar.component(.weekday, from: interval.start) - 1, 0)
+        // Build this lookup once per presentation. Accessing the computed
+        // property inside the loop rebuilt the entire Health history for every
+        // calendar cell during the Home → Stats transition.
+        let stepsByDay = recordsByDay
         var result = (0..<leading).map {
             StatsCalendarDay(slot: $0, date: nil, steps: 0)
         }
@@ -55,7 +59,7 @@ struct ActivityCalendarCard: View {
                 StatsCalendarDay(
                     slot: result.count,
                     date: date,
-                    steps: recordsByDay[calendar.startOfDay(for: date)] ?? 0
+                    steps: stepsByDay[calendar.startOfDay(for: date)] ?? 0
                 )
             )
         }
@@ -74,6 +78,7 @@ struct ActivityCalendarCard: View {
             value: weekOffset,
             to: currentWeekStart
         ) ?? currentWeekStart
+        let stepsByDay = recordsByDay
 
         return (0..<7).compactMap { index in
             guard let date = calendar.date(byAdding: .day, value: index, to: start) else {
@@ -82,7 +87,7 @@ struct ActivityCalendarCard: View {
             return StatsCalendarDay(
                 slot: index,
                 date: date,
-                steps: recordsByDay[date] ?? 0
+                steps: stepsByDay[date] ?? 0
             )
         }
     }
@@ -99,7 +104,8 @@ struct ActivityCalendarCard: View {
             DailyFieldReportView(
                 day: day,
                 dailyGoal: dailyGoal,
-                discoveryEvents: discoveryEvents
+                discoveryEvents: discoveryEvents,
+                distanceUnit: distanceUnit
             )
                 .presentationDetents([.fraction(0.86), .large])
                 .presentationDragIndicator(.visible)
@@ -392,6 +398,7 @@ private struct DailyFieldReportView: View {
     let day: StatsCalendarDay
     let dailyGoal: Int
     let discoveryEvents: [CreatureDiscoveryEvent]
+    let distanceUnit: DistanceUnitPreference
 
     @Environment(\.dismiss) private var dismiss
 
@@ -405,8 +412,8 @@ private struct DailyFieldReportView: View {
         return min(Int((Double(day.steps) / Double(dailyGoal) * 100).rounded()), 999)
     }
 
-    private var distanceMiles: Double {
-        Double(day.steps) * 0.000473
+    private var distance: Double {
+        distanceUnit.value(forSteps: day.steps)
     }
 
     private var discoveriesForDay: [CreatureDiscoveryEvent] {
@@ -494,7 +501,10 @@ private struct DailyFieldReportView: View {
                         )
                         ReportMetric(
                             icon: "location.fill",
-                            value: distanceMiles.formatted(.number.precision(.fractionLength(1))) + " MI",
+                            value:
+                                distance.formatted(
+                                    .number.precision(.fractionLength(1))
+                                ) + " \(distanceUnit.abbreviation)",
                             label: "DISTANCE"
                         )
                     }

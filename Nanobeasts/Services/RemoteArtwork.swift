@@ -363,6 +363,7 @@ struct CreatureArtworkView: View {
 struct AnimatedCreatureArtworkView: View {
     let stage: CreatureStage
     var isPlaying = true
+    var preloadsAllFrames = false
     @State private var animationLoaded = false
 
     var body: some View {
@@ -376,6 +377,7 @@ struct AnimatedCreatureArtworkView: View {
                 RemoteAnimatedWebPView(
                     url: R2AnimationManifest.url(for: stage),
                     isPlaying: isPlaying,
+                    preloadsAllFrames: preloadsAllFrames,
                     onLoad: { succeeded in
                         animationLoaded = succeeded
                     }
@@ -393,12 +395,110 @@ struct AnimatedCreatureArtworkView: View {
     }
 }
 
+/// Keeps lifecycle result screens responsive even when an animated WebP needs
+/// extra time to decode. The transparent PNG is the guaranteed first frame;
+/// the animation is mounted and fully preloaded offscreen, then crossfaded in
+/// only after its decoder has had a short settling window.
+struct DeferredAnimatedCreatureArtworkView: View {
+    let stage: CreatureStage
+    var shouldPlay = true
+
+    @State private var animationAssetLoaded = false
+    @State private var showsAnimation = false
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack {
+                CreatureArtworkView(stage: stage)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .opacity(showsAnimation ? 0 : 1)
+
+                RemoteAnimatedWebPView(
+                    url: R2AnimationManifest.url(for: stage),
+                    isPlaying: shouldPlay && showsAnimation,
+                    preloadsAllFrames: true,
+                    onLoad: { succeeded in
+                        animationAssetLoaded = succeeded
+                    }
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .opacity(showsAnimation ? 1 : 0)
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+            .clipped()
+        }
+        .task(id: animationAssetLoaded && shouldPlay) {
+            guard animationAssetLoaded, shouldPlay else {
+                showsAnimation = false
+                return
+            }
+
+            // SDWebImage has decoded every frame at this point. Waiting for a
+            // few display cycles prevents the first visible playback frames
+            // from competing with the lifecycle reveal's teardown work.
+            try? await Task.sleep(for: .milliseconds(450))
+            guard !Task.isCancelled, shouldPlay else { return }
+            withAnimation(.easeOut(duration: 0.2)) {
+                showsAnimation = true
+            }
+        }
+        .onChange(of: stage.id) {
+            animationAssetLoaded = false
+            showsAnimation = false
+        }
+        .onChange(of: shouldPlay) {
+            if !shouldPlay {
+                showsAnimation = false
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(stage.name)
+    }
+}
+
+/// A deliberately static lifecycle result. The idle WebP is warmed in the
+/// background for the following Dex scan, but it is never allowed to replace
+/// the PNG on this screen. That keeps the high-value reveal responsive even
+/// when a large animated asset is cold.
+struct PreloadingStaticCreatureArtworkView: View {
+    let stage: CreatureStage
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack {
+                CreatureArtworkView(stage: stage)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                RemoteAnimatedWebPView(
+                    url: R2AnimationManifest.url(for: stage),
+                    isPlaying: false,
+                    preloadsAllFrames: true,
+                    onLoad: { _ in }
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .opacity(0)
+                .accessibilityHidden(true)
+                .allowsHitTesting(false)
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+            .clipped()
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(stage.name)
+    }
+}
+
 struct RemoteAnimatedWebPView: UIViewRepresentable {
     let url: URL
     var isPlaying = true
     var loopCount: Int? = nil
     var freezesOnLastFrame = false
+    var preloadsAllFrames = false
     let onLoad: (Bool) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
 
     func makeUIView(context: Context) -> SDAnimatedImageView {
         let imageView = SDAnimatedImageView()
@@ -420,6 +520,10 @@ struct RemoteAnimatedWebPView: UIViewRepresentable {
     }
 
     func updateUIView(_ imageView: SDAnimatedImageView, context: Context) {
+        context.coordinator.isPlaying = isPlaying
+        context.coordinator.onLoad = onLoad
+        imageView.isHidden = false
+        imageView.alpha = 1
         imageView.autoPlayAnimatedImage = isPlaying
         imageView.shouldCustomLoopCount = loopCount != nil
         imageView.animationRepeatCount = loopCount ?? 0
@@ -432,24 +536,49 @@ struct RemoteAnimatedWebPView: UIViewRepresentable {
             }
             return
         }
+
+        var options: SDWebImageOptions = [
+            .retryFailed,
+            .highPriority,
+            .continueInBackground
+        ]
+        if preloadsAllFrames {
+            options.insert(.preloadAllFrames)
+        }
+
         imageView.sd_setImage(
             with: url,
             placeholderImage: nil,
-            options: [.retryFailed, .highPriority, .continueInBackground]
+            options: options
         ) { image, error, _, _ in
             DispatchQueue.main.async {
-                if isPlaying, image != nil, error == nil {
+                guard imageView.sd_imageURL == url else { return }
+                let succeeded = image != nil && error == nil
+                if context.coordinator.isPlaying, succeeded {
                     imageView.startAnimating()
                 } else {
                     imageView.stopAnimating()
                 }
-                onLoad(image != nil && error == nil)
+                context.coordinator.onLoad(succeeded)
             }
         }
     }
 
-    static func dismantleUIView(_ imageView: SDAnimatedImageView, coordinator: Void) {
+    static func dismantleUIView(
+        _ imageView: SDAnimatedImageView,
+        coordinator: Coordinator
+    ) {
+        // Hide before stopping. SDAnimatedImageView can synchronously seek to
+        // frame zero during teardown, which otherwise produces a one-frame
+        // flash of the source creature.
+        imageView.isHidden = true
+        imageView.alpha = 0
         imageView.sd_cancelCurrentImageLoad()
         imageView.stopAnimating()
+    }
+
+    final class Coordinator {
+        var isPlaying = true
+        var onLoad: (Bool) -> Void = { _ in }
     }
 }
