@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import RevenueCat
 
 enum DistanceUnitPreference: String, Codable, CaseIterable, Identifiable, Sendable {
     case miles
@@ -40,6 +41,13 @@ enum DistanceUnitPreference: String, Codable, CaseIterable, Identifiable, Sendab
 @MainActor
 @Observable
 final class AppStore {
+    static let premiumMonthlyProductID = "nanobeasts_native_premium_monthly"
+    static let premiumYearlyProductID = "nanobeasts_native_premium_yearly"
+    static let premiumProductIDs: Set<String> = [
+        premiumMonthlyProductID,
+        premiumYearlyProductID,
+    ]
+
     private struct PersistedState: Codable {
         var familyIndex = 0
         var stageIndex = 0
@@ -66,6 +74,11 @@ final class AppStore {
         var pendingLifecycleEvents: [CreatureDiscoveryEvent]?
         var awardedBadgeIDs: [String]?
         var eggDiscoveryOrder: [String]?
+        var progressionCreditHistory: [DailyStepRecord]?
+        var testingStepHistory: [DailyStepRecord]?
+        var isPremium: Bool?
+        var reviewEligibleLifecycleCount: Int?
+        var lastReviewRequestLifecycleCount: Int?
     }
 
     let catalog: CreatureCatalog
@@ -84,6 +97,10 @@ final class AppStore {
     private var journeyStartedAt: Date?
     private var lastCountedJourneySteps: Int
     private var eggDiscoveryOrder: [String]
+    private var progressionCreditHistory: [DailyStepRecord]
+    private var testingStepHistory: [DailyStepRecord]
+    private var reviewEligibleLifecycleCount: Int
+    private var lastReviewRequestLifecycleCount: Int
     private(set) var awaitingEggSelection: Bool
 
     var dailyGoal: Int {
@@ -132,9 +149,14 @@ final class AppStore {
     private(set) var isSyncingSteps = false
     private(set) var stepSyncAnimationID = UUID()
     private(set) var dailyGoalCelebrationID: UUID?
+    private(set) var isPremium: Bool
     private(set) var stepSyncFromTodaySteps = 0
     private(set) var stepSyncFromHatchProgress = 0.0
     private(set) var stepSyncDuration = 1.0
+    private(set) var testingActivityPreviewSteps = 0
+    private(set) var testingProgressionPreviewSteps = 0
+    private(set) var testingProgressionCreditSteps = 0
+    private var testingPresentedBadgeIDs: Set<String> = []
     @ObservationIgnored private var lastConsumedStepSyncAnimationID: UUID?
     @ObservationIgnored private var persistenceTask: Task<Void, Never>?
 
@@ -183,17 +205,63 @@ final class AppStore {
         onboardingWantsReminders = restored.onboardingWantsReminders ?? true
         awaitingEggSelection = restored.awaitingEggSelection
         journeyStartedAt = restored.journeyStartedAt
-        lastCountedJourneySteps = max(restored.lastCountedJourneySteps ?? 0, 0)
-        let restoredJourneyHistory = restored.dailyHistory ?? []
+        let restoredLastCountedJourneySteps = max(
+            restored.lastCountedJourneySteps ?? 0,
+            0
+        )
+        let legacyTestingHistory = restored.testingStepHistory ?? []
+        let calendar = Calendar.autoupdatingCurrent
+        let legacyTestingByDay = Dictionary(
+            legacyTestingHistory.map {
+                (calendar.startOfDay(for: $0.day), max($0.steps, 0))
+            },
+            uniquingKeysWith: +
+        )
+        let removeLegacyTestingSteps: ([DailyStepRecord]) -> [DailyStepRecord] = {
+            records in
+            records.map { record in
+                let day = calendar.startOfDay(for: record.day)
+                return DailyStepRecord(
+                    day: day,
+                    steps: max(record.steps - (legacyTestingByDay[day] ?? 0), 0)
+                )
+            }
+        }
+        let restoredJourneyHistory = removeLegacyTestingSteps(
+            restored.dailyHistory ?? []
+        )
         dailyHistory = restoredJourneyHistory
-        analyticsHistory = restored.analyticsHistory ?? restoredJourneyHistory
-        hourlyAnalyticsHistory = restored.hourlyAnalyticsHistory ?? []
+        progressionCreditHistory =
+            restored.progressionCreditHistory
+            ?? restoredJourneyHistory.map {
+                DailyStepRecord(
+                    day: $0.day,
+                    steps: max($0.steps, 0)
+                )
+            }
+        // Testing increments now simulate lifecycle progression only. Strip
+        // offsets persisted by older builds from real activity ledgers.
+        testingStepHistory = []
+        analyticsHistory = removeLegacyTestingSteps(
+            restored.analyticsHistory ?? restoredJourneyHistory
+        )
+        hourlyAnalyticsHistory = (restored.hourlyAnalyticsHistory ?? []).filter {
+            legacyTestingByDay[calendar.startOfDay(for: $0.start)] == nil
+        }
+        lastCountedJourneySteps = max(
+            restoredLastCountedJourneySteps
+                - legacyTestingByDay.values.reduce(0, +),
+            0
+        )
         dailyGoalHistory = restored.dailyGoalHistory ?? []
         discoveryEvents = defaults.data(forKey: discoveryStateKey)
             .flatMap { try? JSONDecoder().decode([CreatureDiscoveryEvent].self, from: $0) }
             ?? []
         pendingLifecycleEvents = restored.pendingLifecycleEvents ?? []
         awardedBadgeIDs = Set(restored.awardedBadgeIDs ?? [])
+        isPremium = restored.isPremium ?? false
+        reviewEligibleLifecycleCount = restored.reviewEligibleLifecycleCount ?? 0
+        lastReviewRequestLifecycleCount = restored.lastReviewRequestLifecycleCount ?? 0
         let eligibleFamilyIDs = Array(catalog.families.dropFirst().map(\.id))
         let restoredOrder = restored.eggDiscoveryOrder ?? []
         eggDiscoveryOrder =
@@ -247,11 +315,26 @@ final class AppStore {
             return 1
         }
         guard currentTarget > 0 else { return 0 }
-        return min(Double(progressionSteps) / Double(currentTarget), 1)
+        return min(Double(hatchProgressSteps) / Double(currentTarget), 1)
     }
 
     var hatchProgressSteps: Int {
-        progressionSteps
+        progressionSteps + testingProgressionPreviewSteps
+    }
+
+    static let freeDailyProgressionCap = 2_500
+
+    var progressionStepsCreditedToday: Int {
+        let calendar = Calendar.autoupdatingCurrent
+        return progressionCreditHistory.first(where: {
+            calendar.isDateInToday($0.day)
+        })?.steps ?? 0
+    }
+
+    var freeProgressionCapReached: Bool {
+        !isPremium
+            && progressionStepsCreditedToday + testingProgressionCreditSteps
+                >= Self.freeDailyProgressionCap
     }
 
     var todaySteps: Int {
@@ -259,8 +342,66 @@ final class AppStore {
         return dailyHistory.first(where: { calendar.isDateInToday($0.day) })?.steps ?? 0
     }
 
+    /// Home-only activity preview used by the hidden testing shortcut. The
+    /// offset is deliberately memory-only and is cleared by the next real
+    /// HealthKit or pedometer update.
+    var displayedTodaySteps: Int {
+        todaySteps + testingActivityPreviewSteps
+    }
+
+    var hasTestingActivityPreview: Bool {
+        testingActivityPreviewSteps > 0 || testingProgressionPreviewSteps > 0
+    }
+
+    /// Badge calculations may include the hidden recording preview, while the
+    /// persisted Health-backed journey ledger remains untouched.
+    var badgeEvaluationHistory: [DailyStepRecord] {
+        guard testingActivityPreviewSteps > 0 else { return dailyHistory }
+
+        let calendar = Calendar.autoupdatingCurrent
+        let today = calendar.startOfDay(for: Date())
+        var records = dailyHistory
+        if let index = records.firstIndex(where: {
+            calendar.isDate($0.day, inSameDayAs: today)
+        }) {
+            records[index] = DailyStepRecord(day: today, steps: displayedTodaySteps)
+        } else {
+            records.append(DailyStepRecord(day: today, steps: displayedTodaySteps))
+            records.sort { $0.day < $1.day }
+        }
+        return records
+    }
+
+    func hasPresentedBadgeAward(_ badgeID: String) -> Bool {
+        awardedBadgeIDs.contains(badgeID)
+            || testingPresentedBadgeIDs.contains(badgeID)
+    }
+
     var recentWeek: [DailyStepRecord] {
         Array(dailyHistory.suffix(7))
+    }
+
+    var displayedRecentWeek: [DailyStepRecord] {
+        let calendar = Calendar.autoupdatingCurrent
+        let today = calendar.startOfDay(for: Date())
+        var records = recentWeek
+
+        if let index = records.firstIndex(where: {
+            calendar.isDate($0.day, inSameDayAs: today)
+        }) {
+            records[index] = DailyStepRecord(
+                day: today,
+                steps: displayedTodaySteps
+            )
+        } else if testingActivityPreviewSteps > 0 {
+            records.append(
+                DailyStepRecord(day: today, steps: displayedTodaySteps)
+            )
+            records.sort { $0.day < $1.day }
+            records = Array(records.suffix(7))
+        }
+
+        return records
     }
 
     var recentFourWeeks: [DailyStepRecord] {
@@ -291,15 +432,15 @@ final class AppStore {
     }
 
     var distanceKilometersToday: Double {
-        Double(todaySteps) * 0.000762
+        Double(displayedTodaySteps) * 0.000762
     }
 
     var caloriesToday: Int {
-        Int((Double(todaySteps) * 0.048).rounded())
+        Int((Double(displayedTodaySteps) * 0.048).rounded())
     }
 
     var activeMinutesToday: Int {
-        todaySteps / 100
+        displayedTodaySteps / 100
     }
 
     var currentStreak: Int {
@@ -308,6 +449,21 @@ final class AppStore {
             if record.steps >= goal(for: record.day) {
                 streak += 1
             } else if Calendar.autoupdatingCurrent.isDateInToday(record.day) && record.steps > 0 {
+                continue
+            } else {
+                break
+            }
+        }
+        return streak
+    }
+
+    var displayedCurrentStreak: Int {
+        var streak = 0
+        for record in displayedRecentWeek.reversed() {
+            if record.steps >= goal(for: record.day) {
+                streak += 1
+            } else if Calendar.autoupdatingCurrent.isDateInToday(record.day)
+                        && record.steps > 0 {
                 continue
             } else {
                 break
@@ -350,6 +506,8 @@ final class AppStore {
     func bootstrap() async {
         isLoading = true
         defer { isLoading = false }
+
+        await refreshSubscriptionStatus()
 
         guard onboardingCompleted else {
             healthState = healthClient.isAvailable ? .notRequested : .unavailable
@@ -457,6 +615,8 @@ final class AppStore {
         stageIndex = 0
         progressionSteps = 0
         discoveredStageIDs.removeAll()
+        progressionCreditHistory.removeAll()
+        testingStepHistory.removeAll()
         dailyHistory.removeAll()
         analyticsHistory.removeAll()
         hourlyAnalyticsHistory.removeAll()
@@ -471,6 +631,10 @@ final class AppStore {
         isSyncingSteps = false
         stepSyncFromTodaySteps = 0
         stepSyncFromHatchProgress = 0
+        testingActivityPreviewSteps = 0
+        testingProgressionPreviewSteps = 0
+        testingProgressionCreditSteps = 0
+        testingPresentedBadgeIDs.removeAll()
         stepSyncAnimationID = UUID()
         dailyGoalCelebrationID = nil
         lastConsumedStepSyncAnimationID = stepSyncAnimationID
@@ -478,6 +642,8 @@ final class AppStore {
         discoveryEvents.removeAll()
         pendingLifecycleEvents.removeAll()
         awardedBadgeIDs.removeAll()
+        reviewEligibleLifecycleCount = 0
+        lastReviewRequestLifecycleCount = 0
         badgeEvaluationID = UUID()
         awaitingEggSelection = false
         eggDiscoveryOrder = Array(catalog.families.dropFirst().map(\.id)).shuffled()
@@ -579,60 +745,57 @@ final class AppStore {
         return true
     }
 
-    func addTestingSteps(_ amount: Int = 100) {
+    func addTestingSteps(_ amount: Int = 100) async {
+        guard onboardingCompleted, amount > 0 else { return }
+
+        // A purchase can complete while Home still has the last cached free
+        // entitlement. Resolve that state before applying a testing increment
+        // so an active Pro member is never evaluated against the free cap.
+        if !isPremium {
+            await refreshSubscriptionStatus()
+        }
+
+        addTestingStepsImmediately(amount)
+    }
+
+    private func addTestingStepsImmediately(_ amount: Int) {
         guard onboardingCompleted, amount > 0 else { return }
         ensureJourneyStarted()
 
-        let calendar = Calendar.autoupdatingCurrent
-        let today = calendar.startOfDay(for: Date())
-        let previousToday = todaySteps
+        let previousToday = displayedTodaySteps
         let previousProgress = hatchProgress
-        if let index = dailyHistory.firstIndex(where: { calendar.isDate($0.day, inSameDayAs: today) }) {
-            let existing = dailyHistory[index]
-            dailyHistory[index] = DailyStepRecord(day: today, steps: existing.steps + amount)
-        } else {
-            dailyHistory.append(DailyStepRecord(day: today, steps: amount))
-            dailyHistory.sort { $0.day < $1.day }
-        }
-        if let index = analyticsHistory.firstIndex(where: {
-            calendar.isDate($0.day, inSameDayAs: today)
-        }) {
-            let existing = analyticsHistory[index]
-            analyticsHistory[index] = DailyStepRecord(
-                day: today,
-                steps: existing.steps + amount
-            )
-        } else {
-            analyticsHistory.append(DailyStepRecord(day: today, steps: amount))
-            analyticsHistory.sort { $0.day < $1.day }
-        }
 
-        let hour = calendar.dateInterval(of: .hour, for: Date())?.start ?? Date()
-        if let index = hourlyAnalyticsHistory.firstIndex(where: {
-            calendar.isDate($0.start, equalTo: hour, toGranularity: .hour)
-        }) {
-            let existing = hourlyAnalyticsHistory[index]
-            hourlyAnalyticsHistory[index] = HourlyStepRecord(
-                start: hour,
-                steps: existing.steps + amount
-            )
-        } else {
-            hourlyAnalyticsHistory.append(HourlyStepRecord(start: hour, steps: amount))
-            hourlyAnalyticsHistory.sort { $0.start < $1.start }
-        }
-
-        lastCountedJourneySteps += amount
-        applyProgress(amount)
+        // Show a recording-friendly activity preview without modifying any
+        // Health-backed ledger. The next HealthKit/pedometer update clears it.
+        testingActivityPreviewSteps += amount
+        creditTestingProgress(amount)
         stepSyncFromTodaySteps = previousToday
         stepSyncFromHatchProgress = previousProgress
         stepSyncDuration = 0.88
         stepSyncAnimationID = UUID()
         recordDailyGoalCrossing(
             from: previousToday,
-            to: todaySteps
+            to: displayedTodaySteps
         )
         badgeEvaluationID = UUID()
         persist()
+    }
+
+    private func creditTestingProgress(_ amount: Int) {
+        guard amount > 0, !awaitingEggSelection else { return }
+
+        let previouslyCredited =
+            progressionStepsCreditedToday + testingProgressionCreditSteps
+        let creditedAmount = isPremium
+            ? amount
+            : min(
+                amount,
+                max(Self.freeDailyProgressionCap - previouslyCredited, 0)
+            )
+
+        guard creditedAmount > 0 else { return }
+        testingProgressionCreditSteps += creditedAmount
+        applyTestingProgress(creditedAmount)
     }
 
     func acknowledgeLifecycleEvent(_ eventID: UUID) {
@@ -642,8 +805,60 @@ final class AppStore {
     }
 
     func markBadgeAwardPresented(_ badgeID: String) {
+        if hasTestingActivityPreview {
+            testingPresentedBadgeIDs.insert(badgeID)
+            return
+        }
         awardedBadgeIDs.insert(badgeID)
         persist()
+    }
+
+    func refreshSubscriptionStatus() async {
+        guard Purchases.isConfigured else {
+            isPremium = false
+            persist()
+            return
+        }
+
+        do {
+            let customerInfo = try await Purchases.shared.customerInfo()
+            applyRevenueCatCustomerInfo(customerInfo)
+        } catch {
+            // Keep the last verified state while temporarily offline. RevenueCat
+            // maintains its own CustomerInfo cache for subsequent launches.
+        }
+    }
+
+    func applyRevenueCatCustomerInfo(_ customerInfo: CustomerInfo) {
+        let hasPremiumEntitlement =
+            customerInfo.entitlements["premium"]?.isActive == true
+            || !customerInfo.activeSubscriptions.isDisjoint(with: Self.premiumProductIDs)
+
+        let wasPremium = isPremium
+        let previousProgress = hatchProgress
+        isPremium = hasPremiumEntitlement
+        creditProgressionForToday()
+        if !wasPremium, isPremium, abs(hatchProgress - previousProgress) > 0.000_1 {
+            stepSyncFromTodaySteps = todaySteps
+            stepSyncFromHatchProgress = previousProgress
+            stepSyncDuration = 1.1
+            stepSyncAnimationID = UUID()
+        }
+        persist()
+    }
+
+    @discardableResult
+    func recordLifecycleCompletionForReview(_ kind: CreatureDiscoveryKind) -> Bool {
+        guard kind == .hatch || kind == .evolution else { return false }
+        reviewEligibleLifecycleCount += 1
+        let shouldRequest =
+            reviewEligibleLifecycleCount.isMultiple(of: 2)
+            && reviewEligibleLifecycleCount > lastReviewRequestLifecycleCount
+        if shouldRequest {
+            lastReviewRequestLifecycleCount = reviewEligibleLifecycleCount
+        }
+        persist()
+        return shouldRequest
     }
 
     private func applyProgress(_ delta: Int) {
@@ -673,6 +888,57 @@ final class AppStore {
                 pendingLifecycleEvents.append(event)
                 transitions += 1
             }
+        }
+
+        if transitions > 0 {
+            evolutionEventID = UUID()
+            persistDiscoveryEvents()
+        }
+    }
+
+    /// Advances the visible lifecycle for the hidden recording tool without
+    /// writing synthetic step credits into the Health-backed progression
+    /// ledger. A later Health or pedometer update clears any unconsumed
+    /// preview steps and returns the ring to authoritative progress.
+    private func applyTestingProgress(_ delta: Int) {
+        guard delta > 0, !awaitingEggSelection else { return }
+        testingProgressionPreviewSteps += delta
+
+        var transitions = 0
+        while
+            progressionSteps + testingProgressionPreviewSteps >= currentTarget,
+            transitions < 100
+        {
+            let previewNeeded = max(currentTarget - progressionSteps, 0)
+            testingProgressionPreviewSteps = max(
+                testingProgressionPreviewSteps - previewNeeded,
+                0
+            )
+            progressionSteps = 0
+
+            let previousStage = currentStage
+            discoveredStageIDs.insert(previousStage.id)
+            if stageIndex + 1 >= currentFamily.stages.count {
+                awaitingEggSelection = true
+                testingProgressionPreviewSteps = 0
+                let event = CreatureDiscoveryEvent(
+                    stage: previousStage,
+                    kind: .maturity
+                )
+                discoveryEvents.append(event)
+                pendingLifecycleEvents.append(event)
+                transitions += 1
+                break
+            }
+
+            advanceStage()
+            let newStage = currentStage
+            let kind: CreatureDiscoveryKind =
+                previousStage.isEgg ? .hatch : .evolution
+            let event = CreatureDiscoveryEvent(stage: newStage, kind: kind)
+            discoveryEvents.append(event)
+            pendingLifecycleEvents.append(event)
+            transitions += 1
         }
 
         if transitions > 0 {
@@ -732,8 +998,9 @@ final class AppStore {
     ) {
         let calendar = Calendar.autoupdatingCurrent
         let normalized = incoming.map {
-            DailyStepRecord(
-                day: calendar.startOfDay(for: $0.day),
+            let day = calendar.startOfDay(for: $0.day)
+            return DailyStepRecord(
+                day: day,
                 steps: max(0, $0.steps)
             )
         }
@@ -748,7 +1015,11 @@ final class AppStore {
             }
             analyticsHistory = byDay.values.sorted { $0.day < $1.day }
         } else {
-            analyticsHistory = normalized.sorted { $0.day < $1.day }
+            let byDay = Dictionary(
+                normalized.map { ($0.day, $0) },
+                uniquingKeysWith: { _, latest in latest }
+            )
+            analyticsHistory = byDay.values.sorted { $0.day < $1.day }
         }
 
         if !hourly.isEmpty {
@@ -772,7 +1043,7 @@ final class AppStore {
         let calendar = Calendar.autoupdatingCurrent
         let boundaryDay = calendar.startOfDay(for: journeyStartedAt)
         let filtered = incoming.filter { $0.day >= boundaryDay }
-        let oldToday = todaySteps
+        let oldToday = displayedTodaySteps
         let oldProgress = hatchProgress
 
         if merging {
@@ -782,26 +1053,37 @@ final class AppStore {
             )
             for record in filtered {
                 let day = calendar.startOfDay(for: record.day)
-                byDay[day] = DailyStepRecord(day: day, steps: max(0, record.steps))
+                byDay[day] = DailyStepRecord(
+                    day: day,
+                    steps: max(0, record.steps)
+                )
             }
             dailyHistory = byDay.values.sorted { $0.day < $1.day }
         } else {
-            dailyHistory = filtered
-                .map {
-                    DailyStepRecord(
-                        day: calendar.startOfDay(for: $0.day),
+            let byDay = Dictionary(
+                filtered.map {
+                    let day = calendar.startOfDay(for: $0.day)
+                    return DailyStepRecord(
+                        day: day,
                         steps: max(0, $0.steps)
                     )
-                }
-                .sorted { $0.day < $1.day }
+                }.map { ($0.day, $0) },
+                uniquingKeysWith: { _, latest in latest }
+            )
+            dailyHistory = byDay.values.sorted { $0.day < $1.day }
         }
 
+        // A successful HealthKit/pedometer result is authoritative. Remove the
+        // recording preview before calculating the destination animation.
+        testingActivityPreviewSteps = 0
+        testingProgressionPreviewSteps = 0
+        testingProgressionCreditSteps = 0
+        testingPresentedBadgeIDs.removeAll()
         let journeyTotal = dailyHistory.reduce(0) { $0 + $1.steps }
-        let delta = max(0, journeyTotal - lastCountedJourneySteps)
         lastCountedJourneySteps = max(lastCountedJourneySteps, journeyTotal)
-        applyProgress(delta)
+        creditProgressionForToday()
 
-        let changedSteps = abs(todaySteps - oldToday)
+        let changedSteps = abs(displayedTodaySteps - oldToday)
         let activityChanged =
             changedSteps > 0
             || abs(hatchProgress - oldProgress) > 0.000_1
@@ -816,7 +1098,7 @@ final class AppStore {
             stepSyncAnimationID = UUID()
             recordDailyGoalCrossing(
                 from: oldToday,
-                to: todaySteps
+                to: displayedTodaySteps
             )
         }
         badgeEvaluationID = UUID()
@@ -836,6 +1118,38 @@ final class AppStore {
             return
         }
         dailyGoalCelebrationID = UUID()
+    }
+
+    private func creditProgressionForToday() {
+        guard onboardingCompleted else { return }
+        let calendar = Calendar.autoupdatingCurrent
+        let today = calendar.startOfDay(for: Date())
+        let eligibleTotal = isPremium
+            ? todaySteps
+            : min(todaySteps, Self.freeDailyProgressionCap)
+        let existingIndex = progressionCreditHistory.firstIndex {
+            calendar.isDate($0.day, inSameDayAs: today)
+        }
+        let previouslyCredited = existingIndex.map {
+            progressionCreditHistory[$0].steps
+        } ?? 0
+        let newlyEligible = max(eligibleTotal - previouslyCredited, 0)
+
+        if let existingIndex {
+            progressionCreditHistory[existingIndex] = DailyStepRecord(
+                day: today,
+                steps: max(previouslyCredited, eligibleTotal)
+            )
+        } else {
+            progressionCreditHistory.append(
+                DailyStepRecord(day: today, steps: eligibleTotal)
+            )
+            progressionCreditHistory.sort { $0.day < $1.day }
+        }
+
+        if newlyEligible > 0 {
+            applyProgress(newlyEligible)
+        }
     }
 
     private func ensureJourneyStarted() {
@@ -923,7 +1237,12 @@ final class AppStore {
             dailyGoalHistory: dailyGoalHistory,
             pendingLifecycleEvents: pendingLifecycleEvents,
             awardedBadgeIDs: Array(awardedBadgeIDs),
-            eggDiscoveryOrder: eggDiscoveryOrder
+            eggDiscoveryOrder: eggDiscoveryOrder,
+            progressionCreditHistory: progressionCreditHistory,
+            testingStepHistory: testingStepHistory,
+            isPremium: isPremium,
+            reviewEligibleLifecycleCount: reviewEligibleLifecycleCount,
+            lastReviewRequestLifecycleCount: lastReviewRequestLifecycleCount
         )
         let data = await Task.detached(priority: .utility) {
             try? JSONEncoder().encode(state)
@@ -940,11 +1259,11 @@ final class AppStore {
         if onboardingCompleted {
             WidgetSnapshotWriter.shared.update(
                 stage: currentStage,
-                todaySteps: todaySteps,
+                todaySteps: displayedTodaySteps,
                 dailyGoal: dailyGoal,
                 evolutionProgress: hatchProgress,
                 stepsRemaining: max(currentTarget - hatchProgressSteps, 0),
-                streak: currentStreak
+                streak: displayedCurrentStreak
             )
         } else {
             WidgetSnapshotWriter.shared.clear()

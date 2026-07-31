@@ -48,6 +48,8 @@
 	<string>Nanobeasts Native requests Health access to connect your walking activity with creature progress. The app does not write health data.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Nanobeasts uses your iPhone motion data to count steps when Apple Health is not connected.</string>
+	<key>RevenueCatAPIKey</key>
+	<string>$(REVENUECAT_PUBLIC_SDK_KEY)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

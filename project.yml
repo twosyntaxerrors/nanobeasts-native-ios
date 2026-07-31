@@ -39,8 +39,6 @@ targets:
         embed: true
       - package: RevenueCat
         product: RevenueCat
-      - package: RevenueCat
-        product: RevenueCatUI
       - package: SDWebImage
         product: SDWebImage
       - package: SDWebImageWebPCoder
@@ -62,8 +60,10 @@ targets:
         Debug:
           CODE_SIGN_STYLE: Manual
           PROVISIONING_PROFILE_SPECIFIER: Nanobeasts Native Development
+          REVENUECAT_PUBLIC_SDK_KEY: "test_xSlHgKrlMPvMaQveiyUUaYAdrye"
         Release:
           CODE_SIGN_STYLE: Automatic
+          REVENUECAT_PUBLIC_SDK_KEY: "appl_RZwqUISPAKgFHefFFZAtDpyOvdC"
   NanobeastsWidgets:
     type: app-extension
     platform: iOS

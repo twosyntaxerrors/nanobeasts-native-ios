@@ -8,6 +8,7 @@ struct RevenueCatPaywallScreen: View {
     }
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppStore.self) private var store
 
     let playerName: String
 
@@ -98,6 +99,15 @@ struct RevenueCatPaywallScreen: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(NanoTheme.secondaryText)
 
+#if DEBUG
+                    if isUsingRevenueCatTestStore {
+                        Label("REVENUECAT TEST PURCHASE • NO CHARGE", systemImage: "checkmark.seal.fill")
+                            .font(NanoFont.aldrich(9))
+                            .tracking(0.7)
+                            .foregroundStyle(NanoTheme.teal)
+                    }
+#endif
+
                     Button {
                         Task { await purchaseSelectedPlan() }
                     } label: {
@@ -106,7 +116,7 @@ struct RevenueCatPaywallScreen: View {
                                 ProgressView()
                                     .tint(.black)
                             }
-                            Text(isPurchasing ? "Connecting to App Store…" : "Start My Evolution")
+                            Text(isPurchasing ? "Connecting securely…" : "Start My Evolution")
                                 .font(.headline)
                         }
                         .foregroundStyle(.black)
@@ -129,7 +139,7 @@ struct RevenueCatPaywallScreen: View {
                     if offering == nil && errorMessage == nil {
                         HStack(spacing: 8) {
                             ProgressView()
-                            Text("Loading App Store plans…")
+                            Text("Loading subscription plans…")
                         }
                         .font(.caption)
                         .foregroundStyle(NanoTheme.secondaryText)
@@ -194,16 +204,20 @@ struct RevenueCatPaywallScreen: View {
     }
 
     private var yearlyPrice: String {
-        offering?.annual?.storeProduct.localizedPriceString ?? "$32.99/year"
+        yearlyPackage.map {
+            "\($0.storeProduct.localizedPriceString)/year"
+        } ?? "$32.99/year"
     }
 
     private var monthlyPrice: String {
-        offering?.monthly?.storeProduct.localizedPriceString ?? "$5.99/month"
+        monthlyPackage.map {
+            "\($0.storeProduct.localizedPriceString)/month"
+        } ?? "$5.99/month"
     }
 
     private var yearlyDetail: String {
-        if let annual = offering?.annual?.storeProduct.price,
-           let monthly = offering?.monthly?.storeProduct.price {
+        if let annual = yearlyPackage?.storeProduct.price,
+           let monthly = monthlyPackage?.storeProduct.price {
             let annualValue = NSDecimalNumber(decimal: annual).doubleValue
             let monthlyValue = NSDecimalNumber(decimal: monthly).doubleValue
             guard monthlyValue > 0 else { return "Billed yearly" }
@@ -217,22 +231,50 @@ struct RevenueCatPaywallScreen: View {
         "Just \(yearlyPrice) — auto-renews yearly until cancelled."
     }
 
+    private var monthlyPackage: Package? {
+        offering?.monthly
+            ?? offering?.availablePackages.first {
+                $0.storeProduct.productIdentifier == AppStore.premiumMonthlyProductID
+            }
+    }
+
+    private var yearlyPackage: Package? {
+        offering?.annual
+            ?? offering?.availablePackages.first {
+                $0.storeProduct.productIdentifier == AppStore.premiumYearlyProductID
+            }
+    }
+
     private var selectedPackage: Package? {
         switch selectedPlan {
-        case .yearly: offering?.annual
-        case .monthly: offering?.monthly
+        case .yearly: yearlyPackage
+        case .monthly: monthlyPackage
         }
     }
 
+#if DEBUG
+    private var isUsingRevenueCatTestStore: Bool {
+        (Bundle.main.object(forInfoDictionaryKey: "RevenueCatAPIKey") as? String)?
+            .hasPrefix("test_") == true
+    }
+#endif
+
     @MainActor
     private func loadOffering() async {
+        errorMessage = nil
+        guard Purchases.isConfigured else {
+            errorMessage = "RevenueCat is not configured for this build."
+            return
+        }
+
         do {
-            offering = try await Purchases.shared.offerings().current
-            if offering == nil {
-                errorMessage = "No subscription offering is currently available."
+            let offerings = try await Purchases.shared.offerings()
+            offering = offerings.current
+            if monthlyPackage == nil || yearlyPackage == nil {
+                errorMessage = "The current RevenueCat offering is missing a monthly or yearly plan."
             }
         } catch {
-            errorMessage = "The App Store plans could not be loaded. Check your connection and try again."
+            errorMessage = "RevenueCat could not load the plans. Please check your connection and try again."
         }
     }
 
@@ -245,11 +287,16 @@ struct RevenueCatPaywallScreen: View {
 
         do {
             let result = try await Purchases.shared.purchase(package: selectedPackage)
-            if !result.userCancelled {
+            guard !result.userCancelled else { return }
+
+            store.applyRevenueCatCustomerInfo(result.customerInfo)
+            if store.isPremium {
                 dismiss()
+            } else {
+                errorMessage = "Your purchase is still pending confirmation."
             }
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = purchaseErrorMessage(for: error)
         }
     }
 
@@ -260,11 +307,76 @@ struct RevenueCatPaywallScreen: View {
         defer { isRestoring = false }
 
         do {
-            _ = try await Purchases.shared.restorePurchases()
-            dismiss()
+            let customerInfo = try await Purchases.shared.restorePurchases()
+            store.applyRevenueCatCustomerInfo(customerInfo)
+            if store.isPremium {
+                dismiss()
+            } else {
+                errorMessage = "No active Nanobeasts subscription was found for this Apple Account."
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    private func purchaseErrorMessage(for error: Error) -> String {
+#if DEBUG
+        let nsError = error as NSError
+        let underlyingError = nsError.userInfo[NSUnderlyingErrorKey] as? NSError
+        let productID = selectedPackage?.storeProduct.productIdentifier ?? "unknown"
+        print(
+            """
+            [Nanobeasts StoreKit] Purchase failed
+            product: \(productID)
+            error: \(nsError.domain) (\(nsError.code)) \(nsError.localizedDescription)
+            underlying: \(underlyingError?.domain ?? "none") \
+            (\(underlyingError?.code ?? 0)) \
+            \(underlyingError?.localizedDescription ?? "none")
+            userInfo: \(nsError.userInfo)
+            """
+        )
+#endif
+
+        guard let revenueCatError = error as? RevenueCat.ErrorCode else {
+            return error.localizedDescription
+        }
+
+        switch revenueCatError {
+        case .productNotAvailableForPurchaseError:
+#if DEBUG
+            let diagnostic = purchaseDiagnostic(for: error)
+            return """
+            Apple’s sandbox returned “product unavailable” after loading this plan. \
+            Your tester settings are correct; this is an App Store product-state \
+            rejection. Diagnostic: \(diagnostic)
+            """
+#else
+            return "This plan is temporarily unavailable. Please try again shortly."
+#endif
+        case .purchaseNotAllowedError:
+            return "Purchases are not allowed for this Apple Account or device."
+        case .paymentPendingError:
+            return "Your purchase is pending Apple confirmation. Premium will unlock automatically once approved."
+        case .storeProblemError, .networkError:
+            return "The App Store could not complete the purchase. Please try again in a moment."
+        default:
+            return error.localizedDescription
+        }
+    }
+
+    private func purchaseDiagnostic(for error: Error) -> String {
+        let nsError = error as NSError
+        let productID = selectedPackage?.storeProduct.productIdentifier ?? "unknown"
+        let underlyingError = nsError.userInfo[NSUnderlyingErrorKey] as? NSError
+
+        if let underlyingError {
+            return """
+            \(productID) · \(nsError.domain) \(nsError.code) · \
+            \(underlyingError.domain) \(underlyingError.code)
+            """
+        }
+
+        return "\(productID) · \(nsError.domain) \(nsError.code)"
     }
 }
 

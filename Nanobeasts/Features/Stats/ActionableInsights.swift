@@ -535,7 +535,6 @@ struct ActionableInsightsCard: View {
         VStack(alignment: .leading, spacing: 18) {
             rangePicker
             movementTrace(snapshot)
-            actionNote(snapshot)
         }
     }
 
@@ -868,54 +867,6 @@ struct ActionableInsightsCard: View {
                 .fill(Color.white.opacity(0.07))
                 .frame(height: 1)
         }
-    }
-
-    private func actionNote(_ snapshot: ActivityInsightSnapshot) -> some View {
-        HStack(alignment: .top, spacing: 11) {
-            Image(systemName: "arrow.up.forward")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(NanoTheme.teal)
-                .frame(width: 32, height: 32)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(NanoTheme.teal.opacity(0.09))
-                )
-
-            VStack(alignment: .leading, spacing: 5) {
-                Text(snapshot.paceActionTitle)
-                    .font(NanoFont.aldrich(11))
-                    .foregroundStyle(.white)
-                    .lineSpacing(2)
-
-                Text(snapshot.paceActionDetail)
-                    .font(NanoFont.spaceMono(8))
-                    .foregroundStyle(NanoTheme.secondaryText)
-                    .lineSpacing(2)
-
-                if snapshot.activeWindowValue != "LEARNING",
-                   snapshot.activeWindowValue != "—"
-                {
-                    Label(
-                        "STRONGEST WINDOW · \(snapshot.activeWindowValue)",
-                        systemImage: "clock.fill"
-                    )
-                    .font(NanoFont.aldrich(7))
-                    .tracking(0.7)
-                    .foregroundStyle(NanoTheme.purple)
-                    .padding(.top, 3)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 15, style: .continuous)
-                .fill(NanoTheme.teal.opacity(0.055))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 15, style: .continuous)
-                        .stroke(NanoTheme.teal.opacity(0.20), lineWidth: 1)
-                )
-        )
     }
 
 }

@@ -15,6 +15,7 @@ build/
 # Local configuration and signing material
 .env
 .env.*
+.asc/
 *.p8
 *.p12
 *.cer

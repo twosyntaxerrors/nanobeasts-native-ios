@@ -452,7 +452,6 @@ private struct DexEmptyState: View {
 }
 
 struct CreatureDetailView: View {
-    let stage: CreatureStage
     let isLocked: Bool
 
     @Environment(\.dismiss) private var dismiss
@@ -461,6 +460,30 @@ struct CreatureDetailView: View {
     @State private var scanProgress: CGFloat = 0
     @State private var scanCompleted = false
     @State private var replayEvent: CreatureDiscoveryEvent?
+    @State private var selectedStage: CreatureStage
+
+    init(stage: CreatureStage, isLocked: Bool) {
+        self.isLocked = isLocked
+        _selectedStage = State(initialValue: stage)
+    }
+
+    private var stage: CreatureStage {
+        selectedStage
+    }
+
+    private var unlockedFamilyStages: [CreatureStage] {
+        guard !isLocked else { return [] }
+        if stage.isEgg {
+            return [stage]
+        }
+        return store.catalog.creatureStages
+            .filter {
+                $0.familyID == stage.familyID
+                    && !$0.isEgg
+                    && (store.isDiscovered($0) || store.isCurrent($0))
+            }
+            .sorted { $0.stage < $1.stage }
+    }
 
     var body: some View {
         ZStack {
@@ -494,30 +517,77 @@ struct CreatureDetailView: View {
                         .accessibilityLabel("Close specimen profile")
                     }
 
-                    HStack {
-                        Text(isLocked ? "LOCKED" : "STAGE \(stage.stage)")
-                            .font(NanoFont.aldrich(9))
-                            .tracking(1.2)
-                            .foregroundStyle(isLocked ? NanoTheme.mutedText : NanoTheme.teal)
-                            .padding(.horizontal, 11)
-                            .frame(height: 32)
-                            .background(
-                                Capsule()
-                                    .fill(NanoTheme.teal.opacity(isLocked ? 0.02 : 0.08))
-                                    .stroke(
-                                        isLocked
-                                            ? NanoTheme.mutedText.opacity(0.4)
-                                            : NanoTheme.teal.opacity(0.45),
-                                        lineWidth: 1
+                    HStack(spacing: 8) {
+                        if isLocked {
+                            DexStageCapsule(title: "LOCKED", isSelected: false)
+                            Spacer()
+                            Text("ENCRYPTED")
+                                .font(NanoFont.aldrich(9))
+                                .tracking(1)
+                                .foregroundStyle(NanoTheme.secondaryText)
+                        } else {
+                            ForEach(unlockedFamilyStages) { familyStage in
+                                Button {
+                                    guard familyStage.id != stage.id else { return }
+                                    withAnimation(.snappy(duration: 0.30, extraBounce: 0.04)) {
+                                        selectedStage = familyStage
+                                    }
+                                    UISelectionFeedbackGenerator().selectionChanged()
+                                } label: {
+                                    DexStageCapsule(
+                                        title: "STAGE \(familyStage.stage)",
+                                        isSelected: familyStage.id == stage.id
                                     )
-                            )
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(
+                                    "View stage \(familyStage.stage), \(familyStage.name)"
+                                )
+                                .accessibilityAddTraits(
+                                    familyStage.id == stage.id ? .isSelected : []
+                                )
+                            }
 
-                        Spacer()
+                            Spacer(minLength: 4)
 
-                        Text(isLocked ? "ENCRYPTED" : specimenCode)
-                            .font(NanoFont.aldrich(9))
-                            .tracking(1)
-                            .foregroundStyle(NanoTheme.secondaryText)
+                            if stage.stage > 0 {
+                                Button {
+                                    replayEvent = CreatureDiscoveryEvent(
+                                        stage: stage,
+                                        kind: stage.stage == 1 ? .hatch : .evolution
+                                    )
+                                } label: {
+                                    Label(
+                                        stage.stage == 1 ? "HATCH" : "EVOLVE",
+                                        systemImage: "play.fill"
+                                    )
+                                    .font(NanoFont.aldrich(8))
+                                    .tracking(0.6)
+                                    .foregroundStyle(NanoTheme.background)
+                                    .padding(.horizontal, 10)
+                                    .frame(height: 32)
+                                    .background(
+                                        Capsule()
+                                            .fill(
+                                                LinearGradient(
+                                                    colors: [NanoTheme.teal, NanoTheme.cyan],
+                                                    startPoint: .leading,
+                                                    endPoint: .trailing
+                                                )
+                                            )
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(
+                                    stage.stage == 1 ? "Replay hatch" : "Replay evolution"
+                                )
+                            } else {
+                                Text("INCUBATING")
+                                    .font(NanoFont.aldrich(8))
+                                    .tracking(0.7)
+                                    .foregroundStyle(NanoTheme.secondaryText)
+                            }
+                        }
                     }
 
                     CreatureScannerView(
@@ -578,33 +648,6 @@ struct CreatureDetailView: View {
                         )
                     }
 
-                    if !isLocked, stage.stage > 0 {
-                        Button {
-                            replayEvent = CreatureDiscoveryEvent(
-                                stage: stage,
-                                kind: stage.stage == 1 ? .hatch : .evolution
-                            )
-                        } label: {
-                            Label(
-                                stage.stage == 1 ? "REPLAY HATCH" : "REPLAY EVOLUTION",
-                                systemImage: "play.fill"
-                            )
-                            .font(NanoFont.aldrich(11))
-                            .tracking(1)
-                            .foregroundStyle(.black)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                            .background(
-                                LinearGradient(
-                                    colors: [NanoTheme.teal, NanoTheme.cyan],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                ),
-                                in: RoundedRectangle(cornerRadius: 17, style: .continuous)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
                 }
                 .padding(18)
             }
@@ -643,12 +686,27 @@ struct CreatureDetailView: View {
         }
     }
 
-    private var specimenCode: String {
-        let familyCode = stage.familyID
-            .filter(\.isLetter)
-            .prefix(4)
-            .uppercased()
-        return "\(familyCode)-\(String(format: "%02d", stage.stage))"
+}
+
+private struct DexStageCapsule: View {
+    let title: String
+    let isSelected: Bool
+
+    var body: some View {
+        Text(title)
+            .font(NanoFont.aldrich(8))
+            .tracking(0.9)
+            .foregroundStyle(isSelected ? NanoTheme.background : NanoTheme.teal)
+            .padding(.horizontal, 9)
+            .frame(height: 32)
+            .background(
+                Capsule()
+                    .fill(isSelected ? NanoTheme.teal : NanoTheme.teal.opacity(0.07))
+                    .stroke(
+                        NanoTheme.teal.opacity(isSelected ? 0.9 : 0.42),
+                        lineWidth: 1
+                    )
+            )
     }
 }
 

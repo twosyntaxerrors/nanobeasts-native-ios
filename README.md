@@ -5,7 +5,7 @@ Nanobeasts is a native SwiftUI iPhone app that turns Apple Health step data into
 ## What is included
 
 - Native SwiftUI tabs for Lab, Stats, Dex, and Settings
-- The Professor Nano onboarding flow and a live RevenueCatUI paywall
+- The Professor Nano onboarding flow and a custom Nanobeasts paywall backed by RevenueCat
 - HealthKit read authorization for `HKQuantityTypeIdentifier.stepCount`
 - Historical HealthKit trends for analytics, with post-install steps isolated for badge and evolution progress
 - Daily step history, live refresh, pedometer fallback, and HealthKit observer updates
@@ -32,7 +32,16 @@ Animated artwork follows the same R2 convention as the React Native app:
 
 The SwiftUI app downloads these assets through SDWebImage and plays them in a transparent native `SDAnimatedImageView` using the libwebp coder. A static R2 image is shown only while the complete animation loads or if the animated request fails. The only app-owned raster bundled with the target is the native app icon.
 
-RevenueCat uses the existing iOS public SDK key and the project's configured offering. Test purchases require the corresponding App Store sandbox products or a StoreKit test configuration.
+RevenueCat must use a separate iOS app for the native bundle identifier,
+`com.twosyntaxerrors.nanobeasts.native`. Set that app's public SDK key in
+`REVENUECAT_PUBLIC_SDK_KEY` in `project.yml`, then configure the current
+offering with monthly and annual packages backed by:
+
+- `nanobeasts_native_premium_monthly`
+- `nanobeasts_native_premium_yearly`
+
+Both packages must unlock the `premium` entitlement. The React Native RevenueCat
+app and its public SDK key remain separate.
 
 To regenerate the project after changing `project.yml`:
 

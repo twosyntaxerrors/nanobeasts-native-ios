@@ -83,15 +83,28 @@ enum WidgetSnapshotStore {
     }
 
     static func loadArtworkData(filename: String) -> Data? {
-        if let data = UserDefaults(suiteName: appGroupID)?.data(forKey: artworkDataKey) {
+        if let data = UserDefaults(suiteName: appGroupID)?
+            .data(forKey: artworkDataKey(for: filename))
+        {
+            return data
+        }
+        if
+            filename == "current-nanobeast.png",
+            let data = UserDefaults(suiteName: appGroupID)?.data(forKey: artworkDataKey)
+        {
             return data
         }
         guard let url = artworkURL(filename: filename) else { return nil }
         return try? Data(contentsOf: url, options: .mappedIfSafe)
     }
 
-    static func hasInlineArtworkData() -> Bool {
-        UserDefaults(suiteName: appGroupID)?.data(forKey: artworkDataKey) != nil
+    static func hasInlineArtworkData(filename: String) -> Bool {
+        let defaults = UserDefaults(suiteName: appGroupID)
+        return defaults?.data(forKey: artworkDataKey(for: filename)) != nil
+            || (
+                filename == "current-nanobeast.png"
+                    && defaults?.data(forKey: artworkDataKey) != nil
+            )
     }
 
     static func saveArtworkData(_ data: Data, filename: String) {
@@ -99,7 +112,10 @@ enum WidgetSnapshotStore {
             try? data.write(to: url, options: .atomic)
         }
         if let defaults = UserDefaults(suiteName: appGroupID) {
-            defaults.set(data, forKey: artworkDataKey)
+            defaults.set(data, forKey: artworkDataKey(for: filename))
+            if filename == "current-nanobeast.png" {
+                defaults.set(data, forKey: artworkDataKey)
+            }
             defaults.synchronize()
         }
     }
@@ -112,9 +128,16 @@ enum WidgetSnapshotStore {
             try? FileManager.default.removeItem(at: url)
         }
         if let defaults = UserDefaults(suiteName: appGroupID) {
-            defaults.removeObject(forKey: artworkDataKey)
+            defaults.removeObject(forKey: artworkDataKey(for: filename))
+            if filename == "current-nanobeast.png" {
+                defaults.removeObject(forKey: artworkDataKey)
+            }
             defaults.synchronize()
         }
+    }
+
+    private static func artworkDataKey(for filename: String) -> String {
+        "nanobeasts.widget.artwork-data.\(filename).v2"
     }
 
     private static func sharedCacheDirectoryURL() -> URL? {

@@ -29,6 +29,10 @@ struct SettingsView: View {
                         stageName: store.currentStage.name
                     )
 
+                    SettingsProCard(isPremium: store.isPremium) {
+                        showsPaywall = true
+                    }
+
                     SettingsPanel(
                         icon: "heart.fill",
                         title: "MOVEMENT & HEALTH",
@@ -72,20 +76,10 @@ struct SettingsView: View {
                         SettingsDivider()
 
                         SettingsToggleRow(
-                            title: "+100 Step Test Button",
-                            subtitle: "Show or hide the testing shortcut on Home.",
+                            title: "Step Testing Shortcut",
+                            subtitle: "Tap your name on Home to preview +100 steps and advance hatch or evolution progress. Apple Health restores the real activity totals on sync.",
                             isOn: $testingStepButtonEnabled
                         )
-
-                        if testingStepButtonEnabled {
-                            SettingsDivider()
-                            SettingsActionRow(
-                                title: "Add 100 Test Steps",
-                                subtitle: "Advance today’s counter and creature research now."
-                            ) {
-                                store.addTestingSteps()
-                            }
-                        }
                     }
 
                     DailyObjectiveCard(goal: $goalDraft) {
@@ -149,20 +143,12 @@ struct SettingsView: View {
                         SettingsDivider()
 
                         SettingsActionRow(
-                            title: "RevenueCat Paywall Preview",
-                            subtitle: "View the live premium offer."
-                        ) {
-                            showsPaywall = true
-                        }
-
-                        SettingsDivider()
-
-                        SettingsActionRow(
                             title: cacheWasCleared ? "Artwork Cache Cleared" : "Clear Artwork Cache",
-                            subtitle: "Creature artwork will reload from Cloudflare R2."
+                            subtitle: "Creature artwork and evolution cinematics will reload from Cloudflare R2."
                         ) {
                             Task {
                                 await R2ArtworkCache.shared.clear()
+                                await R2TransitionVideoCache.shared.clear()
                                 cacheWasCleared = true
                             }
                         }
@@ -181,6 +167,9 @@ struct SettingsView: View {
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             goalDraft = store.dailyGoal
+        }
+        .task {
+            await store.refreshSubscriptionStatus()
         }
         .confirmationDialog(
             "Reset all Nanobeast progress?",
@@ -225,6 +214,69 @@ struct SettingsView: View {
                 onChooseEgg: nil
             )
         }
+    }
+}
+
+private struct SettingsProCard: View {
+    let isPremium: Bool
+    let upgrade: () -> Void
+
+    var body: some View {
+        Button {
+            guard !isPremium else { return }
+            upgrade()
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: isPremium ? "checkmark.seal.fill" : "sparkles")
+                    .font(.system(size: 21, weight: .semibold))
+                    .foregroundStyle(isPremium ? NanoTheme.teal : NanoTheme.background)
+                    .frame(width: 48, height: 48)
+                    .background(
+                        RoundedRectangle(cornerRadius: 15)
+                            .fill(isPremium ? NanoTheme.teal.opacity(0.10) : NanoTheme.teal)
+                            .stroke(NanoTheme.teal.opacity(0.42), lineWidth: 1)
+                    )
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(isPremium ? "NANOBEASTS PRO ACTIVE" : "UPGRADE TO PRO")
+                        .font(NanoFont.aldrich(13))
+                        .tracking(1.1)
+                        .foregroundStyle(.white)
+                    Text(
+                        isPremium
+                            ? "Every step counts toward your Nanobeasts."
+                            : "Remove the daily evolution cap and keep growing."
+                    )
+                    .font(NanoFont.aldrich(10))
+                    .foregroundStyle(NanoTheme.secondaryText)
+                    .multilineTextAlignment(.leading)
+                }
+
+                Spacer(minLength: 8)
+
+                if !isPremium {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(NanoTheme.teal)
+                }
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(NanoTheme.teal.opacity(isPremium ? 0.05 : 0.08))
+                    .stroke(NanoTheme.teal.opacity(0.45), lineWidth: 1.2)
+                    .shadow(
+                        color: NanoTheme.teal.opacity(isPremium ? 0.06 : 0.16),
+                        radius: 16
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint(
+            isPremium
+                ? "Nanobeasts Pro is active"
+                : "Opens Nanobeasts Pro subscription options"
+        )
     }
 }
 
@@ -781,11 +833,11 @@ struct EvolutionLifecycleExperience: View {
             return .video(url, duration: .seconds(4.2))
         case .evolution, .evolution2:
             guard let previousStage else { return nil }
-            if let url = R2TransitionManifest.transparentEvolutionURL(
+            if let url = R2TransitionManifest.evolutionVideoURL(
                 from: previousStage,
                 to: displayStage
             ) {
-                return .transparentWebP(url, duration: .milliseconds(2_750))
+                return .video(url, duration: .seconds(4.8))
             }
             if let url = R2TransitionManifest.transparentEvolutionVideoURL(
                 from: previousStage,
@@ -793,13 +845,13 @@ struct EvolutionLifecycleExperience: View {
             ) {
                 return .video(url, duration: .milliseconds(2_750))
             }
-            guard let url = R2TransitionManifest.evolutionVideoURL(
+            guard let url = R2TransitionManifest.transparentEvolutionURL(
                 from: previousStage,
                 to: displayStage
             ) else {
                 return nil
             }
-            return .video(url, duration: .seconds(4.8))
+            return .transparentWebP(url, duration: .milliseconds(2_750))
         case .assigned, .hatchDex, .evolutionTarget, .evolutionDex,
                 .evolution2Target, .evolution2Dex, .maturity, .selection, .newAssignment:
             return nil
@@ -1088,13 +1140,9 @@ struct EvolutionLifecycleExperience: View {
     @ViewBuilder
     private var transitionArtwork: some View {
         if let transitionMedia {
-            if phase == .hatch {
-                hatchPortal(transitionMedia)
-            } else {
-                evolutionReveal(transitionMedia)
-            }
+            lifecyclePortal(transitionMedia)
         } else {
-            AnimatedCreatureArtworkView(stage: displayStage)
+            PreloadingStaticCreatureArtworkView(stage: displayStage)
                 .padding(18)
                 .scaleEffect(revealed ? 1 : 0.92)
                 .opacity(revealed ? 1 : 0)
@@ -1108,12 +1156,9 @@ struct EvolutionLifecycleExperience: View {
         }
     }
 
-    private func hatchPortal(_ media: TransitionMedia) -> some View {
+    private func lifecyclePortal(_ media: TransitionMedia) -> some View {
         ZStack {
-            DeferredAnimatedCreatureArtworkView(
-                stage: displayStage,
-                shouldPlay: transitionFinished
-            )
+            PreloadingStaticCreatureArtworkView(stage: displayStage)
             .padding(18)
             .opacity(transitionFinished ? 1 : 0)
             .scaleEffect(transitionFinished ? 1 : 0.96)
@@ -1149,40 +1194,6 @@ struct EvolutionLifecycleExperience: View {
         )
         .opacity(revealed ? 1 : 0)
         .shadow(color: NanoTheme.teal.opacity(0.38), radius: 20)
-    }
-
-    private func evolutionReveal(_ media: TransitionMedia) -> some View {
-        ZStack {
-            AnimatedCreatureArtworkView(
-                stage: previousStage ?? displayStage,
-                isPlaying: !evolutionPlaybackStarted
-            )
-                .padding(18)
-                .opacity(evolutionPlaybackStarted ? 0 : 1)
-
-            PreloadingStaticCreatureArtworkView(stage: displayStage)
-            .padding(8)
-            .opacity(transitionFinished ? 1 : 0)
-            .scaleEffect(transitionFinished ? 1 : 0.94)
-
-            transitionMediaView(
-                media,
-                shouldPlay: evolutionPlaybackStarted && !transitionFinished
-            )
-            .opacity(evolutionPlaybackStarted && !transitionFinished ? 1 : 0)
-
-            if evolutionPlaybackStarted, !transitionLoaded, !transitionFailed {
-                ProgressView()
-                    .tint(NanoTheme.teal)
-            }
-
-            if transitionFailed {
-                signalInterrupted
-            }
-        }
-        .opacity(revealed ? 1 : 0)
-        .scaleEffect(transitionFinished ? 1.04 : 1)
-        .shadow(color: NanoTheme.teal.opacity(0.28), radius: 22)
     }
 
     @ViewBuilder
@@ -1558,7 +1569,7 @@ struct EvolutionLifecycleExperience: View {
             }
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             return
-        } else if let transitionMedia, phase == .hatch {
+        } else if let transitionMedia, phase == .hatch || phase.isEvolution {
             withAnimation(.timingCurve(0.23, 1, 0.32, 1, duration: 0.24)) {
                 revealed = true
                 portalLineExpanded = true
@@ -1573,38 +1584,17 @@ struct EvolutionLifecycleExperience: View {
             }
             UIImpactFeedbackGenerator(style: .medium).impactOccurred(intensity: 0.82)
 
-            var readinessCycles = 0
-            while !transitionLoaded && !transitionFailed && readinessCycles < 100 {
-                try? await Task.sleep(for: .milliseconds(100))
-                guard !Task.isCancelled else { return }
-                readinessCycles += 1
-            }
-
-            if case .transparentWebP = transitionMedia, transitionLoaded {
-                try? await Task.sleep(for: transitionMedia.duration)
-                withAnimation(.easeOut(duration: 0.36)) {
-                    transitionFinished = true
+            if phase.isEvolution {
+                withAnimation(.easeOut(duration: 0.20)) {
+                    revealFlashOpacity = 0.24
+                    evolutionEnergyBurst = true
+                    evolutionPlaybackStarted = true
                 }
-            } else {
-                while !transitionFinished && !transitionFailed {
-                    try? await Task.sleep(for: .milliseconds(100))
-                    guard !Task.isCancelled else { return }
+                UIImpactFeedbackGenerator(style: .heavy).impactOccurred(intensity: 1)
+                await performEvolutionShake()
+                withAnimation(.easeOut(duration: 0.58)) {
+                    revealFlashOpacity = 0
                 }
-            }
-        } else if let transitionMedia, phase.isEvolution {
-            withAnimation(.spring(response: 0.46, dampingFraction: 0.88)) {
-                revealed = true
-            }
-
-            withAnimation(.easeOut(duration: 0.20)) {
-                revealFlashOpacity = 0.24
-                evolutionEnergyBurst = true
-                evolutionPlaybackStarted = true
-            }
-            UIImpactFeedbackGenerator(style: .heavy).impactOccurred(intensity: 1)
-            await performEvolutionShake()
-            withAnimation(.easeOut(duration: 0.58)) {
-                revealFlashOpacity = 0
             }
 
             var readinessCycles = 0
@@ -1958,6 +1948,7 @@ private struct RemoteTransitionVideoView: UIViewRepresentable {
         private var hasStarted = false
         private var statusObservation: NSKeyValueObservation?
         private var endObserver: NSObjectProtocol?
+        private var cacheTask: Task<Void, Never>?
 
         init() {
             player.isMuted = true
@@ -1984,10 +1975,30 @@ private struct RemoteTransitionVideoView: UIViewRepresentable {
                 NotificationCenter.default.removeObserver(endObserver)
                 self.endObserver = nil
             }
+            cacheTask?.cancel()
+            cacheTask = nil
+            player.cancelPendingPrerolls()
             player.pause()
+            player.replaceCurrentItem(with: nil)
 
-            let item = AVPlayerItem(asset: AVURLAsset(url: url))
-            item.preferredForwardBufferDuration = 2
+            cacheTask = Task { [weak self] in
+                guard let self else { return }
+                do {
+                    let localURL = try await R2TransitionVideoCache.shared.localURL(for: url)
+                    guard !Task.isCancelled, self.url == url else { return }
+                    self.preparePlayer(with: localURL)
+                } catch is CancellationError {
+                    return
+                } catch {
+                    guard !Task.isCancelled, self.url == url else { return }
+                    self.onReady(false)
+                }
+            }
+        }
+
+        private func preparePlayer(with localURL: URL) {
+            let item = AVPlayerItem(asset: AVURLAsset(url: localURL))
+            item.preferredForwardBufferDuration = 0
             player.replaceCurrentItem(with: item)
             endObserver = NotificationCenter.default.addObserver(
                 forName: .AVPlayerItemDidPlayToEndTime,
@@ -2001,9 +2012,20 @@ private struct RemoteTransitionVideoView: UIViewRepresentable {
                 DispatchQueue.main.async {
                     switch item.status {
                     case .readyToPlay:
-                        self.isReady = true
-                        self.onReady(true)
-                        self.setShouldPlay(self.shouldPlay)
+                        self.player.preroll(atRate: 1) { [weak self, weak item] succeeded in
+                            DispatchQueue.main.async {
+                                guard let self,
+                                      let item,
+                                      self.player.currentItem === item else {
+                                    return
+                                }
+                                self.isReady = succeeded
+                                self.onReady(succeeded)
+                                if succeeded {
+                                    self.setShouldPlay(self.shouldPlay)
+                                }
+                            }
+                        }
                     case .failed:
                         self.isReady = false
                         self.onReady(false)
@@ -2037,8 +2059,11 @@ private struct RemoteTransitionVideoView: UIViewRepresentable {
                 NotificationCenter.default.removeObserver(endObserver)
                 self.endObserver = nil
             }
+            cacheTask?.cancel()
+            cacheTask = nil
             isReady = false
             hasStarted = false
+            player.cancelPendingPrerolls()
             player.pause()
             player.replaceCurrentItem(with: nil)
         }

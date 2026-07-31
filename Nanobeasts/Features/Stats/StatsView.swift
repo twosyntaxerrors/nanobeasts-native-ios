@@ -38,7 +38,7 @@ struct StatsView: View {
                     ActionableInsightsCard(
                         analyticsRecords: store.analyticsHistory,
                         hourlyRecords: store.hourlyAnalyticsHistory,
-                        journeyRecords: store.dailyHistory,
+                        journeyRecords: store.badgeEvaluationHistory,
                         goalHistory: store.dailyGoalHistory,
                         currentGoal: store.dailyGoal,
                         stepsRemaining: max(
@@ -65,7 +65,7 @@ struct StatsView: View {
         ) {
             let input = StatsPresentationInput(
                 analyticsRecords: store.analyticsHistory,
-                journeyRecords: store.dailyHistory,
+                journeyRecords: store.badgeEvaluationHistory,
                 dailyGoal: store.dailyGoal,
                 discoveredStages: store.catalog.creatureStages.filter {
                     store.isDiscovered($0) || store.isCurrent($0)

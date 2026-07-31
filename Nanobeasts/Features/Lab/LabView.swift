@@ -12,6 +12,7 @@ struct LabView: View {
     @State private var goalConfettiID: UUID?
     @State private var showsDailyGoalCard = false
     @State private var pendingDailyGoalCelebration = false
+    @State private var showsProgressionPaywall = false
     @AppStorage("nanobeasts.testing.stepButtonEnabled")
     private var testingStepButtonEnabled = false
     @AppStorage("nanobeasts.lastDailyGoalCelebration")
@@ -30,7 +31,15 @@ struct LabView: View {
                         LabHeader(
                             greeting: greeting,
                             playerName: store.playerName,
-                            streak: store.currentStreak,
+                            streak: store.displayedCurrentStreak,
+                            testingShortcutEnabled: testingStepButtonEnabled,
+                            onNameTap: {
+                                Task {
+                                    await store.addTestingSteps()
+                                    guard !Task.isCancelled else { return }
+                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                }
+                            },
                             onStreakTap: { activeSheet = .streak }
                         )
 
@@ -40,7 +49,7 @@ struct LabView: View {
                             activeSheet = .streak
                         } label: {
                             WeekProgressStrip(
-                                records: store.recentWeek,
+                                records: store.displayedRecentWeek,
                                 dailyGoal: store.dailyGoal
                             )
                         }
@@ -56,9 +65,17 @@ struct LabView: View {
                                 0
                             ),
                             isSyncingSteps: store.isSyncingSteps,
+                            isProgressionCapped: store.freeProgressionCapReached,
                             animationEnergy: stepAnimationEnergy,
                             showStepsRemaining: $showStepsRemaining,
                             ringDiameter: heroDiameter,
+                            onEXPBadgeTap: {
+                                if store.freeProgressionCapReached {
+                                    showsProgressionPaywall = true
+                                } else {
+                                    showStepsRemaining = true
+                                }
+                            },
                             onCreatureTap: { activeSheet = .creature }
                         )
 
@@ -91,40 +108,6 @@ struct LabView: View {
                 }
             }
 
-            if testingStepButtonEnabled {
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        Button {
-                            let wasAlreadyComplete =
-                                store.todaySteps >= store.dailyGoal
-                            store.addTestingSteps()
-                            if wasAlreadyComplete {
-                                presentDailyGoalCelebrationIfNeeded()
-                            }
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        } label: {
-                            Label("+100", systemImage: "figure.walk.motion")
-                                .font(NanoFont.aldrich(10))
-                                .tracking(0.8)
-                                .foregroundStyle(.black)
-                                .padding(.horizontal, 15)
-                                .frame(height: 44)
-                                .background(
-                                    Capsule()
-                                        .fill(NanoTheme.teal)
-                                        .shadow(color: NanoTheme.teal.opacity(0.40), radius: 12)
-                                )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Add 100 test steps")
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 14)
-            }
-
             if let goalConfettiID {
                 MaturityConfettiBurst()
                     .id(goalConfettiID)
@@ -141,7 +124,8 @@ struct LabView: View {
 
                 DailyGoalCompletionCard(
                     goal: store.dailyGoal,
-                    creatureName: store.currentStage.name
+                    creatureName: store.currentStage.name,
+                    progressionCapped: store.freeProgressionCapReached
                 ) {
                     withAnimation(.easeOut(duration: 0.22)) {
                         showsDailyGoalCard = false
@@ -155,7 +139,7 @@ struct LabView: View {
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             guard !hasInitializedActivityAnimation else { return }
-            animatedTodaySteps = Double(store.todaySteps)
+            animatedTodaySteps = Double(store.displayedTodaySteps)
             animatedHatchProgress = store.hatchProgress
             hasInitializedActivityAnimation = true
         }
@@ -176,7 +160,7 @@ struct LabView: View {
         }
         .task(id: store.stepSyncAnimationID) {
             guard store.consumeStepSyncAnimationIfNeeded() else {
-                animatedTodaySteps = Double(store.todaySteps)
+                animatedTodaySteps = Double(store.displayedTodaySteps)
                 animatedHatchProgress = store.hatchProgress
                 hasInitializedActivityAnimation = true
                 stepAnimationEnergy = 0
@@ -189,7 +173,7 @@ struct LabView: View {
             stepAnimationEnergy = 1
             await Task.yield()
             withAnimation(.smooth(duration: store.stepSyncDuration)) {
-                animatedTodaySteps = Double(store.todaySteps)
+                animatedTodaySteps = Double(store.displayedTodaySteps)
                 animatedHatchProgress = store.hatchProgress
             }
             try? await Task.sleep(for: .seconds(store.stepSyncDuration * 0.72))
@@ -216,8 +200,8 @@ struct LabView: View {
             switch sheet {
             case .streak:
                 StreakSummaryView(
-                    streak: store.currentStreak,
-                    records: store.recentWeek,
+                    streak: store.displayedCurrentStreak,
+                    records: store.displayedRecentWeek,
                     dailyGoal: store.dailyGoal
                 )
                 .presentationDetents([.medium])
@@ -226,7 +210,10 @@ struct LabView: View {
                 CreatureDetailView(stage: store.currentStage, isLocked: false)
                     .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
-            }
+                }
+        }
+        .fullScreenCover(isPresented: $showsProgressionPaywall) {
+            RevenueCatPaywallScreen(playerName: store.playerName)
         }
     }
 
@@ -256,7 +243,9 @@ struct LabView: View {
         let celebrationKey = "\(components.year ?? 0)-\(components.month ?? 0)-\(components.day ?? 0)"
         guard lastDailyGoalCelebration != celebrationKey else { return }
 
-        lastDailyGoalCelebration = celebrationKey
+        if !store.hasTestingActivityPreview {
+            lastDailyGoalCelebration = celebrationKey
+        }
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         if !store.reduceMotion {
             goalConfettiID = UUID()
@@ -278,6 +267,7 @@ struct LabView: View {
 private struct DailyGoalCompletionCard: View {
     let goal: Int
     let creatureName: String
+    let progressionCapped: Bool
     let onDismiss: () -> Void
 
     var body: some View {
@@ -310,7 +300,9 @@ private struct DailyGoalCompletionCard: View {
                     .multilineTextAlignment(.center)
 
                 Text(
-                    "Today counts toward your streak. Every extra step still powers \(creatureName)’s evolution."
+                    progressionCapped
+                        ? "Today counts toward your streak. Your free evolution steps are full for today, but every step is still recorded."
+                        : "Today counts toward your streak. Every extra step still powers \(creatureName)’s evolution."
                 )
                 .font(NanoFont.aldrich(10))
                 .foregroundStyle(NanoTheme.secondaryText)
@@ -355,6 +347,8 @@ private struct LabHeader: View {
     let greeting: String
     let playerName: String
     let streak: Int
+    let testingShortcutEnabled: Bool
+    let onNameTap: () -> Void
     let onStreakTap: () -> Void
 
     var body: some View {
@@ -364,11 +358,18 @@ private struct LabHeader: View {
                     .font(.system(size: 13, weight: .regular))
                     .tracking(1.4)
                     .foregroundStyle(NanoTheme.secondaryText)
-                Text(playerName.isEmpty ? "RESEARCHER" : playerName.uppercased())
-                    .font(.system(size: 25, weight: .bold))
-                    .tracking(2.2)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
+                Group {
+                    if testingShortcutEnabled {
+                        Button(action: onNameTap) {
+                            researcherName
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Advance lifecycle progress by 100")
+                        .accessibilityHint("Testing shortcut. Does not change activity stats.")
+                    } else {
+                        researcherName
+                    }
+                }
                 Text("Let's evolve today.")
                     .font(.system(size: 11, weight: .regular))
                     .tracking(0.4)
@@ -409,6 +410,15 @@ private struct LabHeader: View {
             .buttonStyle(.plain)
             .accessibilityLabel("\(streak) day streak. Show weekly streak details.")
         }
+    }
+
+    private var researcherName: some View {
+        Text(playerName.isEmpty ? "RESEARCHER" : playerName.uppercased())
+            .font(.system(size: 25, weight: .bold))
+            .tracking(2.2)
+            .lineLimit(1)
+            .minimumScaleFactor(0.72)
+            .contentShape(Rectangle())
     }
 }
 
@@ -489,9 +499,11 @@ private struct CreatureResearchHero: View {
     let progress: Double
     let stepsRemaining: Int
     let isSyncingSteps: Bool
+    let isProgressionCapped: Bool
     let animationEnergy: Double
     @Binding var showStepsRemaining: Bool
     let ringDiameter: CGFloat
+    let onEXPBadgeTap: () -> Void
     let onCreatureTap: () -> Void
 
     var body: some View {
@@ -514,37 +526,58 @@ private struct CreatureResearchHero: View {
                         .tracking(1.9)
                         .foregroundStyle(NanoTheme.secondaryText)
 
-                    Button {
-                        showStepsRemaining = true
-                    } label: {
+                    Button(action: onEXPBadgeTap) {
                         HStack(spacing: 7) {
                             if isSyncingSteps {
                                 ProgressView()
                                     .controlSize(.mini)
                                     .tint(NanoTheme.teal)
+                            } else if isProgressionCapped {
+                                Image(systemName: "lock.fill")
+                                    .font(.system(size: 11, weight: .black))
                             }
+
                             Text(
                                 isSyncingSteps
                                     ? "SYNCING STEPS"
+                                    : isProgressionCapped
+                                        ? "TAP TO KEEP GROWING"
                                     : showStepsRemaining
                                         ? "\(stepsRemaining.formatted()) TO GO"
                                         : "\(Int(progress * 100))% EXP"
                             )
+                            .font(
+                                .system(
+                                    size: isProgressionCapped ? 12 : 14,
+                                    weight: .bold,
+                                    design: .rounded
+                                )
+                                .monospacedDigit()
+                            )
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.82)
                         }
-                        .font(.system(size: 14, weight: .bold, design: .rounded).monospacedDigit())
                         .tracking(1.0)
-                        .foregroundStyle(NanoTheme.teal)
+                        .foregroundStyle(isProgressionCapped ? NanoTheme.orange : NanoTheme.teal)
                         .contentTransition(.numericText())
                         .padding(.horizontal, 14)
                         .padding(.vertical, 5)
                         .background(
                             Capsule()
                                 .fill(NanoTheme.background.opacity(0.90))
-                                .stroke(NanoTheme.teal.opacity(0.62), lineWidth: 1)
+                                .stroke(
+                                    (isProgressionCapped ? NanoTheme.orange : NanoTheme.teal)
+                                        .opacity(0.62),
+                                    lineWidth: 1
+                                )
                         )
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("\(stepsRemaining) steps remaining until evolution")
+                    .accessibilityLabel(
+                        isProgressionCapped
+                            ? "Free progression limit reached. Tap to keep growing with Premium."
+                            : "\(stepsRemaining) steps remaining until evolution"
+                    )
                 }
                 .offset(y: 20)
             }
@@ -804,6 +837,8 @@ private struct MetricColumn: View {
                 .foregroundStyle(color)
             Text(value)
                 .font(.system(size: 21, weight: .semibold, design: .rounded).monospacedDigit())
+                .contentTransition(.numericText())
+                .animation(.smooth(duration: 0.62), value: value)
             Text(unit)
                 .font(.system(size: 8, weight: .black))
                 .tracking(1.1)

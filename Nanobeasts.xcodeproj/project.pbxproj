@@ -8,8 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		023C03CC11DCE8F38DC55261 /* NanoTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04B07D2491F65D95341247FF /* NanoTheme.swift */; };
-		053133B097D11018BE75C1B6 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = C7C23F2A3B087E3DE265F4C1 /* RevenueCatUI */; };
-		0DEAB5B4D7711857736CB979 /* SDWebImage in Frameworks */ = {isa = PBXBuildFile; productRef = 77A1E2025811B2373254C449 /* SDWebImage */; };
+		053133B097D11018BE75C1B6 /* SDWebImage in Frameworks */ = {isa = PBXBuildFile; productRef = 77A1E2025811B2373254C449 /* SDWebImage */; };
+		0DEAB5B4D7711857736CB979 /* SDWebImageWebPCoder in Frameworks */ = {isa = PBXBuildFile; productRef = 0C380183C0A76424705354FA /* SDWebImageWebPCoder */; };
 		0FB006B216CAD3D02D41CA72 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2BE5D20E3855483907F2BFB /* WidgetSnapshot.swift */; };
 		152B0DD9A3207F7C40DBBB3E /* SpaceMono_400Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CEBE772CDEFFAEE45F2EA1E1 /* SpaceMono_400Regular.ttf */; };
 		168BBFC2A5F8049BD4E28468 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2BE5D20E3855483907F2BFB /* WidgetSnapshot.swift */; };
@@ -28,7 +28,6 @@
 		9DB8F3B00FBD02DEFCB83A3D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8E15620BA40F8F4EDC0AF537 /* Assets.xcassets */; };
 		A15D88ADD6AD7CACD441FD7B /* NanobeastsWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3032BCCEF0B4BA67E83B57D /* NanobeastsWidgets.swift */; };
 		A1609DD7A30A85FA65054196 /* NanobeastsWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B0D08876B243279E3B90F2A8 /* NanobeastsWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		B4AC6B6B40C5AC8A26C67DFC /* SDWebImageWebPCoder in Frameworks */ = {isa = PBXBuildFile; productRef = 0C380183C0A76424705354FA /* SDWebImageWebPCoder */; };
 		B4C9FCBB0D193DED3ED65337 /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4DBA2D51A67BE7D278607BF /* OnboardingFlowView.swift */; };
 		B94F8F03F7A3E9CCC35A2E0A /* HealthKitClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DEE6A6396F3EB4931A83331 /* HealthKitClient.swift */; };
 		BB3CE763B49814B729F64CEF /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C0517627428A45D78D71858 /* SettingsView.swift */; };
@@ -113,9 +112,8 @@
 				76F39F9A97CB2A31C0A2D6B4 /* CoreMotion.framework in Frameworks */,
 				9BABA964D9321EAC4D9FB1F4 /* Charts.framework in Frameworks */,
 				DB6265D75A1D233E7A7EE4CA /* RevenueCat in Frameworks */,
-				053133B097D11018BE75C1B6 /* RevenueCatUI in Frameworks */,
-				0DEAB5B4D7711857736CB979 /* SDWebImage in Frameworks */,
-				B4AC6B6B40C5AC8A26C67DFC /* SDWebImageWebPCoder in Frameworks */,
+				053133B097D11018BE75C1B6 /* SDWebImage in Frameworks */,
+				0DEAB5B4D7711857736CB979 /* SDWebImageWebPCoder in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -332,7 +330,6 @@
 			name = Nanobeasts;
 			packageProductDependencies = (
 				279E1759D6DA15EAA194BF92 /* RevenueCat */,
-				C7C23F2A3B087E3DE265F4C1 /* RevenueCatUI */,
 				77A1E2025811B2373254C449 /* SDWebImage */,
 				0C380183C0A76424705354FA /* SDWebImageWebPCoder */,
 			);
@@ -368,6 +365,11 @@
 				TargetAttributes = {
 					32651383AF6A7FACC4B0F2D8 = {
 						DevelopmentTeam = C48J72F8MH;
+						SystemCapabilities = {
+							com.apple.InAppPurchase = {
+								enabled = 1;
+							};
+						};
 					};
 					3E41EEBFBCD8ABBACC4F6034 = {
 						DevelopmentTeam = C48J72F8MH;
@@ -507,6 +509,7 @@
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.twosyntaxerrors.nanobeasts.native;
 				PRODUCT_NAME = Nanobeasts;
+				REVENUECAT_PUBLIC_SDK_KEY = appl_RZwqUISPAKgFHefFFZAtDpyOvdC;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -681,6 +684,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.twosyntaxerrors.nanobeasts.native;
 				PRODUCT_NAME = Nanobeasts;
 				PROVISIONING_PROFILE_SPECIFIER = "Nanobeasts Native Development";
+				REVENUECAT_PUBLIC_SDK_KEY = test_xSlHgKrlMPvMaQveiyUUaYAdrye;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -760,11 +764,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 4B7036340B7D0BC828B2FF43 /* XCRemoteSwiftPackageReference "SDWebImage" */;
 			productName = SDWebImage;
-		};
-		C7C23F2A3B087E3DE265F4C1 /* RevenueCatUI */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 680826964116A10FF4F64C37 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
-			productName = RevenueCatUI;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

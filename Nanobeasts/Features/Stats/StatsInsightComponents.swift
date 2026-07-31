@@ -4,6 +4,7 @@ import UIKit
 struct StatsBadge: Identifiable, Hashable {
     let id: String
     let symbol: String
+    let artworkURL: URL?
     let title: String
     let description: String
     let tint: Color
@@ -15,6 +16,26 @@ struct StatsBadgeSection: Identifiable {
     let id: String
     let title: String
     let badges: [StatsBadge]
+}
+
+private actor BadgeArtworkImageCache {
+    static let shared = BadgeArtworkImageCache()
+
+    private var processedData: [URL: Data] = [:]
+
+    func data(for url: URL) async throws -> Data {
+        if let cached = processedData[url] {
+            return cached
+        }
+        let sourceData = try await R2ArtworkCache.shared.data(for: url)
+        let data =
+            UIImage(data: sourceData)?
+            .trimmingTransparentCanvas()
+            .pngData()
+            ?? sourceData
+        processedData[url] = data
+        return data
+    }
 }
 
 enum StatsBadgeCatalog {
@@ -227,6 +248,7 @@ enum StatsBadgeCatalog {
         StatsBadge(
             id: id,
             symbol: symbol,
+            artworkURL: R2BadgeManifest.url(for: id),
             title: title,
             description: description,
             tint: tint,
@@ -679,20 +701,82 @@ private struct BadgeDestination: Identifiable {
     let highlightBadgeID: String?
 }
 
+private struct BadgeArtworkView: View {
+    let badge: StatsBadge
+    let size: CGFloat
+    var onReady: (() -> Void)? = nil
+
+    @State private var image: UIImage?
+    @State private var failed = false
+
+    var body: some View {
+        Group {
+            if badge.unlocked, badge.artworkURL != nil {
+                if let image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .padding(size * 0.025)
+                        .shadow(color: badge.tint.opacity(0.32), radius: size * 0.10)
+                } else if failed {
+                    fallbackMedallion
+                } else {
+                    ProgressView()
+                        .tint(badge.tint)
+                }
+            } else {
+                fallbackMedallion
+            }
+        }
+        .frame(width: size, height: size)
+        .task(id: "\(badge.id)-\(badge.unlocked)") {
+            image = nil
+            failed = false
+            guard badge.unlocked, let artworkURL = badge.artworkURL else {
+                onReady?()
+                return
+            }
+
+            do {
+                let data = try await BadgeArtworkImageCache.shared.data(for: artworkURL)
+                guard !Task.isCancelled else { return }
+                image = UIImage(data: data)
+                failed = image == nil
+                onReady?()
+            } catch {
+                guard !Task.isCancelled else { return }
+                failed = true
+                onReady?()
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    private var fallbackMedallion: some View {
+        Image(systemName: badge.unlocked ? badge.symbol : "lock.fill")
+            .font(.system(size: size * 0.38, weight: .semibold))
+            .foregroundStyle(badge.unlocked ? badge.tint : NanoTheme.mutedText)
+            .frame(width: size * 0.82, height: size * 0.82)
+            .background(
+                Circle()
+                    .fill(NanoTheme.surface)
+                    .stroke(
+                        badge.unlocked ? badge.tint : NanoTheme.mutedText,
+                        style: StrokeStyle(
+                            lineWidth: max(2, size * 0.024),
+                            dash: badge.unlocked ? [] : [5, 4]
+                        )
+                    )
+            )
+    }
+}
+
 private struct AchievementCard: View {
     let badge: StatsBadge
 
     var body: some View {
         VStack(spacing: 10) {
-            Image(systemName: badge.symbol)
-                .font(.system(size: 21, weight: .semibold))
-                .foregroundStyle(badge.tint)
-                .frame(width: 52, height: 52)
-                .background(
-                    Circle()
-                        .fill(badge.tint.opacity(0.08))
-                        .stroke(badge.tint, lineWidth: 2)
-                )
+            BadgeArtworkView(badge: badge, size: 72)
             Text(badge.title)
                 .font(NanoFont.aldrich(10))
                 .foregroundStyle(.white)
@@ -815,24 +899,11 @@ private struct BadgeGridCell: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Image(systemName: badge.unlocked ? badge.symbol : "lock.fill")
-                .font(.system(size: badge.unlocked ? 26 : 20, weight: .semibold))
-                .foregroundStyle(badge.unlocked ? badge.tint : NanoTheme.mutedText)
-                .frame(width: 70, height: 70)
-                .background(
-                    Circle()
-                        .fill(NanoTheme.surface)
-                        .stroke(
-                            badge.unlocked ? badge.tint : NanoTheme.mutedText,
-                            style: StrokeStyle(
-                                lineWidth: highlighted ? 3 : 2,
-                                dash: badge.unlocked ? [] : [5, 4]
-                            )
-                        )
-                        .shadow(
-                            color: badge.unlocked ? badge.tint.opacity(0.30) : .clear,
-                            radius: highlighted ? 12 : 5
-                        )
+            BadgeArtworkView(badge: badge, size: 78)
+                .scaleEffect(highlighted ? 1.08 : 1)
+                .shadow(
+                    color: badge.unlocked ? badge.tint.opacity(highlighted ? 0.55 : 0.18) : .clear,
+                    radius: highlighted ? 14 : 4
                 )
             Text(badge.title)
                 .font(NanoFont.aldrich(8))
@@ -918,10 +989,12 @@ private struct BadgeDetailView: View {
 struct BadgeAwardCelebrationView: View {
     let badge: StatsBadge
     let sections: [StatsBadgeSection]
+    var onPresented: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
     @State private var appeared = false
     @State private var showsCollection = false
+    @State private var didReportPresentation = false
 
     var body: some View {
         ZStack {
@@ -975,17 +1048,7 @@ struct BadgeAwardCelebrationView: View {
                 Spacer()
 
                 VStack(spacing: 11) {
-                    ShareLink(
-                        item: "I just unlocked “\(badge.title)” in Nanobeasts — \(badge.description)."
-                    ) {
-                        Label("SHARE ACHIEVEMENT", systemImage: "square.and.arrow.up")
-                            .font(NanoFont.aldrich(12))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(badge.tint)
-                    .foregroundStyle(.black)
+                    BadgeShareButton(badge: badge)
 
                     Button {
                         showsCollection = true
@@ -1010,6 +1073,10 @@ struct BadgeAwardCelebrationView: View {
             .padding(.vertical, 22)
         }
         .onAppear {
+            if !didReportPresentation {
+                didReportPresentation = true
+                onPresented?()
+            }
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             withAnimation(.spring(response: 1.0, dampingFraction: 0.68)) {
                 appeared = true
@@ -1026,40 +1093,227 @@ struct BadgeAwardCelebrationView: View {
     }
 }
 
+private struct BadgeShareButton: View {
+    let badge: StatsBadge
+
+    @State private var shareImage: UIImage?
+    @State private var presentsShareSheet = false
+    @State private var isPreparing = false
+
+    var body: some View {
+        Button {
+            Task {
+                await prepareSharePayload()
+            }
+        } label: {
+            HStack(spacing: 9) {
+                if isPreparing {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(.black)
+                } else {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                Text(isPreparing ? "PREPARING BADGE…" : "SHARE ACHIEVEMENT")
+            }
+            .font(NanoFont.aldrich(12))
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(badge.tint)
+        .foregroundStyle(.black)
+        .disabled(isPreparing)
+        .sheet(isPresented: $presentsShareSheet) {
+            if let shareImage {
+                BadgeActivityShareSheet(
+                    items: [
+                        shareImage,
+                        "I just unlocked “\(badge.title)” in Nanobeasts — \(badge.description)."
+                    ]
+                )
+                .presentationDetents([.medium, .large])
+            }
+        }
+    }
+
+    @MainActor
+    private func prepareSharePayload() async {
+        guard !isPreparing else { return }
+        isPreparing = true
+        defer { isPreparing = false }
+
+        if let artworkURL = badge.artworkURL,
+           let data = try? await BadgeArtworkImageCache.shared.data(for: artworkURL),
+           let image = UIImage(data: data) {
+            shareImage = image
+        } else {
+            shareImage = badge.fallbackShareImage()
+        }
+        presentsShareSheet = shareImage != nil
+    }
+}
+
+private struct BadgeActivityShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(
+            activityItems: items,
+            applicationActivities: nil
+        )
+    }
+
+    func updateUIViewController(
+        _ uiViewController: UIActivityViewController,
+        context: Context
+    ) {}
+}
+
 private struct SpinningBadgeMedallion: View {
     let badge: StatsBadge
     let appeared: Bool
     let size: CGFloat
 
+    @State private var artworkReady = false
+
     var body: some View {
-        Image(systemName: badge.unlocked ? badge.symbol : "lock.fill")
-            .font(.system(size: size * 0.44, weight: .semibold))
-            .foregroundStyle(badge.unlocked ? badge.tint : NanoTheme.mutedText)
-            .frame(width: size, height: size)
-            .background(
-                Circle()
-                    .fill(NanoTheme.surface)
-                    .stroke(
-                        badge.unlocked ? badge.tint : NanoTheme.mutedText,
-                        style: StrokeStyle(
-                            lineWidth: max(3, size * 0.024),
-                            dash: badge.unlocked ? [] : [7, 6]
-                        )
-                    )
-            )
+        BadgeArtworkView(
+            badge: badge,
+            size: size,
+            onReady: {
+                guard !artworkReady else { return }
+                withAnimation(.easeInOut(duration: 0.88)) {
+                    artworkReady = true
+                }
+            }
+        )
             .overlay {
-                Circle()
-                    .trim(from: 0.08, to: 0.42)
-                    .stroke(Color.white.opacity(0.42), lineWidth: 2)
-                    .padding(8)
-                    .rotationEffect(.degrees(appeared ? 520 : 0))
+                if !badge.unlocked || badge.artworkURL == nil {
+                    Circle()
+                        .trim(from: 0.08, to: 0.42)
+                        .stroke(Color.white.opacity(0.42), lineWidth: 2)
+                        .padding(size * 0.11)
+                        .rotationEffect(.degrees(appeared ? 520 : 0))
+                }
             }
             .rotation3DEffect(
-                .degrees(appeared && badge.unlocked ? 360 : 0),
+                .degrees(appeared && artworkReady && badge.unlocked ? 360 : 0),
                 axis: (0, 1, 0),
                 perspective: 0.62
             )
             .scaleEffect(appeared ? 1 : 0.58)
             .shadow(color: badge.tint.opacity(badge.unlocked ? 0.48 : 0), radius: 24)
+            .onChange(of: badge.id) {
+                artworkReady = false
+            }
+    }
+}
+
+private extension StatsBadge {
+    @MainActor
+    func fallbackShareImage() -> UIImage {
+        let canvasSize = CGSize(width: 1_024, height: 1_024)
+        let renderer = UIGraphicsImageRenderer(size: canvasSize)
+        return renderer.image { context in
+            let bounds = CGRect(origin: .zero, size: canvasSize)
+            context.cgContext.clear(bounds)
+
+            let medallion = bounds.insetBy(dx: 92, dy: 92)
+            context.cgContext.setFillColor(UIColor(NanoTheme.surface).cgColor)
+            context.cgContext.fillEllipse(in: medallion)
+            context.cgContext.setStrokeColor(UIColor(tint).cgColor)
+            context.cgContext.setLineWidth(26)
+            context.cgContext.strokeEllipse(in: medallion.insetBy(dx: 13, dy: 13))
+
+            let configuration = UIImage.SymbolConfiguration(
+                pointSize: 390,
+                weight: .semibold
+            )
+            let symbolImage = UIImage(
+                systemName: unlocked ? symbol : "lock.fill",
+                withConfiguration: configuration
+            )?.withTintColor(UIColor(unlocked ? tint : NanoTheme.mutedText))
+            if let symbolImage {
+                let symbolSize = symbolImage.size
+                let origin = CGPoint(
+                    x: (canvasSize.width - symbolSize.width) / 2,
+                    y: (canvasSize.height - symbolSize.height) / 2
+                )
+                symbolImage.draw(at: origin)
+            }
+        }
+    }
+}
+
+private extension UIImage {
+    func trimmingTransparentCanvas() -> UIImage {
+        guard let cgImage else { return self }
+        let width = cgImage.width
+        let height = cgImage.height
+        guard width > 0, height > 0 else { return self }
+
+        let bytesPerPixel = 4
+        let bytesPerRow = width * bytesPerPixel
+        var pixels = [UInt8](repeating: 0, count: height * bytesPerRow)
+        let rendered = pixels.withUnsafeMutableBytes { buffer -> Bool in
+            guard let context = CGContext(
+                data: buffer.baseAddress,
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bytesPerRow: bytesPerRow,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                    | CGBitmapInfo.byteOrder32Big.rawValue
+            ) else {
+                return false
+            }
+            context.draw(
+                cgImage,
+                in: CGRect(x: 0, y: 0, width: width, height: height)
+            )
+            return true
+        }
+        guard rendered else { return self }
+
+        var minX = width
+        var minY = height
+        var maxX = -1
+        var maxY = -1
+        for y in 0..<height {
+            for x in 0..<width {
+                let offset = y * bytesPerRow + x * bytesPerPixel
+                let red = Int(pixels[offset])
+                let green = Int(pixels[offset + 1])
+                let blue = Int(pixels[offset + 2])
+                let alpha = pixels[offset + 3]
+                let colorRange = max(red, green, blue) - min(red, green, blue)
+                let isIllustratedContent =
+                    colorRange > 18 || max(red, green, blue) < 86
+                guard alpha > 24, isIllustratedContent else { continue }
+                minX = min(minX, x)
+                minY = min(minY, y)
+                maxX = max(maxX, x)
+                maxY = max(maxY, y)
+            }
+        }
+
+        guard maxX >= minX, maxY >= minY else { return self }
+        // Ignore the opaque gray shadows baked into some concept exports so
+        // every custom badge uses the same optical footprint as First Hatch.
+        let padding = max(Int(Double(max(width, height)) * 0.018), 2)
+        let cropRect = CGRect(
+            x: max(minX - padding, 0),
+            y: max(minY - padding, 0),
+            width: min(maxX + padding, width - 1) - max(minX - padding, 0) + 1,
+            height: min(maxY + padding, height - 1) - max(minY - padding, 0) + 1
+        )
+        guard let cropped = cgImage.cropping(to: cropRect) else { return self }
+        return UIImage(
+            cgImage: cropped,
+            scale: scale,
+            orientation: imageOrientation
+        )
     }
 }

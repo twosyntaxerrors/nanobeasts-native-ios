@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import SDWebImage
 import SwiftUI
@@ -69,6 +70,82 @@ enum R2AssetManifest {
         }
 
         return baseURL.appending(path: path)
+    }
+}
+
+enum R2BadgeManifest {
+    private static let approvedBadgeIDs: Set<String> = [
+        "collection-3",
+        "collection-5",
+        "collection-10",
+        "collection-15",
+        "collection-25",
+        "collection-first",
+        "distance-1",
+        "distance-5",
+        "distance-10",
+        "distance-15",
+        "distance-25",
+        "distance-50",
+        "distance-75",
+        "distance-100",
+        "distance-150",
+        "distance-200",
+        "distance-300",
+        "distance-350",
+        "distance-400",
+        "distance-450",
+        "distance-500",
+        "distance-750",
+        "distance-1000",
+        "distance-sprint",
+        "double-goal",
+        "evolve-3",
+        "evolve-5",
+        "evolve-10",
+        "evolve-first",
+        "final-3",
+        "final-first",
+        "goal-1",
+        "goal-3",
+        "goal-7",
+        "goal-15",
+        "goal-30",
+        "goal-50",
+        "monthly-marathon",
+        "species-3",
+        "species-5",
+        "species-10",
+        "species-15",
+        "species-20",
+        "species-25",
+        "species-35",
+        "species-50",
+        "steps-5k",
+        "steps-10k",
+        "steps-15k",
+        "steps-20k",
+        "streak-3",
+        "streak-5",
+        "streak-7",
+        "streak-10",
+        "streak-14",
+        "streak-21",
+        "streak-30",
+        "streak-45",
+        "streak-60",
+        "streak-90",
+        "streak-120",
+        "streak-180",
+        "triple-goal",
+        "weekend-warrior",
+    ]
+
+    static func url(for badgeID: String) -> URL? {
+        guard approvedBadgeIDs.contains(badgeID) else { return nil }
+        return R2AssetManifest.baseURL.appending(
+            path: "images/badges/\(badgeID).png"
+        )
     }
 }
 
@@ -311,6 +388,104 @@ actor R2ArtworkCache {
 
     func clear() {
         cache.removeAllCachedResponses()
+    }
+}
+
+/// Downloads transition movies once and hands AVPlayer a local file URL.
+///
+/// Evolution cinematics are intentionally kept separate from the decoded
+/// artwork cache. Compressed video can then stay on AVFoundation's media
+/// pipeline instead of competing with animated WebP frame decoding.
+actor R2TransitionVideoCache {
+    static let shared = R2TransitionVideoCache()
+
+    private let cacheDirectory: URL
+    private let session: URLSession
+    private var activeDownloads: [URL: Task<URL, Error>] = [:]
+
+    init() {
+        cacheDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appending(path: "nanobeasts-r2-transition-videos", directoryHint: .isDirectory)
+        try? FileManager.default.createDirectory(
+            at: cacheDirectory,
+            withIntermediateDirectories: true
+        )
+
+        let configuration = URLSessionConfiguration.default
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuration.timeoutIntervalForRequest = 60
+        configuration.timeoutIntervalForResource = 180
+        configuration.waitsForConnectivity = true
+        session = URLSession(configuration: configuration)
+    }
+
+    func localURL(for remoteURL: URL) async throws -> URL {
+        let destination = cachedURL(for: remoteURL)
+        if FileManager.default.isReadableFile(atPath: destination.path()) {
+            touch(destination)
+            return destination
+        }
+
+        if let activeDownload = activeDownloads[remoteURL] {
+            return try await activeDownload.value
+        }
+
+        let session = session
+        let task = Task.detached(priority: .userInitiated) {
+            let (temporaryURL, response) = try await session.download(from: remoteURL)
+            guard let http = response as? HTTPURLResponse,
+                  200..<300 ~= http.statusCode else {
+                throw URLError(.badServerResponse)
+            }
+
+            let fileManager = FileManager.default
+            try fileManager.createDirectory(
+                at: destination.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+
+            if fileManager.fileExists(atPath: destination.path()) {
+                try fileManager.removeItem(at: destination)
+            }
+            try fileManager.moveItem(at: temporaryURL, to: destination)
+            return destination
+        }
+
+        activeDownloads[remoteURL] = task
+        defer {
+            activeDownloads[remoteURL] = nil
+        }
+
+        let localURL = try await task.value
+        touch(localURL)
+        return localURL
+    }
+
+    func clear() {
+        activeDownloads.values.forEach { $0.cancel() }
+        activeDownloads.removeAll()
+        try? FileManager.default.removeItem(at: cacheDirectory)
+        try? FileManager.default.createDirectory(
+            at: cacheDirectory,
+            withIntermediateDirectories: true
+        )
+    }
+
+    private func cachedURL(for remoteURL: URL) -> URL {
+        let digest = SHA256.hash(data: Data(remoteURL.absoluteString.utf8))
+            .map { String(format: "%02x", $0) }
+            .joined()
+        let pathExtension = remoteURL.pathExtension.isEmpty
+            ? "mp4"
+            : remoteURL.pathExtension.lowercased()
+        return cacheDirectory.appending(path: "\(digest).\(pathExtension)")
+    }
+
+    private func touch(_ url: URL) {
+        try? FileManager.default.setAttributes(
+            [.modificationDate: Date()],
+            ofItemAtPath: url.path()
+        )
     }
 }
 

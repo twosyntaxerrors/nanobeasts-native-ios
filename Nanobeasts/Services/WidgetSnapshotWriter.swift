@@ -12,7 +12,9 @@ final class WidgetSnapshotWriter {
     private var artworkTask: Task<Void, Never>?
     private var reloadTask: Task<Void, Never>?
 
-    private init() {}
+    private init() {
+        removeLegacyLivingWidgetCache()
+    }
 
     func update(
         stage: CreatureStage,
@@ -46,7 +48,7 @@ final class WidgetSnapshotWriter {
         if
             cachedSource == sourceURL.absoluteString,
             FileManager.default.fileExists(atPath: destination.path()),
-            WidgetSnapshotStore.hasInlineArtworkData()
+            WidgetSnapshotStore.hasInlineArtworkData(filename: artworkFilename)
         {
             return
         }
@@ -84,6 +86,14 @@ final class WidgetSnapshotWriter {
             .removeObject(forKey: artworkSourceKey)
         WidgetSnapshotStore.save(.placeholder)
         scheduleTimelineReload()
+    }
+
+    private func removeLegacyLivingWidgetCache() {
+        let filename = "ampaw-charging2-widget.gif"
+        WidgetSnapshotStore.removeArtworkData(filename: filename)
+        UserDefaults(suiteName: WidgetSnapshotStore.appGroupID)?.removeObject(
+            forKey: "nanobeasts.widget.living-artwork-source.v1"
+        )
     }
 
     private func scheduleTimelineReload() {

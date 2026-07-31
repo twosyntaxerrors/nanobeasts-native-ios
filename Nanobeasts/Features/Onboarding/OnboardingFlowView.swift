@@ -47,27 +47,37 @@ struct OnboardingFlowView: View {
     private var recommendedGoal: Int {
         var base: Int
         switch activity {
-        case "Sedentary": base = 5_000
-        case "Moderately Active": base = 8_000
-        case "Very Active": base = 10_000
-        default: base = 6_500
+        case "Sedentary": base = 3_500
+        case "Moderately Active": base = 5_500
+        case "Very Active": base = 7_500
+        default: base = 4_500
         }
 
         if selectedGoals.contains("Lose Weight") {
-            base += 2_000
+            base += 750
         } else if selectedGoals.contains("Get Fit") {
-            base += 1_500
+            base += 750
         } else if selectedGoals.contains("Walk More") {
-            base += 1_000
+            base += 500
         }
 
-        if currentSteps == "5,000 – 8,000" {
-            base = max(base, 7_000)
-        } else if currentSteps == "8,000+" {
-            base = max(base, 9_000)
+        switch currentSteps {
+        case "Under 2,000":
+            base = min(base, 4_000)
+        case "2,000 – 5,000":
+            base = min(max(base, 4_000), 5_500)
+        case "5,000 – 8,000":
+            base = min(max(base, 6_000), 7_500)
+        case "8,000+":
+            base = min(max(base, 8_000), 9_500)
+        default:
+            break
         }
 
-        return min(Int((Double(base) / 500).rounded()) * 500, 15_000)
+        return min(
+            max(Int((Double(base) / 500).rounded()) * 500, 2_500),
+            9_500
+        )
     }
 
     var body: some View {
