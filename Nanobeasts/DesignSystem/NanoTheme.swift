@@ -1,11 +1,26 @@
 import SwiftUI
 
+enum NanoAccentPreference {
+    private static let key = "nanobeasts.interface-accent.v1"
+
+    static var current: NanoAccent {
+        get {
+            UserDefaults.standard.string(forKey: key)
+                .flatMap(NanoAccent.init(rawValue:))
+                ?? .mint
+        }
+        set {
+            UserDefaults.standard.set(newValue.rawValue, forKey: key)
+        }
+    }
+}
+
 enum NanoTheme {
     static let background = Color(red: 0.035, green: 0.035, blue: 0.043)
     static let surface = Color(red: 0.094, green: 0.094, blue: 0.106)
     static let elevated = Color(red: 0.153, green: 0.153, blue: 0.165)
-    static let teal = Color(red: 0.369, green: 0.918, blue: 0.831)
-    static let cyan = Color(red: 0.133, green: 0.827, blue: 0.933)
+    static var teal: Color { NanoAccentPreference.current.color }
+    static var cyan: Color { NanoAccentPreference.current.secondaryColor }
     static let pink = Color(red: 0.957, green: 0.447, blue: 0.714)
     static let green = Color(red: 0.525, green: 0.937, blue: 0.675)
     static let orange = Color(red: 0.984, green: 0.467, blue: 0.086)
@@ -14,17 +29,19 @@ enum NanoTheme {
     static let secondaryText = Color(red: 0.631, green: 0.631, blue: 0.667)
     static let mutedText = Color(red: 0.322, green: 0.322, blue: 0.357)
     static let border = elevated
-    static let glow = teal.opacity(0.22)
+    static var glow: Color { teal.opacity(0.22) }
 
-    static let backgroundGradient = LinearGradient(
-        colors: [
-            background,
-            Color(red: 0.02, green: 0.09, blue: 0.09),
-            background
-        ],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
+    static var backgroundGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                background,
+                NanoAccentPreference.current.backgroundGlow,
+                background,
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
 }
 
 enum NanoFont {

@@ -3,6 +3,11 @@ import UIKit
 
 struct LabView: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.appTourFocus) private var tourFocus
+    var onReplayNameTap: (() -> Void)? = nil
+    var defersCelebrations = false
+    var onPresentationStateChanged: (Bool) -> Void = { _ in }
+
     @State private var showStepsRemaining = false
     @State private var activeSheet: LabSheet?
     @State private var animatedTodaySteps = 0.0
@@ -13,8 +18,6 @@ struct LabView: View {
     @State private var showsDailyGoalCard = false
     @State private var pendingDailyGoalCelebration = false
     @State private var showsProgressionPaywall = false
-    @AppStorage("nanobeasts.testing.stepButtonEnabled")
-    private var testingStepButtonEnabled = false
     @AppStorage("nanobeasts.lastDailyGoalCelebration")
     private var lastDailyGoalCelebration = ""
 
@@ -24,26 +27,29 @@ struct LabView: View {
             LabGridBackground().ignoresSafeArea()
 
             GeometryReader { proxy in
-                let heroDiameter = min(252, max(220, proxy.size.height * 0.30))
+                let usesCompactHeight = proxy.size.height < 760
+                let heroDiameter = min(
+                    proxy.size.width - 76,
+                    min(280, max(196, proxy.size.height * 0.32))
+                )
+                let headerToWeekSpacing: CGFloat = usesCompactHeight ? 8 : 11
+                let bottomScrollClearance: CGFloat = 8
 
+                ScrollViewReader { scroll in
                 ScrollView {
                     VStack(spacing: 0) {
                         LabHeader(
                             greeting: greeting,
                             playerName: store.playerName,
                             streak: store.displayedCurrentStreak,
-                            testingShortcutEnabled: testingStepButtonEnabled,
-                            onNameTap: {
-                                Task {
-                                    await store.addTestingSteps()
-                                    guard !Task.isCancelled else { return }
-                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                }
-                            },
-                            onStreakTap: { activeSheet = .streak }
+                            onStreakTap: { activeSheet = .streak },
+                            onNameTap: onReplayNameTap
                         )
+                        .id(AppTourTarget.streak)
 
-                        Spacer(minLength: 14)
+                        Color.clear
+                            .frame(height: headerToWeekSpacing)
+                            .accessibilityHidden(true)
 
                         Button {
                             activeSheet = .streak
@@ -54,16 +60,20 @@ struct LabView: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .appTourTarget(.week)
 
-                        Spacer(minLength: 22)
+                        Color.clear
+                            .frame(height: usesCompactHeight ? 24 : 28)
+                            .accessibilityHidden(true)
 
                         CreatureResearchHero(
-                            stage: store.currentStage,
+                            stage: homeCreatureStage,
                             progress: animatedHatchProgress,
                             stepsRemaining: max(
                                 store.currentTarget - store.hatchProgressSteps,
                                 0
                             ),
+                            nextMilestone: homeCreatureNextMilestone,
                             isSyncingSteps: store.isSyncingSteps,
                             isProgressionCapped: store.freeProgressionCapReached,
                             animationEnergy: stepAnimationEnergy,
@@ -73,21 +83,33 @@ struct LabView: View {
                                 if store.freeProgressionCapReached {
                                     showsProgressionPaywall = true
                                 } else {
-                                    showStepsRemaining = true
+                                    withAnimation(
+                                        .easeInOut(duration: store.reduceMotion ? 0 : 0.24)
+                                    ) {
+                                        showStepsRemaining.toggle()
+                                    }
                                 }
                             },
-                            onCreatureTap: { activeSheet = .creature }
+                            onCreatureTap: { activeSheet = .creature },
+                            onNameTap: onReplayNameTap
                         )
+                        .id(AppTourTarget.ring)
 
-                        Spacer(minLength: 18)
+                        Color.clear
+                            .frame(height: usesCompactHeight ? 18 : 22)
+                            .accessibilityHidden(true)
 
                         TodayStepsSection(
                             steps: animatedTodaySteps,
                             dailyGoal: store.dailyGoal,
                             animationEnergy: stepAnimationEnergy
                         )
+                        .appTourTarget(.todaySteps)
+                        .id(AppTourTarget.todaySteps)
 
-                        Spacer(minLength: 24)
+                        Color.clear
+                            .frame(height: 22)
+                            .accessibilityHidden(true)
 
                         DailyMetricsPanel(
                             distanceKilometers: store.distanceKilometersToday,
@@ -95,16 +117,29 @@ struct LabView: View {
                             calories: store.caloriesToday,
                             activeMinutes: store.activeMinutesToday
                         )
+                        .appTourTarget(.metrics)
                     }
                     .padding(.horizontal, 22)
                     .padding(.top, 2)
-                    .padding(.bottom, 10)
-                    .frame(minHeight: max(proxy.size.height - 4, 0))
+                    .padding(.bottom, bottomScrollClearance)
+                    .frame(minHeight: max(proxy.size.height - 4, 0), alignment: .top)
                 }
                 .scrollIndicators(.hidden)
                 .scrollBounceBehavior(.basedOnSize)
                 .refreshable {
                     await refresh()
+                }
+                .task(id: tourFocus) {
+                    await Task.yield()
+                    guard !Task.isCancelled else { return }
+                    switch tourFocus {
+                    case .ring: scroll.scrollTo(AppTourTarget.ring, anchor: .center)
+                    case .expBadge: scroll.scrollTo(AppTourTarget.expBadge, anchor: .center)
+                    case .streak, .none: scroll.scrollTo(AppTourTarget.streak, anchor: .top)
+                    case .todaySteps: scroll.scrollTo(AppTourTarget.todaySteps, anchor: .top)
+                    default: break
+                    }
+                }
                 }
             }
 
@@ -124,7 +159,7 @@ struct LabView: View {
 
                 DailyGoalCompletionCard(
                     goal: store.dailyGoal,
-                    creatureName: store.currentStage.name,
+                    creatureName: homeCreatureStage.name,
                     progressionCapped: store.freeProgressionCapReached
                 ) {
                     withAnimation(.easeOut(duration: 0.22)) {
@@ -147,16 +182,39 @@ struct LabView: View {
             guard store.hapticsEnabled else { return }
             UINotificationFeedbackGenerator().notificationOccurred(.success)
         }
-        .onChange(of: store.currentStage.id) {
+        .onChange(of: homeCreatureStage.id) {
             animatedHatchProgress = store.hatchProgress
             showStepsRemaining = false
             stepAnimationEnergy = 0
         }
-        .task(id: showStepsRemaining) {
-            guard showStepsRemaining else { return }
-            try? await Task.sleep(for: .seconds(2))
+        .task(id: expBadgeCycleID) {
+            guard !store.isSyncingSteps, !store.freeProgressionCapReached else {
+                return
+            }
+            try? await Task.sleep(for: .seconds(5))
             guard !Task.isCancelled else { return }
-            showStepsRemaining = false
+            withAnimation(.easeInOut(duration: store.reduceMotion ? 0 : 0.24)) {
+                showStepsRemaining.toggle()
+            }
+        }
+        .task {
+            guard AppScreenshotScenario.active == .featureTourHome else { return }
+
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled else { return }
+            activeSheet = .streak
+
+            try? await Task.sleep(for: .seconds(2.2))
+            guard !Task.isCancelled else { return }
+            activeSheet = nil
+
+            try? await Task.sleep(for: .milliseconds(700))
+            guard !Task.isCancelled else { return }
+            for _ in 0..<12 {
+                await store.addTestingSteps(1_200)
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled else { return }
+            }
         }
         .task(id: store.stepSyncAnimationID) {
             guard store.consumeStepSyncAnimationIfNeeded() else {
@@ -196,24 +254,35 @@ struct LabView: View {
             pendingDailyGoalCelebration = false
             presentDailyGoalCelebrationIfNeeded()
         }
+        .onChange(of: activeSheet != nil || showsDailyGoalCard || showsProgressionPaywall, initial: true) {
+            onPresentationStateChanged(activeSheet != nil || showsDailyGoalCard || showsProgressionPaywall)
+        }
+        .onChange(of: defersCelebrations) {
+            if !defersCelebrations, pendingDailyGoalCelebration {
+                pendingDailyGoalCelebration = false
+                presentDailyGoalCelebrationIfNeeded()
+            }
+        }
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
             case .streak:
                 StreakSummaryView(
-                    streak: store.displayedCurrentStreak,
-                    records: store.displayedRecentWeek,
-                    dailyGoal: store.dailyGoal
+                    records: store.badgeEvaluationHistory,
+                    dailyGoal: store.dailyGoal,
+                    dailyGoalHistory: store.dailyGoalHistory,
+                    hapticsEnabled: store.hapticsEnabled,
+                    reducesMotion: store.reduceMotion
                 )
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.hidden)
             case .creature:
-                CreatureDetailView(stage: store.currentStage, isLocked: false)
+                CreatureDetailView(stage: homeCreatureStage, isLocked: false)
                     .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
                 }
         }
         .fullScreenCover(isPresented: $showsProgressionPaywall) {
-            RevenueCatPaywallScreen(playerName: store.playerName)
+            RevenueCatPaywallScreen(playerName: store.playerName, selectedGoals: store.onboardingGoals, primaryGoal: store.onboardingPrimaryGoal, selectedBlockers: store.onboardingBlockers)
         }
     }
 
@@ -226,12 +295,51 @@ struct LabView: View {
         }
     }
 
+    /// Progression advances the persisted stage before SwiftUI can present the
+    /// lifecycle cover. Keep Home on the previous form until that event is
+    /// acknowledged so the reveal only happens inside the hatch/evolution flow.
+    private var homeCreatureStage: CreatureStage {
+        guard
+            let event = store.pendingLifecycleEvents.first,
+            event.kind == .hatch || event.kind == .evolution,
+            let family = store.catalog.families.first(where: {
+                $0.id == event.familyID
+            }),
+            let previousStage = family.stages
+                .filter({ $0.stage < event.stage })
+                .max(by: { $0.stage < $1.stage })
+        else {
+            return store.currentStage
+        }
+
+        return previousStage
+    }
+
+    private var homeCreatureNextMilestone: ProgressMilestone {
+        if homeCreatureStage.isEgg {
+            return .hatch
+        }
+        if homeCreatureStage.id == store.currentFamily.stages.last?.id {
+            return .mature
+        }
+        return .evolve
+    }
+
+    private var expBadgeCycleID: String {
+        [
+            showStepsRemaining.description,
+            store.isSyncingSteps.description,
+            store.freeProgressionCapReached.description,
+            homeCreatureStage.id,
+        ].joined(separator: "-")
+    }
+
     private func refresh() async {
         await store.refreshHealthData()
     }
 
     private func presentDailyGoalCelebrationIfNeeded() {
-        guard store.pendingLifecycleEvents.isEmpty else {
+        guard !defersCelebrations, store.pendingLifecycleEvents.isEmpty else {
             pendingDailyGoalCelebration = true
             return
         }
@@ -343,13 +451,16 @@ private enum LabSheet: String, Identifiable {
     var id: String { rawValue }
 }
 
-private struct LabHeader: View {
+// Hallmark · component: streak readout · genre: atmospheric · theme: Nanobeasts
+// Pre-emit critique: P5 H4 E5 S5 R5 V4 · contrast: pass · touch target: 44pt
+struct LabHeader: View {
     let greeting: String
     let playerName: String
     let streak: Int
-    let testingShortcutEnabled: Bool
-    let onNameTap: () -> Void
     let onStreakTap: () -> Void
+    var onNameTap: (() -> Void)? = nil
+
+    @State private var flameAnimationTrigger = 0
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
@@ -358,17 +469,12 @@ private struct LabHeader: View {
                     .font(.system(size: 13, weight: .regular))
                     .tracking(1.4)
                     .foregroundStyle(NanoTheme.secondaryText)
-                Group {
-                    if testingShortcutEnabled {
-                        Button(action: onNameTap) {
-                            researcherName
-                        }
+                if let onNameTap {
+                    Button(action: onNameTap) { researcherName }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("Advance lifecycle progress by 100")
-                        .accessibilityHint("Testing shortcut. Does not change activity stats.")
-                    } else {
-                        researcherName
-                    }
+                        .accessibilityHint("Adds 100 simulated steps")
+                } else {
+                    researcherName
                 }
                 Text("Let's evolve today.")
                     .font(.system(size: 11, weight: .regular))
@@ -378,37 +484,56 @@ private struct LabHeader: View {
 
             Spacer(minLength: 4)
 
-            Button(action: onStreakTap) {
-                HStack(spacing: 8) {
-                    Image(systemName: "flame.fill")
-                        .font(.title3)
-                        .foregroundStyle(NanoTheme.orange)
-                        .shadow(color: NanoTheme.orange.opacity(0.45), radius: 7)
-                    VStack(alignment: .leading, spacing: 0) {
+            Button {
+                flameAnimationTrigger &+= 1
+                onStreakTap()
+            } label: {
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text("STREAK")
+                        .font(NanoFont.aldrich(8))
+                        .tracking(1.4)
+                        .foregroundStyle(NanoTheme.secondaryText)
+
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        StreakFlameMark(
+                            size: 15,
+                            animationTrigger: flameAnimationTrigger
+                        )
+
                         Text(streak.formatted())
-                            .font(.title3.monospacedDigit().bold())
-                        Text("DAY\nSTREAK")
-                            .font(.system(size: 7, weight: .black))
-                            .tracking(1.1)
+                            .font(NanoFont.spaceMono(16, bold: true))
+                            .monospacedDigit()
+                            .foregroundStyle(.white)
+
+                        Text(streak == 1 ? "DAY" : "DAYS")
+                            .font(NanoFont.aldrich(8))
+                            .tracking(0.8)
                             .foregroundStyle(NanoTheme.secondaryText)
                     }
 
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(NanoTheme.secondaryText.opacity(0.75))
+                    HStack(spacing: 3) {
+                        Rectangle()
+                            .fill(NanoTheme.orange.opacity(0.30))
+                            .frame(width: 24, height: 1)
+                        Rectangle()
+                            .fill(NanoTheme.orange.opacity(0.82))
+                            .frame(width: 5, height: 2)
+                    }
                 }
-                .frame(width: 118)
-                .frame(minHeight: 60)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 9)
-                .background(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(NanoTheme.teal.opacity(0.07))
-                        .stroke(NanoTheme.teal.opacity(0.42), lineWidth: 1.2)
-                )
+                .frame(minWidth: 78, minHeight: 44, alignment: .trailing)
+                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("\(streak) day streak. Show weekly streak details.")
+            .buttonStyle(StreakReadoutButtonStyle())
+            .appTourTarget(.streak)
+            .accessibilityLabel(
+                "\(streak) \(streak == 1 ? "day" : "days") streak. Show weekly streak details."
+            )
+        }
+        .onAppear {
+            flameAnimationTrigger &+= 1
+        }
+        .onChange(of: streak) {
+            flameAnimationTrigger &+= 1
         }
     }
 
@@ -422,7 +547,74 @@ private struct LabHeader: View {
     }
 }
 
-private struct WeekProgressStrip: View {
+private struct StreakReadoutButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.62 : 1)
+            .animation(
+                reduceMotion ? nil : .easeOut(duration: 0.12),
+                value: configuration.isPressed
+            )
+    }
+}
+
+private struct StreakFlameMark: View {
+    let size: CGFloat
+    let animationTrigger: Int
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Group {
+            if reduceMotion {
+                flame
+            } else {
+                KeyframeAnimator(
+                    initialValue: AnimationValues(),
+                    trigger: animationTrigger
+                ) { values in
+                    flame
+                        .scaleEffect(
+                            x: values.scaleX,
+                            y: values.scaleY,
+                            anchor: .bottom
+                        )
+                } keyframes: { _ in
+                    KeyframeTrack(\.scaleX) {
+                        LinearKeyframe(0.93, duration: 0.08)
+                        CubicKeyframe(1.05, duration: 0.11)
+                        CubicKeyframe(0.98, duration: 0.10)
+                        CubicKeyframe(1, duration: 0.12)
+                    }
+                    KeyframeTrack(\.scaleY) {
+                        LinearKeyframe(1.12, duration: 0.08)
+                        CubicKeyframe(0.96, duration: 0.11)
+                        CubicKeyframe(1.04, duration: 0.10)
+                        CubicKeyframe(1, duration: 0.12)
+                    }
+                }
+            }
+        }
+        .frame(width: size, height: size)
+    }
+
+    private var flame: some View {
+        Image(systemName: "flame.fill")
+            .resizable()
+            .scaledToFit()
+            .foregroundStyle(NanoTheme.orange)
+            .frame(width: size * 0.78, height: size)
+    }
+
+    private struct AnimationValues {
+        var scaleX: CGFloat = 1
+        var scaleY: CGFloat = 1
+    }
+}
+
+struct WeekProgressStrip: View {
     let records: [DailyStepRecord]
     let dailyGoal: Int
 
@@ -494,10 +686,21 @@ private struct WeekProgressStrip: View {
     }
 }
 
-private struct CreatureResearchHero: View {
+enum ProgressMilestone: String {
+    case hatch = "HATCH"
+    case evolve = "EVOLVE"
+    case mature = "MATURE"
+
+    var accessibilityName: String {
+        rawValue.lowercased()
+    }
+}
+
+struct CreatureResearchHero: View {
     let stage: CreatureStage
     let progress: Double
     let stepsRemaining: Int
+    let nextMilestone: ProgressMilestone
     let isSyncingSteps: Bool
     let isProgressionCapped: Bool
     let animationEnergy: Double
@@ -505,6 +708,7 @@ private struct CreatureResearchHero: View {
     let ringDiameter: CGFloat
     let onEXPBadgeTap: () -> Void
     let onCreatureTap: () -> Void
+    var onNameTap: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -515,6 +719,7 @@ private struct CreatureResearchHero: View {
                     energy: animationEnergy
                 )
                     .frame(width: ringDiameter, height: ringDiameter)
+                    .appTourTarget(.ring)
                     .contentShape(Circle())
                     .onTapGesture(perform: onCreatureTap)
                     .accessibilityAddTraits(.isButton)
@@ -543,7 +748,7 @@ private struct CreatureResearchHero: View {
                                     : isProgressionCapped
                                         ? "TAP TO KEEP GROWING"
                                     : showStepsRemaining
-                                        ? "\(stepsRemaining.formatted()) TO GO"
+                                        ? "\(stepsRemaining.formatted()) TO \(nextMilestone.rawValue)"
                                         : "\(Int(progress * 100))% EXP"
                             )
                             .font(
@@ -573,127 +778,38 @@ private struct CreatureResearchHero: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .appTourTarget(.expBadge)
+                    .id(AppTourTarget.expBadge)
                     .accessibilityLabel(
                         isProgressionCapped
                             ? "Free progression limit reached. Tap to keep growing with Premium."
-                            : "\(stepsRemaining) steps remaining until evolution"
+                            : "\(stepsRemaining) steps to \(nextMilestone.accessibilityName)"
                     )
                 }
                 .offset(y: 20)
             }
             .padding(.bottom, 24)
 
-            Text(stage.name)
-                .font(.system(size: 21, weight: .bold, design: .rounded))
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
+            if let onNameTap {
+                Button(action: onNameTap) { creatureName }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Adds 100 simulated steps")
+            } else {
+                creatureName
+            }
         }
         .frame(maxWidth: .infinity)
     }
-}
 
-private struct StreakSummaryView: View {
-    let streak: Int
-    let records: [DailyStepRecord]
-    let dailyGoal: Int
-
-    @Environment(\.dismiss) private var dismiss
-
-    private var days: [(date: Date, steps: Int)] {
-        let calendar = Calendar.autoupdatingCurrent
-        let today = calendar.startOfDay(for: Date())
-        let weekday = calendar.component(.weekday, from: today)
-        let start = calendar.date(byAdding: .day, value: -(weekday - 1), to: today) ?? today
-        let lookup = Dictionary(
-            records.map { (calendar.startOfDay(for: $0.day), $0.steps) },
-            uniquingKeysWith: { _, latest in latest }
-        )
-        return (0..<7).compactMap { offset in
-            guard let date = calendar.date(byAdding: .day, value: offset, to: start) else {
-                return nil
-            }
-            return (date, lookup[date] ?? 0)
-        }
-    }
-
-    var body: some View {
-        ZStack {
-            NanoTheme.background.ignoresSafeArea()
-            LabGridBackground().ignoresSafeArea()
-
-            VStack(spacing: 24) {
-                HStack(spacing: 14) {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 26, weight: .bold))
-                        .foregroundStyle(NanoTheme.orange)
-                        .frame(width: 54, height: 54)
-                        .background(
-                            RoundedRectangle(cornerRadius: 17)
-                                .fill(NanoTheme.orange.opacity(0.10))
-                                .stroke(NanoTheme.orange.opacity(0.42), lineWidth: 1)
-                        )
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("STREAK STATUS")
-                            .font(NanoFont.aldrich(10))
-                            .tracking(1.4)
-                            .foregroundStyle(NanoTheme.orange)
-                        Text("\(streak) DAY\(streak == 1 ? "" : "S")")
-                            .font(NanoFont.aldrich(26))
-                    }
-
-                    Spacer()
-
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.circle)
-                }
-
-                HStack(spacing: 0) {
-                    ForEach(Array(days.enumerated()), id: \.offset) { _, day in
-                        VStack(spacing: 8) {
-                            Text(day.date.formatted(.dateTime.weekday(.narrow)))
-                                .font(NanoFont.aldrich(10))
-                                .foregroundStyle(NanoTheme.secondaryText)
-                            Circle()
-                                .fill(
-                                    day.steps >= dailyGoal
-                                        ? NanoTheme.orange
-                                        : NanoTheme.elevated
-                                )
-                                .overlay {
-                                    if day.steps >= dailyGoal {
-                                        Image(systemName: "checkmark")
-                                            .font(.caption2.bold())
-                                            .foregroundStyle(NanoTheme.background)
-                                    }
-                                }
-                                .frame(width: 34, height: 34)
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                }
-
-                Text(
-                    streak > 0
-                        ? "Keep reaching your daily step goal to protect your research streak."
-                        : "Reach your daily step goal to ignite a new research streak."
-                )
-                .font(NanoFont.aldrich(11))
-                .foregroundStyle(NanoTheme.secondaryText)
-                .multilineTextAlignment(.center)
-                .lineSpacing(4)
-            }
-            .padding(22)
-        }
+    private var creatureName: some View {
+        Text(stage.name)
+            .font(.system(size: 24, weight: .semibold, design: .rounded))
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
     }
 }
 
-private struct TodayStepsSection: View {
+struct TodayStepsSection: View {
     let steps: Double
     let dailyGoal: Int
     let animationEnergy: Double
@@ -706,22 +822,24 @@ private struct TodayStepsSection: View {
     var body: some View {
         VStack(spacing: 6) {
             Text("TODAY'S STEPS")
-                .font(.system(size: 10, weight: .black))
-                .tracking(2.1)
-                .foregroundStyle(NanoTheme.teal.opacity(0.78))
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(2.7)
+                .foregroundStyle(NanoTheme.teal.opacity(0.88))
 
             HStack(alignment: .lastTextBaseline, spacing: 5) {
                 EnergizedStepCounter(
                     value: steps,
                     energy: animationEnergy
                 )
-                    .font(.system(size: 46, weight: .semibold).monospacedDigit())
+                    .font(.system(size: 52, weight: .semibold).monospacedDigit())
                     .foregroundStyle(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
                 Text("/ \(dailyGoal.formatted())")
-                    .font(.system(size: 17, weight: .regular, design: .rounded).monospacedDigit())
+                    .font(.system(size: 18, weight: .regular, design: .rounded).monospacedDigit())
                     .foregroundStyle(NanoTheme.secondaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
             }
 
             GeometryReader { proxy in
@@ -742,6 +860,7 @@ private struct TodayStepsSection: View {
                 }
             }
             .frame(height: 8)
+            .padding(.top, 14)
         }
     }
 }
@@ -781,7 +900,7 @@ private struct CountingStepText: View, Animatable {
     }
 }
 
-private struct DailyMetricsPanel: View {
+struct DailyMetricsPanel: View {
     let distanceKilometers: Double
     let distanceUnit: DistanceUnitPreference
     let calories: Int
@@ -836,10 +955,12 @@ private struct MetricColumn: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(color)
             Text(value)
+                .lineLimit(1).minimumScaleFactor(0.75)
                 .font(.system(size: 21, weight: .semibold, design: .rounded).monospacedDigit())
                 .contentTransition(.numericText())
                 .animation(.smooth(duration: 0.62), value: value)
             Text(unit)
+                .lineLimit(1).minimumScaleFactor(0.75)
                 .font(.system(size: 8, weight: .black))
                 .tracking(1.1)
                 .foregroundStyle(NanoTheme.secondaryText)

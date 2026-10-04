@@ -6,6 +6,7 @@ import WidgetKit
 struct NanobeastsWidgetBundle: WidgetBundle {
     var body: some Widget {
         NanobeastsProgressWidget()
+        NanobeastsWorkoutLiveActivity()
     }
 }
 

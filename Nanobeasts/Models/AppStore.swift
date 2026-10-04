@@ -1,6 +1,59 @@
 import Foundation
 import Observation
 import RevenueCat
+import StoreKit
+
+enum AppScreenshotScenario: String {
+    case badges
+    case collectionBadges = "collection-badges"
+    case stats
+    case insights
+    case dex
+    case dexDetail = "dex-detail"
+    case evolution
+    case finalEvolution = "final-evolution"
+    case eggSelection = "egg-selection"
+    case tutorialLoop = "tutorial-loop"
+    case featureTourHome = "feature-tour-home"
+    case featureTourDex = "feature-tour-dex"
+    case featureTourBadges = "feature-tour-badges"
+    case featureTourStats = "feature-tour-stats"
+
+    static let goldieScenarioDefaultsKey = "nanobeasts.goldie.screenshot-scenario"
+
+    static var active: AppScreenshotScenario? {
+#if targetEnvironment(simulator)
+        if let rawValue = UserDefaults.standard.string(forKey: goldieScenarioDefaultsKey),
+           let scenario = AppScreenshotScenario(rawValue: rawValue)
+        {
+            return scenario
+        }
+#endif
+#if targetEnvironment(simulator)
+#if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if let value = arguments
+            .first(where: { $0.hasPrefix("--screenshot-scenario=") })?
+            .split(separator: "=", maxSplits: 1)
+            .last
+        {
+            return AppScreenshotScenario(rawValue: String(value))
+        }
+
+        guard
+            let flagIndex = arguments.firstIndex(of: "--screenshot-scenario"),
+            arguments.indices.contains(flagIndex + 1)
+        else {
+            return nil
+        }
+        return AppScreenshotScenario(rawValue: arguments[flagIndex + 1])
+#else
+        return nil
+#endif
+#endif
+        return nil
+    }
+}
 
 enum DistanceUnitPreference: String, Codable, CaseIterable, Identifiable, Sendable {
     case miles
@@ -52,6 +105,7 @@ final class AppStore {
         var familyIndex = 0
         var stageIndex = 0
         var progressionSteps = 0
+        var bankedProgressionSteps: Int?
         var discoveredStageIDs: [String] = []
         var dailyGoal = 10_000
         var hasRequestedHealthAccess = false
@@ -62,6 +116,9 @@ final class AppStore {
         var distanceUnit: DistanceUnitPreference?
         var onboardingCompleted: Bool?
         var playerName: String?
+        var onboardingGoals: [String]?
+        var onboardingPrimaryGoal: String?
+        var onboardingBlockers: [String]?
         var onboardingWantsHealth: Bool?
         var onboardingWantsReminders: Bool?
         var awaitingEggSelection = false
@@ -85,12 +142,20 @@ final class AppStore {
     private let healthClient: HealthKitClient
     private let pedometerClient: PedometerClient
     private let defaults: UserDefaults
+    let isOnboardingReplay: Bool
+    var replayPreferences: UserDefaults { defaults }
     private let stateKey = "nanobeasts.native.game-state.v1"
     private let discoveryStateKey = "nanobeasts.native.discovery-events.v1"
+    private static let premiumStateKey = "nanobeasts.native.last-verified-premium.v1"
+#if DEBUG
+    private static let testStorePremiumUnlockKey =
+        "nanobeasts.debug.test-store-premium-unlocked.v1"
+#endif
 
     private var familyIndex: Int
     private var stageIndex: Int
     private var progressionSteps: Int
+    private(set) var bankedProgressionSteps: Int
     private var discoveredStageIDs: Set<String>
     private var lastHealthDateKey: String?
     private var lastHealthTodaySteps: Int
@@ -118,6 +183,13 @@ final class AppStore {
     var reduceMotion: Bool {
         didSet { persist() }
     }
+    var interfaceAccent: NanoAccent {
+        didSet {
+            guard !isOnboardingReplay else { return }
+            NanoAccentPreference.current = interfaceAccent
+            WorkoutWatchBridge.shared.updateInterfaceAccent()
+        }
+    }
     var distanceUnit: DistanceUnitPreference {
         didSet { persist() }
     }
@@ -127,11 +199,23 @@ final class AppStore {
     var playerName: String {
         didSet { persist() }
     }
+    var onboardingGoals: Set<String> {
+        didSet { persist() }
+    }
+    var onboardingBlockers: Set<String> {
+        didSet { persist() }
+    }
+    var onboardingPrimaryGoal: String? {
+        didSet { persist() }
+    }
     var onboardingWantsHealth: Bool {
         didSet { persist() }
     }
     var onboardingWantsReminders: Bool {
-        didSet { persist() }
+        didSet {
+            if !isOnboardingReplay { NanoNotifications.shared.setPreference(onboardingWantsReminders) }
+            persist()
+        }
     }
 
     private(set) var healthState: HealthConnectionState = .notRequested
@@ -150,6 +234,7 @@ final class AppStore {
     private(set) var stepSyncAnimationID = UUID()
     private(set) var dailyGoalCelebrationID: UUID?
     private(set) var isPremium: Bool
+    private(set) var hasResolvedInitialSubscription = false
     private(set) var stepSyncFromTodaySteps = 0
     private(set) var stepSyncFromHatchProgress = 0.0
     private(set) var stepSyncDuration = 1.0
@@ -164,15 +249,22 @@ final class AppStore {
         catalog: CreatureCatalog = .load(),
         healthClient: HealthKitClient = HealthKitClient(),
         pedometerClient: PedometerClient = PedometerClient(),
-        defaults: UserDefaults = .standard
+        defaults: UserDefaults = .standard,
+        isOnboardingReplay: Bool = false
     ) {
         self.catalog = catalog
         self.healthClient = healthClient
         self.pedometerClient = pedometerClient
         self.defaults = defaults
+        self.isOnboardingReplay = isOnboardingReplay
 
+        let screenshotFixture = (isOnboardingReplay ? nil : AppScreenshotScenario.active).map {
+            Self.makeScreenshotFixture(for: $0, catalog: catalog)
+        }
         let restored: PersistedState
-        if
+        if let screenshotFixture {
+            restored = screenshotFixture.state
+        } else if
             let data = defaults.data(forKey: stateKey),
             let decoded = try? JSONDecoder().decode(PersistedState.self, from: data)
         {
@@ -191,6 +283,7 @@ final class AppStore {
             max(catalog.families[restoredFamilyIndex].stages.count - 1, 0)
         )
         progressionSteps = max(restored.progressionSteps, 0)
+        bankedProgressionSteps = max(restored.bankedProgressionSteps ?? 0, 0)
         discoveredStageIDs = Set(restored.discoveredStageIDs)
         dailyGoal = restored.dailyGoal
         hasRequestedHealthAccess = restored.hasRequestedHealthAccess
@@ -198,9 +291,13 @@ final class AppStore {
         lastHealthTodaySteps = restored.lastHealthTodaySteps
         hapticsEnabled = restored.hapticsEnabled
         reduceMotion = restored.reduceMotion
+        interfaceAccent = screenshotFixture == nil ? NanoAccentPreference.current : .mint
         distanceUnit = restored.distanceUnit ?? .miles
         onboardingCompleted = restored.onboardingCompleted ?? false
         playerName = restored.playerName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        onboardingGoals = Set(restored.onboardingGoals ?? [])
+        onboardingPrimaryGoal = restored.onboardingPrimaryGoal
+        onboardingBlockers = Set(restored.onboardingBlockers ?? [])
         onboardingWantsHealth = restored.onboardingWantsHealth ?? true
         onboardingWantsReminders = restored.onboardingWantsReminders ?? true
         awaitingEggSelection = restored.awaitingEggSelection
@@ -254,12 +351,40 @@ final class AppStore {
             0
         )
         dailyGoalHistory = restored.dailyGoalHistory ?? []
-        discoveryEvents = defaults.data(forKey: discoveryStateKey)
-            .flatMap { try? JSONDecoder().decode([CreatureDiscoveryEvent].self, from: $0) }
+        discoveryEvents = screenshotFixture?.discoveryEvents
+            ?? defaults.data(forKey: discoveryStateKey)
+                .flatMap { try? JSONDecoder().decode([CreatureDiscoveryEvent].self, from: $0) }
             ?? []
         pendingLifecycleEvents = restored.pendingLifecycleEvents ?? []
         awardedBadgeIDs = Set(restored.awardedBadgeIDs ?? [])
-        isPremium = restored.isPremium ?? false
+        var restoredPremium = screenshotFixture == nil
+            ? (defaults.object(forKey: Self.premiumStateKey) as? Bool
+                ?? restored.isPremium
+                ?? false)
+            : (restored.isPremium ?? false)
+        // Development access must never become a paid entitlement when a
+        // production build replaces a local development install.
+        if screenshotFixture == nil,
+           let data = defaults.data(forKey: NanoSubscriptionAccess.cacheKey),
+           let access = try? JSONDecoder().decode(NanoSubscriptionAccess.self, from: data),
+           !access.permitsCurrentBuild {
+            restoredPremium = false
+        }
+#if DEBUG
+        if screenshotFixture == nil, Self.isUsingRevenueCatTestStore {
+            let testStoreUnlocked =
+                defaults.bool(forKey: Self.testStorePremiumUnlockKey)
+                || restoredPremium
+            isPremium = testStoreUnlocked
+            if testStoreUnlocked {
+                defaults.set(true, forKey: Self.testStorePremiumUnlockKey)
+            }
+        } else {
+            isPremium = restoredPremium
+        }
+#else
+        isPremium = restoredPremium
+#endif
         reviewEligibleLifecycleCount = restored.reviewEligibleLifecycleCount ?? 0
         lastReviewRequestLifecycleCount = restored.lastReviewRequestLifecycleCount ?? 0
         let eligibleFamilyIDs = Array(catalog.families.dropFirst().map(\.id))
@@ -268,6 +393,10 @@ final class AppStore {
             Set(restoredOrder) == Set(eligibleFamilyIDs)
                 ? restoredOrder
                 : eligibleFamilyIDs.shuffled()
+
+        if screenshotFixture == nil, !isOnboardingReplay {
+            defaults.set(isPremium, forKey: Self.premiumStateKey)
+        }
 
         // Existing installs predate the journey boundary. Start their activity
         // ledger now so the next Health query cannot backfill older movement.
@@ -279,7 +408,215 @@ final class AppStore {
         if onboardingCompleted, dailyGoalHistory.isEmpty {
             recordCurrentDailyGoal()
         }
+        if !isOnboardingReplay { NanoAccentPreference.current = interfaceAccent }
         lastConsumedStepSyncAnimationID = stepSyncAnimationID
+        if screenshotFixture == nil {
+            if !isOnboardingReplay { NanoNotifications.shared.setPreference(onboardingWantsReminders) }
+        }
+    }
+
+    /// A fresh, non-persisting profile for the Settings walkthrough. Never bootstrap it.
+    static func makeOnboardingReplay() -> AppStore {
+        AppStore(defaults: UserDefaults(suiteName: "nanobeasts.onboarding-replay.\(UUID().uuidString)")!,
+                 isOnboardingReplay: true)
+    }
+
+    /// Drives the production screens with the walkthrough's simulated activity.
+    /// The paywall journey owns the checkpoint; the creature remains an egg until revealed.
+    func updateOnboardingReplay(steps: Int, revealed: Bool, purchased: Bool,
+                                familyIndex replayFamilyIndex: Int = 0,
+                                stageIndex replayStageIndex: Int? = nil,
+                                stageSteps: Int? = nil,
+                                tutorialMatured: Bool = false) {
+        guard isOnboardingReplay else { return }
+        guard catalog.families.indices.contains(replayFamilyIndex) else { return }
+        let nextStageIndex = replayStageIndex ?? (revealed ? 1 : 0)
+        guard catalog.families[replayFamilyIndex].stages.indices.contains(nextStageIndex) else { return }
+        let previousToday = displayedTodaySteps
+        let previousProgress = hatchProgress
+        familyIndex = replayFamilyIndex
+        stageIndex = nextStageIndex
+        awaitingEggSelection = tutorialMatured && replayFamilyIndex == 0
+        let hatchTarget = CreatureProgressionRules.steps(familyIndex: 0, stage: 0)
+        progressionSteps = stageSteps ?? (revealed ? max(steps - hatchTarget, 0) : min(steps, hatchTarget))
+        isPremium = purchased
+        let today = Calendar.autoupdatingCurrent.startOfDay(for: Date())
+        dailyHistory = [DailyStepRecord(day: today, steps: steps)]
+        analyticsHistory = dailyHistory
+        progressionCreditHistory = dailyHistory
+        // Preserve both companions in the Dex; do not reveal the next stage at its paywall.
+        let tutorialStages = replayFamilyIndex > 0 ? Array(catalog.families[0].stages.prefix(2)) : []
+        for stage in tutorialStages + Array(currentFamily.stages.prefix(nextStageIndex + 1)) {
+            discoveredStageIDs.insert(stage.id)
+            guard !discoveryEvents.contains(where: { $0.creatureStage.id == stage.id }) else { continue }
+            let kind: CreatureDiscoveryKind = stage.stage == 0 ? .eggAcquired : stage.stage == 1 ? .hatch : .evolution
+            discoveryEvents.append(CreatureDiscoveryEvent(stage: stage, kind: kind))
+            if stage.stage > 0 { evolutionEventID = UUID() }
+        }
+        if tutorialMatured, let tutorial = catalog.families[0].stages.dropFirst().first,
+           !discoveryEvents.contains(where: { $0.kind == .maturity && $0.creatureStage.id == tutorial.id }) {
+            discoveryEvents.append(CreatureDiscoveryEvent(stage: tutorial, kind: .maturity))
+            evolutionEventID = UUID()
+        }
+        if previousToday != steps {
+            stepSyncFromTodaySteps = previousToday
+            stepSyncFromHatchProgress = previousProgress
+            stepSyncDuration = 0.88
+            stepSyncAnimationID = UUID()
+        }
+        badgeEvaluationID = UUID()
+    }
+
+    private static func makeScreenshotFixture(
+        for scenario: AppScreenshotScenario,
+        catalog: CreatureCatalog
+    ) -> (state: PersistedState, discoveryEvents: [CreatureDiscoveryEvent]) {
+        let calendar = Calendar(identifier: .gregorian)
+        let today = calendar.startOfDay(for: Date())
+        let history = (0..<180).compactMap { offset -> DailyStepRecord? in
+            guard let day = calendar.date(byAdding: .day, value: offset - 179, to: today)
+            else { return nil }
+            let steps = offset.isMultiple(of: 11)
+                ? 32_800 + ((offset % 5) * 1_100)
+                : 14_200 + ((offset % 7) * 640)
+            return DailyStepRecord(day: day, steps: steps)
+        }
+        let goalHistory = history.map { DailyGoalRecord(day: $0.day, goal: 10_000) }
+
+        let allStages = catalog.families.flatMap(\.stages)
+        var discoveryEvents = allStages
+            .filter { !$0.isEgg }
+            .enumerated()
+            .map { index, stage in
+                let kind: CreatureDiscoveryKind = stage.stage == 1 ? .hatch : .evolution
+                let timestamp = calendar.date(
+                    byAdding: .day,
+                    value: -min(index * 2, 178),
+                    to: today
+                ) ?? today
+                return CreatureDiscoveryEvent(stage: stage, kind: kind, timestamp: timestamp)
+            }
+
+        let preferredFamilyIndex = catalog.families.firstIndex(where: { family in
+            family.stages.contains(where: { $0.name == "Devicore" })
+        }) ?? min(1, max(catalog.families.count - 1, 0))
+        let preferredFamily = catalog.families[preferredFamilyIndex]
+        let destinationName =
+            scenario == .finalEvolution || scenario == .eggSelection
+                ? "Overnode"
+                : "Devicore"
+        let preferredStageIndex = preferredFamily.stages.firstIndex(where: {
+            $0.name == destinationName
+        }) ?? max(preferredFamily.stages.count - 1, 0)
+        let preferredStage = preferredFamily.stages[preferredStageIndex]
+        let evolutionEvent = CreatureDiscoveryEvent(
+            stage: preferredStage,
+            kind: .evolution,
+            timestamp: Date()
+        )
+        if scenario == .eggSelection {
+            discoveryEvents.append(
+                CreatureDiscoveryEvent(
+                    stage: preferredStage,
+                    kind: .maturity,
+                    timestamp: Date()
+                )
+            )
+        }
+
+        let allBadgeIDs = [
+            "distance-1", "distance-5", "distance-10", "distance-15",
+            "distance-25", "distance-50", "distance-75", "distance-100",
+            "distance-150", "distance-200", "distance-300", "distance-350",
+            "distance-400", "distance-450", "distance-500", "distance-750",
+            "distance-1000", "distance-sprint", "collection-first",
+            "collection-3", "collection-5", "collection-10", "collection-15",
+            "collection-25", "species-3", "species-5", "species-10",
+            "species-15", "species-20", "species-25", "species-35",
+            "species-50", "evolve-first", "evolve-3", "evolve-5",
+            "evolve-10", "final-first", "final-3", "streak-3", "streak-5",
+            "streak-7", "streak-10", "streak-14", "streak-21", "streak-30",
+            "streak-45", "streak-60", "streak-90", "streak-120", "streak-180",
+            "weekend-warrior", "monthly-marathon", "goal-1", "goal-3", "goal-7",
+            "goal-15", "goal-30", "goal-50", "double-goal", "triple-goal",
+            "steps-5k", "steps-10k", "steps-15k", "steps-20k",
+        ]
+
+        if scenario == .tutorialLoop {
+            let tutorialFamilyIndex = 0
+            let tutorialFamily = catalog.families[tutorialFamilyIndex]
+            let tutorialEggIndex = tutorialFamily.stages.firstIndex(where: \.isEgg) ?? 0
+            let tutorialEgg = tutorialFamily.stages[tutorialEggIndex]
+            let emptyToday = DailyStepRecord(day: today, steps: 0)
+
+            var state = PersistedState()
+            state.familyIndex = tutorialFamilyIndex
+            state.stageIndex = tutorialEggIndex
+            state.progressionSteps = 0
+            state.discoveredStageIDs = [tutorialEgg.id]
+            state.dailyGoal = 6_500
+            state.hasRequestedHealthAccess = false
+            state.hapticsEnabled = false
+            state.reduceMotion = false
+            state.distanceUnit = .miles
+            state.onboardingCompleted = true
+            state.playerName = "NOVA"
+            state.onboardingWantsHealth = false
+            state.onboardingWantsReminders = false
+            state.awaitingEggSelection = false
+            state.journeyStartedAt = today
+            state.lastCountedJourneySteps = 0
+            state.dailyHistory = [emptyToday]
+            state.analyticsHistory = [emptyToday]
+            state.hourlyAnalyticsHistory = []
+            state.dailyGoalHistory = [DailyGoalRecord(day: today, goal: 6_500)]
+            state.pendingLifecycleEvents = []
+            state.awardedBadgeIDs = []
+            state.eggDiscoveryOrder = Array(catalog.families.dropFirst().map(\.id))
+            state.progressionCreditHistory = []
+            state.testingStepHistory = []
+            state.isPremium = true
+            state.reviewEligibleLifecycleCount = 0
+            state.lastReviewRequestLifecycleCount = 0
+            return (
+                state,
+                [CreatureDiscoveryEvent(stage: tutorialEgg, kind: .eggAcquired)]
+            )
+        }
+
+        var state = PersistedState()
+        state.familyIndex = preferredFamilyIndex
+        state.stageIndex = preferredStageIndex
+        state.progressionSteps = max(0, 1_840)
+        state.discoveredStageIDs = allStages.map(\.id)
+        state.dailyGoal = 10_000
+        state.hasRequestedHealthAccess = false
+        state.hapticsEnabled = false
+        state.reduceMotion = false
+        state.distanceUnit = .miles
+        state.onboardingCompleted = true
+        state.playerName = "NOVA"
+        state.onboardingWantsHealth = false
+        state.onboardingWantsReminders = false
+        state.awaitingEggSelection = scenario == .eggSelection
+        state.journeyStartedAt = history.first?.day ?? today
+        state.lastCountedJourneySteps = history.reduce(0) { $0 + $1.steps }
+        state.dailyHistory = history
+        state.analyticsHistory = history
+        state.hourlyAnalyticsHistory = []
+        state.dailyGoalHistory = goalHistory
+        state.pendingLifecycleEvents =
+            scenario == .evolution || scenario == .finalEvolution
+                ? [evolutionEvent]
+                : []
+        state.awardedBadgeIDs = allBadgeIDs
+        state.eggDiscoveryOrder = Array(catalog.families.dropFirst().map(\.id))
+        state.progressionCreditHistory = []
+        state.testingStepHistory = []
+        state.isPremium = true
+        state.reviewEligibleLifecycleCount = 18
+        state.lastReviewRequestLifecycleCount = 18
+        return (state, discoveryEvents)
     }
 
     var currentFamily: CreatureFamily {
@@ -295,19 +632,7 @@ final class AppStore {
             return 1
         }
 
-        if familyIndex == 0 {
-            return currentStage.stage == 0 ? 250 : 500
-        }
-
-        let base = 10_000 + 1_500 * max(familyIndex - 1, 0)
-        let multiplier: Double = switch min(max(currentStage.stage, 0), 3) {
-        case 0: 0.30
-        case 1: 0.55
-        case 2: 0.75
-        default: 1
-        }
-        let rounded = Int((Double(base) * multiplier / 100).rounded()) * 100
-        return min(max(rounded, 500), 15_000)
+        return CreatureProgressionRules.steps(familyIndex: familyIndex, stage: currentStage.stage)
     }
 
     var hatchProgress: Double {
@@ -322,6 +647,74 @@ final class AppStore {
         progressionSteps + testingProgressionPreviewSteps
     }
 
+    var workoutEvolutionProgress: WorkoutEvolutionProgress {
+        WorkoutEvolutionProgress(
+            stageID: currentStage.id,
+            steps: awaitingEggSelection ? currentTarget : hatchProgressSteps,
+            target: currentTarget,
+            totalCreditedSteps: progressionCreditHistory.reduce(0) { $0 + $1.steps }
+                + testingProgressionCreditSteps,
+            milestone: awaitingEggSelection ? .complete : currentStage.isEgg ? .hatch
+                : stageIndex + 1 < currentFamily.stages.count ? .evolve : .mature,
+            allowsProgress: isPremium && onboardingCompleted
+        )
+    }
+
+    /// Keep the unrevealed creature visible until its queued celebration is seen.
+    var workoutMilestoneEvent: CreatureDiscoveryEvent? {
+        pendingLifecycleEvents.first(where: { $0.kind != .eggAcquired })
+    }
+
+    var workoutCompanionStage: CreatureStage {
+        guard let event = workoutMilestoneEvent else { return currentStage }
+        if event.kind == .maturity { return event.creatureStage }
+        return catalog.families.first(where: { $0.id == event.familyID })?.stages
+            .filter { $0.stage < event.stage }.max(by: { $0.stage < $1.stage })
+            ?? currentStage
+    }
+
+    var workoutCompanionProgress: WorkoutEvolutionProgress {
+        guard let event = workoutMilestoneEvent else { return workoutEvolutionProgress }
+        let stage = workoutCompanionStage
+        let index = catalog.families.firstIndex(where: { $0.id == stage.familyID }) ?? familyIndex
+        let target = CreatureProgressionRules.steps(familyIndex: index, stage: stage.stage)
+        return WorkoutEvolutionProgress(
+            stageID: stage.id, steps: target, target: target,
+            totalCreditedSteps: workoutEvolutionProgress.totalCreditedSteps,
+            milestone: event.kind == .maturity ? .complete : event.kind == .hatch ? .hatch : .evolve,
+            allowsProgress: false, readyEventID: event.id,
+            bankedSteps: bankedProgressionSteps)
+    }
+
+    /// Real workout steps can arrive before the daily Health query. Advance the
+    /// same monotonic credit ledger, so later Health delivery cannot double them.
+    /// Historical or overnight snapshots defer to Health's daily reconciliation.
+    func creditRecordedWorkoutSteps(_ steps: Int, anchor: WorkoutEvolutionAnchor?,
+                                    startedAt: Date, observedAt: Date = Date()) {
+        let now = Date()
+        let calendar = Calendar.autoupdatingCurrent
+        guard onboardingCompleted, isPremium, let journeyStartedAt,
+              startedAt >= journeyStartedAt, startedAt <= observedAt,
+              observedAt <= now.addingTimeInterval(60),
+              calendar.isDate(observedAt, inSameDayAs: now),
+              calendar.isDate(startedAt, inSameDayAs: observedAt),
+              let anchor, anchor.totalCreditedSteps >= 0, anchor.workoutSteps >= 0,
+              anchor.totalCreditedSteps <= workoutEvolutionProgress.totalCreditedSteps else { return }
+        let pending = anchor.uncreditedSteps(recordedSteps: steps,
+            totalCreditedSteps: workoutEvolutionProgress.totalCreditedSteps)
+        guard pending > 0 else { return }
+        let today = calendar.startOfDay(for: observedAt)
+        if let index = progressionCreditHistory.firstIndex(where: { calendar.isDate($0.day, inSameDayAs: today) }) {
+            progressionCreditHistory[index] = DailyStepRecord(day: today,
+                steps: progressionCreditHistory[index].steps + pending)
+        } else {
+            progressionCreditHistory.append(DailyStepRecord(day: today, steps: pending))
+            progressionCreditHistory.sort { $0.day < $1.day }
+        }
+        applyProgress(pending)
+        persist()
+    }
+
     static let freeDailyProgressionCap = 2_500
 
     var progressionStepsCreditedToday: Int {
@@ -332,7 +725,8 @@ final class AppStore {
     }
 
     var freeProgressionCapReached: Bool {
-        !isPremium
+        // Replay milestones own their paywall timing, including journeys beyond one day's cap.
+        !isOnboardingReplay && !isPremium
             && progressionStepsCreditedToday + testingProgressionCreditSteps
                 >= Self.freeDailyProgressionCap
     }
@@ -427,6 +821,35 @@ final class AppStore {
         return days >= 330 ? "PAST 12 MONTHS" : "\(max(days + 1, 1)) DAYS OF HISTORY"
     }
 
+    var journeyDayCount: Int {
+        guard let journeyStartedAt else { return 0 }
+        let calendar = Calendar.autoupdatingCurrent
+        let start = calendar.startOfDay(for: journeyStartedAt)
+        let today = calendar.startOfDay(for: Date())
+        guard start <= today else { return 1 }
+        let elapsed = calendar.dateComponents([.day], from: start, to: today).day ?? 0
+        return max(elapsed + 1, 1)
+    }
+
+    var journeyRangeLabel: String {
+        guard let journeyStartedAt else { return "YOUR NANO JOURNEY" }
+        return "SINCE \(journeyStartedAt.formatted(.dateTime.month(.abbreviated).day().year()).uppercased())"
+    }
+
+    var appleHealthImportedHistoryRange: DateInterval? {
+        guard hasRequestedHealthAccess, let journeyStartedAt else { return nil }
+
+        let calendar = Calendar.autoupdatingCurrent
+        let journeyStartDay = calendar.startOfDay(for: journeyStartedAt)
+        let importedStartDay = analyticsHistory.lazy
+            .map { calendar.startOfDay(for: $0.day) }
+            .filter { $0 < journeyStartDay }
+            .min()
+
+        guard let importedStartDay else { return nil }
+        return DateInterval(start: importedStartDay, end: journeyStartDay)
+    }
+
     var lastThirtyDaysSteps: Int {
         dailyHistory.suffix(30).reduce(0) { $0 + $1.steps }
     }
@@ -444,32 +867,13 @@ final class AppStore {
     }
 
     var currentStreak: Int {
-        var streak = 0
-        for record in dailyHistory.reversed() {
-            if record.steps >= goal(for: record.day) {
-                streak += 1
-            } else if Calendar.autoupdatingCurrent.isDateInToday(record.day) && record.steps > 0 {
-                continue
-            } else {
-                break
-            }
-        }
-        return streak
+        StreakHistorySummary(records: dailyHistory, dailyGoal: dailyGoal,
+                             goalHistory: dailyGoalHistory).current
     }
 
     var displayedCurrentStreak: Int {
-        var streak = 0
-        for record in displayedRecentWeek.reversed() {
-            if record.steps >= goal(for: record.day) {
-                streak += 1
-            } else if Calendar.autoupdatingCurrent.isDateInToday(record.day)
-                        && record.steps > 0 {
-                continue
-            } else {
-                break
-            }
-        }
-        return streak
+        StreakHistorySummary(records: badgeEvaluationHistory, dailyGoal: dailyGoal,
+                             goalHistory: dailyGoalHistory).current
     }
 
     var discoveredCreatureCount: Int {
@@ -504,8 +908,17 @@ final class AppStore {
     }
 
     func bootstrap() async {
+        guard !isOnboardingReplay else { return }
         isLoading = true
         defer { isLoading = false }
+
+        restoreMandatoryEggSelectionEventIfNeeded()
+
+        if AppScreenshotScenario.active != nil {
+            healthState = .unavailable
+            publishWidgetSnapshot()
+            return
+        }
 
         await refreshSubscriptionStatus()
 
@@ -532,6 +945,11 @@ final class AppStore {
     }
 
     func requestHealthAccess() async {
+        if isOnboardingReplay {
+            hasRequestedHealthAccess = true
+            healthState = .connected
+            return
+        }
         healthState = .connecting
         ensureJourneyStarted()
         do {
@@ -551,6 +969,7 @@ final class AppStore {
     }
 
     func refreshHealthData() async {
+        guard !isOnboardingReplay else { return }
         guard onboardingCompleted else { return }
         ensureJourneyStarted()
         guard let journeyStartedAt else { return }
@@ -597,6 +1016,7 @@ final class AppStore {
     }
 
     func activateJourneyTracking() async {
+        guard !isOnboardingReplay else { return }
         guard onboardingCompleted else { return }
         ensureJourneyStarted()
         if healthClient.isAvailable, hasRequestedHealthAccess {
@@ -646,12 +1066,21 @@ final class AppStore {
         lastReviewRequestLifecycleCount = 0
         badgeEvaluationID = UUID()
         awaitingEggSelection = false
+        bankedProgressionSteps = 0
         eggDiscoveryOrder = Array(catalog.families.dropFirst().map(\.id)).shuffled()
         defaults.removeObject(forKey: discoveryStateKey)
         defaults.set(false, forKey: "nanobeasts.didCompleteAppTour")
         defaults.set(false, forKey: "nanobeasts.testing.stepButtonEnabled")
         defaults.removeObject(forKey: "nanobeasts.lastDailyGoalCelebration")
+        if !isOnboardingReplay {
+            OnboardingDraft.clear()
+            NanoNotifications.shared.cancelOnboardingReminders()
+        }
+        defaults.set(false, forKey: "nanobeasts.didCompleteWorkoutControlsTour.v2")
         playerName = "Researcher"
+        onboardingGoals = []
+        onboardingPrimaryGoal = nil
+        onboardingBlockers = []
         dailyGoal = 6_500
         onboardingWantsHealth = true
         onboardingWantsReminders = false
@@ -662,12 +1091,18 @@ final class AppStore {
 
     func saveOnboardingProfile(
         playerName: String,
+        selectedGoals: Set<String>,
+        primaryGoal: String? = nil,
+        selectedBlockers: Set<String> = [],
         dailyGoal: Int,
         wantsHealth: Bool,
         wantsReminders: Bool
     ) {
         let trimmedName = playerName.trimmingCharacters(in: .whitespacesAndNewlines)
         self.playerName = trimmedName.isEmpty ? "Researcher" : trimmedName
+        onboardingGoals = selectedGoals
+        onboardingBlockers = selectedBlockers
+        onboardingPrimaryGoal = WalkingGoalSelection(values: selectedGoals, preferred: primaryGoal).primary?.rawValue
         self.dailyGoal = min(max(dailyGoal, 2_000), 20_000)
         onboardingWantsHealth = wantsHealth
         onboardingWantsReminders = wantsReminders
@@ -675,6 +1110,10 @@ final class AppStore {
     }
 
     func completeOnboarding() {
+        if !isOnboardingReplay {
+            OnboardingDraft.clear()
+            NanoNotifications.shared.cancelOnboardingReminders()
+        }
         if journeyStartedAt == nil {
             journeyStartedAt = Date()
             lastCountedJourneySteps = 0
@@ -687,6 +1126,8 @@ final class AppStore {
         }
         recordCurrentDailyGoal()
         onboardingCompleted = true
+        // Notification authorization belongs to the explicit Settings toggle,
+        // including for legacy profiles that saved a reminder preference.
         persist()
     }
 
@@ -710,20 +1151,33 @@ final class AppStore {
     }
 
     func restartOnboarding() {
+        if !isOnboardingReplay {
+            OnboardingDraft.clear()
+            NanoNotifications.shared.cancelOnboardingReminders()
+        }
         defaults.set(false, forKey: "nanobeasts.didCompleteAppTour")
         onboardingCompleted = false
         persist()
     }
 
-    func chooseNextEgg(_ egg: CreatureStage) {
+    @discardableResult
+    func chooseNextEgg(_ egg: CreatureStage) -> Bool {
         guard
+            awaitingEggSelection,
             egg.isEgg,
             let nextFamilyIndex = catalog.families.firstIndex(where: { $0.id == egg.familyID }),
             let nextStageIndex = catalog.families[nextFamilyIndex].stages.firstIndex(where: { $0.id == egg.id })
         else {
-            return
+            return false
         }
 
+        // Commit selection and consume this maturity together. Banked steps may
+        // immediately mature the next lineage, which is a separate queued event.
+        if let maturity = pendingLifecycleEvents.first(where: {
+            $0.kind == .maturity && $0.familyID == currentFamily.id
+        }) {
+            pendingLifecycleEvents.removeAll { $0.id == maturity.id }
+        }
         familyIndex = nextFamilyIndex
         stageIndex = nextStageIndex
         progressionSteps = 0
@@ -733,8 +1187,15 @@ final class AppStore {
         discoveryEvents.append(
             CreatureDiscoveryEvent(stage: egg, kind: .eggAcquired)
         )
+        // These steps already exist in the credit ledger. Release them once,
+        // without crediting them a second time when Health catches up.
+        let savedSteps = bankedProgressionSteps
+        bankedProgressionSteps = 0
+        applyProgress(savedSteps)
+        evolutionEventID = UUID()
         persistDiscoveryEvents()
         persist()
+        return true
     }
 
     func consumeStepSyncAnimationIfNeeded() -> Bool {
@@ -747,6 +1208,14 @@ final class AppStore {
 
     func addTestingSteps(_ amount: Int = 100) async {
         guard onboardingCompleted, amount > 0 else { return }
+
+        // Progress is intentionally paused at full maturity. If an older app
+        // version allowed the mandatory chooser to close, use the testing
+        // shortcut as another recovery trigger instead of silently doing
+        // nothing behind the awaiting-egg lock.
+        if restoreMandatoryEggSelectionEventIfNeeded() {
+            return
+        }
 
         // A purchase can complete while Home still has the last cached free
         // entitlement. Resolve that state before applying a testing increment
@@ -784,14 +1253,7 @@ final class AppStore {
     private func creditTestingProgress(_ amount: Int) {
         guard amount > 0, !awaitingEggSelection else { return }
 
-        let previouslyCredited =
-            progressionStepsCreditedToday + testingProgressionCreditSteps
-        let creditedAmount = isPremium
-            ? amount
-            : min(
-                amount,
-                max(Self.freeDailyProgressionCap - previouslyCredited, 0)
-            )
+        let creditedAmount = isPremium ? amount : 0
 
         guard creditedAmount > 0 else { return }
         testingProgressionCreditSteps += creditedAmount
@@ -804,6 +1266,32 @@ final class AppStore {
         persist()
     }
 
+    @discardableResult
+    private func restoreMandatoryEggSelectionEventIfNeeded() -> Bool {
+        guard awaitingEggSelection else { return false }
+
+        let alreadyQueued = pendingLifecycleEvents.contains(where: {
+            $0.kind == .maturity && $0.familyID == currentFamily.id
+        })
+        if !alreadyQueued {
+            let maturityEvent = discoveryEvents.last(where: {
+                $0.kind == .maturity && $0.familyID == currentFamily.id
+            }) ?? CreatureDiscoveryEvent(stage: currentStage, kind: .maturity)
+
+            if !discoveryEvents.contains(where: { $0.id == maturityEvent.id }) {
+                discoveryEvents.append(maturityEvent)
+                persistDiscoveryEvents()
+            }
+            pendingLifecycleEvents.append(maturityEvent)
+            persist()
+        }
+
+        // Notify AppRoot even when the event was already queued. This covers
+        // an interrupted presentation without duplicating the maturity event.
+        evolutionEventID = UUID()
+        return true
+    }
+
     func markBadgeAwardPresented(_ badgeID: String) {
         if hasTestingActivityPreview {
             testingPresentedBadgeIDs.insert(badgeID)
@@ -813,30 +1301,242 @@ final class AppStore {
         persist()
     }
 
-    func refreshSubscriptionStatus() async {
+    func repairLegacyBadgeAcknowledgements(unlockedIDs: Set<String>) {
+        let migrationKey = "nanobeasts.badge-acknowledgements.v2"
+        guard !defaults.bool(forKey: migrationKey), !hasTestingActivityPreview,
+              !dailyHistory.isEmpty, AppScreenshotScenario.active == nil else { return }
+        // Older previews and badge rules could acknowledge thresholds the real
+        // journey has not earned. Those IDs must not suppress a future award.
+        awardedBadgeIDs = BadgeAwardDelivery.validAcknowledgements(
+            awardedBadgeIDs, unlockedIDs: unlockedIDs
+        )
+        defaults.set(true, forKey: migrationKey)
+        persist()
+    }
+
+    @ObservationIgnored private var subscriptionRefreshTask: Task<Void, Never>?
+    @ObservationIgnored private var latestCustomerInfoDate: Date?
+    @ObservationIgnored private var hasSyncedPurchasesThisSession = false
+
+    private var cachedSubscriptionAccess: NanoSubscriptionAccess? {
+        defaults.data(forKey: NanoSubscriptionAccess.cacheKey)
+            .flatMap { try? JSONDecoder().decode(NanoSubscriptionAccess.self, from: $0) }
+    }
+
+    private var cachedSubscriptionExpired: Bool {
+        guard let access = cachedSubscriptionAccess else { return false }
+        return !access.permitsCurrentBuild || (access.expiresAt.map { $0 <= Date() } ?? false)
+    }
+
+    private func expireSubscriptionIfNeeded() {
+        if isPremium, cachedSubscriptionExpired { updatePremiumStatus(false) }
+    }
+
+    func refreshSubscriptionStatus(forceRefresh: Bool = false) async {
+        guard !isOnboardingReplay, AppScreenshotScenario.active == nil else { return }
+        // Launch and foreground can overlap. Both callers must await the same
+        // result, rather than letting bootstrap continue with an unresolved gate.
+        if let subscriptionRefreshTask {
+            await subscriptionRefreshTask.value
+            return
+        }
+        let task = Task { @MainActor in
+            await reconcileSubscriptionStatus(forceRefresh: forceRefresh)
+            hasResolvedInitialSubscription = true
+        }
+        subscriptionRefreshTask = task
+        await task.value
+        subscriptionRefreshTask = nil
+    }
+
+    private func reconcileSubscriptionStatus(forceRefresh: Bool) async {
+        let needsCurrentInfo = forceRefresh || !hasResolvedInitialSubscription
+            || !isPremium || cachedSubscriptionExpired
+        // The signed App Store record can already contain a renewal that has
+        // not reached RevenueCat yet. Recover it without an account prompt.
+        let appleAccess = await verifiedAppleSubscriptionAccess()
+        if let appleAccess {
+            saveSubscriptionAccess(appleAccess)
+            hasResolvedInitialSubscription = true
+        } else if isPremium, cachedSubscriptionAccess?.allowsAccess(at: Date()) == true {
+            // A verified, unexpired cache can open Home while the network checks
+            // run. A saved denial or expired record must wait for reconciliation.
+            hasResolvedInitialSubscription = true
+        }
         guard Purchases.isConfigured else {
-            isPremium = false
-            persist()
+            expireSubscriptionIfNeeded()
             return
         }
 
         do {
-            let customerInfo = try await Purchases.shared.customerInfo()
-            applyRevenueCatCustomerInfo(customerInfo)
+            var customerInfo = try await Purchases.shared.customerInfo(
+                fetchPolicy: needsCurrentInfo ? .fetchCurrent : .notStaleCachedOrFetched)
+            if !revenueCatHasCurrentAccess(customerInfo),
+               !hasSyncedPurchasesThisSession || forceRefresh {
+                // Fetching CustomerInfo only reads the server's record. Sync
+                // the receipt too before declaring a returning subscriber lapsed.
+                customerInfo = try await Purchases.shared.syncPurchases()
+                hasSyncedPurchasesThisSession = true
+            }
+            await applyRevenueCatCustomerInfo(customerInfo)
         } catch {
-            // Keep the last verified state while temporarily offline. RevenueCat
-            // maintains its own CustomerInfo cache for subsequent launches.
+            // Network failure isn't evidence of cancellation. Retain verified
+            // access only through its paid or billing-grace deadline.
+            expireSubscriptionIfNeeded()
         }
     }
 
-    func applyRevenueCatCustomerInfo(_ customerInfo: CustomerInfo) {
-        let hasPremiumEntitlement =
-            customerInfo.entitlements["premium"]?.isActive == true
-            || !customerInfo.activeSubscriptions.isDisjoint(with: Self.premiumProductIDs)
+    func observeSubscriptionUpdates() async {
+        guard !isOnboardingReplay, AppScreenshotScenario.active == nil,
+              Purchases.isConfigured else { return }
+        for await customerInfo in Purchases.shared.customerInfoStream {
+            guard !Task.isCancelled else { return }
+            // The refresh owns the final reconciled result while in flight.
+            guard subscriptionRefreshTask == nil else { continue }
+            if revenueCatHasCurrentAccess(customerInfo) {
+                await applyRevenueCatCustomerInfo(customerInfo)
+            } else {
+                await refreshSubscriptionStatus()
+            }
+        }
+    }
 
+    private func revenueCatHasCurrentAccess(_ customerInfo: CustomerInfo) -> Bool {
+        if let entitlement = customerInfo.entitlements["premium"], entitlement.isActive {
+            let expiration = NanoSubscriptionAccess.accessExpiration(
+                paidThrough: entitlement.expirationDate,
+                graceThrough: customerInfo.subscriptionsByProductIdentifier[entitlement.productIdentifier]?.gracePeriodExpiresDate)
+            return expiration.map { $0 > Date() } ?? true
+        }
+        return customerInfo.activeSubscriptions.intersection(Self.premiumProductIDs).contains {
+            guard let subscription = customerInfo.subscriptionsByProductIdentifier[$0] else { return false }
+            let expiration = NanoSubscriptionAccess.accessExpiration(
+                paidThrough: subscription.expiresDate, graceThrough: subscription.gracePeriodExpiresDate)
+            return expiration.map { $0 > Date() } ?? true
+        }
+    }
+
+    private func verifiedAppleSubscriptionAccess() async -> NanoSubscriptionAccess? {
+#if DEBUG
+        guard !Self.isUsingRevenueCatTestStore else { return nil }
+        if let access = await verifiedDevelopmentSubscriptionAccess() { return access }
+#endif
+        var latestExpiration: Date?
+        for await result in StoreKit.Transaction.currentEntitlements {
+            guard case let .verified(transaction) = result,
+                  Self.premiumProductIDs.contains(transaction.productID),
+                  transaction.revocationDate == nil, !transaction.isUpgraded,
+                  let paidThrough = transaction.expirationDate else { continue }
+            var expiration = paidThrough
+            if paidThrough <= Date(),
+               let status = await transaction.subscriptionStatus,
+               status.state == .inGracePeriod,
+               case let .verified(renewal) = status.renewalInfo,
+               let graceThrough = renewal.gracePeriodExpirationDate {
+                expiration = max(paidThrough, graceThrough)
+            }
+            guard expiration > Date() else { continue }
+            latestExpiration = max(latestExpiration ?? expiration, expiration)
+        }
+        guard let latestExpiration else { return nil }
+        return NanoSubscriptionAccess(premium: true, onboardingCompleted: onboardingCompleted,
+            expiresAt: latestExpiration, updatedAt: Date())
+    }
+
+#if DEBUG
+    private func verifiedDevelopmentSubscriptionAccess() async -> NanoSubscriptionAccess? {
+        // Apple's accelerated test renewals eventually stop. A signed sandbox
+        // purchase keeps this local Debug install usable without renewing it.
+        // This code is absent from App Store / TestFlight Release builds.
+        for productID in Self.premiumProductIDs {
+            guard let result = await StoreKit.Transaction.latest(for: productID),
+                  case let .verified(transaction) = result,
+                  Self.premiumProductIDs.contains(transaction.productID),
+                  transaction.environment == .sandbox,
+                  transaction.revocationDate == nil, !transaction.isUpgraded else { continue }
+            return NanoSubscriptionAccess(premium: true, onboardingCompleted: onboardingCompleted,
+                expiresAt: nil, updatedAt: Date(), isDevelopmentOnly: true)
+        }
+        return nil
+    }
+#endif
+
+    private func saveSubscriptionAccess(_ access: NanoSubscriptionAccess) {
+        if let data = try? JSONEncoder().encode(access) {
+            defaults.set(data, forKey: NanoSubscriptionAccess.cacheKey)
+        }
+        updatePremiumStatus(access.premium)
+    }
+
+    func applyRevenueCatCustomerInfo(_ customerInfo: CustomerInfo) async {
+        guard !isOnboardingReplay else { return }
+        let appleAccess = await verifiedAppleSubscriptionAccess()
+        // An older fetch must not overwrite a purchase or renewal received while
+        // awaiting StoreKit. CustomerInfo timestamps come from RevenueCat.
+        guard latestCustomerInfoDate.map({ customerInfo.requestDate >= $0 }) ?? true else { return }
+        latestCustomerInfoDate = customerInfo.requestDate
+        let hasPremiumEntitlement = revenueCatHasCurrentAccess(customerInfo)
+
+#if DEBUG
+        let resolvedPremium = hasPremiumEntitlement
+            || (Self.isUsingRevenueCatTestStore
+                && defaults.bool(forKey: Self.testStorePremiumUnlockKey))
+#else
+        let resolvedPremium = hasPremiumEntitlement
+#endif
+
+        var expiration: Date?
+        if let entitlement = customerInfo.entitlements["premium"], entitlement.isActive {
+            expiration = NanoSubscriptionAccess.accessExpiration(
+                paidThrough: entitlement.expirationDate,
+                graceThrough: customerInfo.subscriptionsByProductIdentifier[entitlement.productIdentifier]?.gracePeriodExpiresDate)
+        } else {
+            let subscriptions = customerInfo.activeSubscriptions
+                .intersection(Self.premiumProductIDs)
+                .compactMap { customerInfo.subscriptionsByProductIdentifier[$0] }
+            if !subscriptions.contains(where: { $0.expiresDate == nil }) {
+                expiration = subscriptions.compactMap {
+                    NanoSubscriptionAccess.accessExpiration(
+                        paidThrough: $0.expiresDate, graceThrough: $0.gracePeriodExpiresDate)
+                }.max()
+            }
+        }
+#if DEBUG
+        if Self.isUsingRevenueCatTestStore,
+           defaults.bool(forKey: Self.testStorePremiumUnlockKey) { expiration = nil }
+#endif
+        var access = NanoSubscriptionAccess(premium: resolvedPremium,
+            onboardingCompleted: onboardingCompleted, expiresAt: expiration, updatedAt: Date())
+#if DEBUG
+        if Self.isUsingRevenueCatTestStore,
+           defaults.bool(forKey: Self.testStorePremiumUnlockKey) { access.isDevelopmentOnly = true }
+#endif
+        if let appleAccess, appleAccess.isDevelopmentOnly == true || !resolvedPremium
+            || (expiration.map { (appleAccess.expiresAt ?? .distantPast) > $0 } ?? false) {
+            saveSubscriptionAccess(appleAccess)
+        } else {
+            saveSubscriptionAccess(access)
+        }
+    }
+
+    func applyRevenueCatPurchase(_ customerInfo: CustomerInfo) async {
+#if DEBUG
+        if Self.isUsingRevenueCatTestStore {
+            // Test Store subscriptions are intentionally temporary. A
+            // successful non-billable purchase should remain unlocked for this
+            // installed development build until the app is deleted.
+            defaults.set(true, forKey: Self.testStorePremiumUnlockKey)
+        }
+#endif
+        await applyRevenueCatCustomerInfo(customerInfo)
+    }
+
+    private func updatePremiumStatus(_ hasPremiumEntitlement: Bool) {
         let wasPremium = isPremium
         let previousProgress = hatchProgress
         isPremium = hasPremiumEntitlement
+        if isPremium && !isOnboardingReplay { NanoNotifications.shared.cancelOnboardingReminders() }
+        defaults.set(isPremium, forKey: Self.premiumStateKey)
         creditProgressionForToday()
         if !wasPremium, isPremium, abs(hatchProgress - previousProgress) > 0.000_1 {
             stepSyncFromTodaySteps = todaySteps
@@ -847,8 +1547,16 @@ final class AppStore {
         persist()
     }
 
+#if DEBUG
+    private static var isUsingRevenueCatTestStore: Bool {
+        (Bundle.main.object(forInfoDictionaryKey: "RevenueCatAPIKey") as? String)?
+            .hasPrefix("test_") == true
+    }
+#endif
+
     @discardableResult
     func recordLifecycleCompletionForReview(_ kind: CreatureDiscoveryKind) -> Bool {
+        guard !isOnboardingReplay else { return false }
         guard kind == .hatch || kind == .evolution else { return false }
         reviewEligibleLifecycleCount += 1
         let shouldRequest =
@@ -862,7 +1570,11 @@ final class AppStore {
     }
 
     private func applyProgress(_ delta: Int) {
-        guard delta > 0, !awaitingEggSelection else { return }
+        guard delta > 0 else { return }
+        if awaitingEggSelection {
+            bankedProgressionSteps += delta
+            return
+        }
         progressionSteps += delta
 
         var transitions = 0
@@ -873,6 +1585,7 @@ final class AppStore {
 
             if stageIndex + 1 >= currentFamily.stages.count {
                 awaitingEggSelection = true
+                bankedProgressionSteps += progressionSteps
                 progressionSteps = 0
                 let event = CreatureDiscoveryEvent(stage: previousStage, kind: .maturity)
                 discoveryEvents.append(event)
@@ -1124,9 +1837,7 @@ final class AppStore {
         guard onboardingCompleted else { return }
         let calendar = Calendar.autoupdatingCurrent
         let today = calendar.startOfDay(for: Date())
-        let eligibleTotal = isPremium
-            ? todaySteps
-            : min(todaySteps, Self.freeDailyProgressionCap)
+        let eligibleTotal = isPremium ? todaySteps : 0
         let existingIndex = progressionCreditHistory.firstIndex {
             calendar.isDate($0.day, inSameDayAs: today)
         }
@@ -1203,6 +1914,7 @@ final class AppStore {
     }
 
     private func persist() {
+        guard !isOnboardingReplay else { return }
         persistenceTask?.cancel()
         persistenceTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .milliseconds(120))
@@ -1216,6 +1928,7 @@ final class AppStore {
             familyIndex: familyIndex,
             stageIndex: stageIndex,
             progressionSteps: progressionSteps,
+            bankedProgressionSteps: bankedProgressionSteps,
             discoveredStageIDs: Array(discoveredStageIDs),
             dailyGoal: dailyGoal,
             hasRequestedHealthAccess: hasRequestedHealthAccess,
@@ -1226,6 +1939,9 @@ final class AppStore {
             distanceUnit: distanceUnit,
             onboardingCompleted: onboardingCompleted,
             playerName: playerName,
+            onboardingGoals: onboardingGoals.sorted(),
+            onboardingPrimaryGoal: onboardingPrimaryGoal,
+            onboardingBlockers: onboardingBlockers.sorted(),
             onboardingWantsHealth: onboardingWantsHealth,
             onboardingWantsReminders: onboardingWantsReminders,
             awaitingEggSelection: awaitingEggSelection,
@@ -1253,10 +1969,26 @@ final class AppStore {
         }
 
         publishWidgetSnapshot()
+        await NanoNotifications.shared.updateProgress(
+            stageID: currentStage.id, name: currentStage.name, isEgg: currentStage.isEgg,
+            remaining: max(0, currentTarget - progressionSteps), target: currentTarget,
+            journey: journeyStartedAt,
+            eligible: onboardingCompleted && isPremium && !awaitingEggSelection
+                && !hasTestingActivityPreview && AppScreenshotScenario.active == nil
+        )
     }
 
     private func publishWidgetSnapshot() {
-        if onboardingCompleted {
+        guard !isOnboardingReplay else { return }
+        WorkoutWatchBridge.shared.updateCompanion(workoutCompanionStage, dailyGoal: dailyGoal,
+                                                   evolution: workoutCompanionProgress)
+        let cached = defaults.data(forKey: NanoSubscriptionAccess.cacheKey)
+            .flatMap { try? JSONDecoder().decode(NanoSubscriptionAccess.self, from: $0) }
+        let access = NanoSubscriptionAccess(premium: isPremium,
+            onboardingCompleted: onboardingCompleted, expiresAt: cached?.expiresAt, updatedAt: Date(),
+            isDevelopmentOnly: cached?.isDevelopmentOnly)
+        WorkoutWatchBridge.shared.updateSubscriptionAccess(access)
+        if onboardingCompleted, isPremium {
             WidgetSnapshotWriter.shared.update(
                 stage: currentStage,
                 todaySteps: displayedTodaySteps,
@@ -1271,6 +2003,7 @@ final class AppStore {
     }
 
     private func persistDiscoveryEvents() {
+        guard !isOnboardingReplay else { return }
         guard let data = try? JSONEncoder().encode(discoveryEvents) else { return }
         defaults.set(data, forKey: discoveryStateKey)
     }

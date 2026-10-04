@@ -8,6 +8,8 @@ Nanobeasts is a native SwiftUI iPhone app that turns Apple Health step data into
 - The Professor Nano onboarding flow and a custom Nanobeasts paywall backed by RevenueCat
 - HealthKit read authorization for `HKQuantityTypeIdentifier.stepCount`
 - Historical HealthKit trends for analytics, with post-install steps isolated for badge and evolution progress
+- Native workouts for HIIT, walking, running, cycling, hiking, and indoor cardio with steps, distance, energy, routes, HealthKit saving, and Live Activities
+- Post-workout discovery recaps plus photo, route, and transparent-style 9:16 share cards
 - Daily step history, live refresh, pedometer fallback, and HealthKit observer updates
 - Persistent hatch/evolution progress backed by `UserDefaults`
 - The original Nanobeasts creature-family JSON with transparent idle animations streamed from the existing Cloudflare R2 domain

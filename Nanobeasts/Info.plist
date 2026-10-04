@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Nanobeasts Native</string>
+	<string>Nanobeasts</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -43,11 +43,24 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Nanobeasts Native reads your step count so walking can hatch and evolve your creatures.</string>
+	<string>Nanobeasts reads your steps to hatch and evolve your creatures, and can import your workouts and recorded routes from Apple Health for your history and sharing.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>Nanobeasts Native requests Health access to connect your walking activity with creature progress. The app does not write health data.</string>
+	<string>Nanobeasts saves completed workouts, distance, and active energy to Apple Health when you allow it.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Nanobeasts uses your location during outdoor workouts to measure distance and draw your route.</string>
+	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
+	<dict>
+		<key>WorkoutRoute</key>
+		<string>Precise location keeps your workout route accurate and clears fog only where you actually traveled.</string>
+	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Nanobeasts uses the camera so you can add a finish-line photo to your workout share card.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Save the achievements, workout photos, and route videos you choose to your photo library.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Nanobeasts uses your iPhone motion data to count steps when Apple Health is not connected.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>RevenueCatAPIKey</key>
 	<string>$(REVENUECAT_PUBLIC_SDK_KEY)</string>
 	<key>UIApplicationSceneManifest</key>
@@ -63,6 +76,10 @@
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>arm64</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
 	</array>
 	<key>UIRequiresFullScreen</key>
 	<true/>

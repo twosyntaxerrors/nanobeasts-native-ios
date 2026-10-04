@@ -6,6 +6,8 @@ struct ActivityCalendarCard: View {
     let records: [DailyStepRecord]
     let dailyGoal: Int
     let discoveryEvents: [CreatureDiscoveryEvent]
+    let workouts: [WorkoutHistoryRecord]
+    let importedHistoryRange: DateInterval?
     let distanceUnit: DistanceUnitPreference
 
     @State private var weekOffset = 0
@@ -34,6 +36,14 @@ struct ActivityCalendarCard: View {
         }
     }
 
+    private var importedHistoryStartDay: Date? {
+        importedHistoryRange.map { calendar.startOfDay(for: $0.start) }
+    }
+
+    private var journeyStartDay: Date? {
+        importedHistoryRange.map { calendar.startOfDay(for: $0.end) }
+    }
+
     private var monthDays: [StatsCalendarDay] {
         guard
             let interval = calendar.dateInterval(of: .month, for: displayMonth),
@@ -56,10 +66,10 @@ struct ActivityCalendarCard: View {
                 continue
             }
             result.append(
-                StatsCalendarDay(
+                makeCalendarDay(
                     slot: result.count,
                     date: date,
-                    steps: stepsByDay[calendar.startOfDay(for: date)] ?? 0
+                    stepsByDay: stepsByDay
                 )
             )
         }
@@ -84,10 +94,10 @@ struct ActivityCalendarCard: View {
             guard let date = calendar.date(byAdding: .day, value: index, to: start) else {
                 return nil
             }
-            return StatsCalendarDay(
+            return makeCalendarDay(
                 slot: index,
                 date: date,
-                steps: stepsByDay[date] ?? 0
+                stepsByDay: stepsByDay
             )
         }
     }
@@ -105,6 +115,7 @@ struct ActivityCalendarCard: View {
                 day: day,
                 dailyGoal: dailyGoal,
                 discoveryEvents: discoveryEvents,
+                workouts: workouts,
                 distanceUnit: distanceUnit
             )
                 .presentationDetents([.fraction(0.86), .large])
@@ -116,6 +127,11 @@ struct ActivityCalendarCard: View {
     private var monthCard: some View {
         VStack(spacing: 14) {
             monthNavigation
+
+            CalendarProvenanceLegend(
+                showsImportedHistory: monthDays.contains(where: \.isImportedFromAppleHealth),
+                journeyStartDate: monthDays.first(where: \.isJourneyStart)?.date
+            )
 
             LazyVGrid(columns: columns, spacing: 7) {
                 ForEach(Array(weekdays.enumerated()), id: \.offset) { _, weekday in
@@ -161,6 +177,10 @@ struct ActivityCalendarCard: View {
     private var weekCard: some View {
         VStack(spacing: 16) {
             weekNavigation
+            CalendarProvenanceLegend(
+                showsImportedHistory: weekDays.contains(where: \.isImportedFromAppleHealth),
+                journeyStartDate: weekDays.first(where: \.isJourneyStart)?.date
+            )
             WeeklyBarChart(
                 days: weekDays,
                 dailyGoal: dailyGoal,
@@ -206,6 +226,101 @@ struct ActivityCalendarCard: View {
     private func select(_ day: StatsCalendarDay) {
         guard let date = day.date, date <= today else { return }
         selectedDay = day
+    }
+
+    private func makeCalendarDay(
+        slot: Int,
+        date: Date,
+        stepsByDay: [Date: Int]
+    ) -> StatsCalendarDay {
+        let day = calendar.startOfDay(for: date)
+        let isImported = importedHistoryStartDay.map { day >= $0 } == true
+            && journeyStartDay.map { day < $0 } == true
+        let isJourneyStart = journeyStartDay.map {
+            calendar.isDate(day, inSameDayAs: $0)
+        } == true
+
+        return StatsCalendarDay(
+            slot: slot,
+            date: day,
+            steps: stepsByDay[day] ?? 0,
+            isImportedFromAppleHealth: isImported,
+            isJourneyStart: isJourneyStart
+        )
+    }
+}
+
+private struct CalendarProvenanceLegend: View {
+    let showsImportedHistory: Bool
+    let journeyStartDate: Date?
+
+    var body: some View {
+        if showsImportedHistory || journeyStartDate != nil {
+            HStack(spacing: 10) {
+                if showsImportedHistory {
+                    legendItem(
+                        title: "APPLE HEALTH · IMPORTED",
+                        marker: .imported
+                    )
+                }
+
+                if showsImportedHistory, journeyStartDate != nil {
+                    Spacer(minLength: 4)
+                }
+
+                if let journeyStartDate {
+                    legendItem(
+                        title: "JOURNEY BEGAN \(journeyStartDate.formatted(.dateTime.month(.abbreviated).day()).uppercased())",
+                        marker: .journeyStart
+                    )
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    private func legendItem(
+        title: String,
+        marker: CalendarProvenanceMarker.Kind
+    ) -> some View {
+        HStack(spacing: 5) {
+            CalendarProvenanceMarker(kind: marker)
+            Text(title)
+                .font(NanoFont.aldrich(8))
+                .tracking(0.65)
+                .foregroundStyle(NanoTheme.secondaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+        }
+    }
+}
+
+private struct CalendarProvenanceMarker: View {
+    enum Kind: Equatable {
+        case imported
+        case journeyStart
+    }
+
+    let kind: Kind
+
+    var body: some View {
+        Group {
+            switch kind {
+            case .imported:
+                Circle()
+                    .fill(NanoTheme.secondaryText.opacity(0.78))
+            case .journeyStart:
+                Circle()
+                    .fill(NanoTheme.background)
+                    .stroke(NanoTheme.teal, lineWidth: 1.5)
+            }
+        }
+        .frame(
+            width: kind == .imported ? 4 : 7,
+            height: kind == .imported ? 4 : 7
+        )
+        .accessibilityHidden(true)
     }
 }
 
@@ -261,10 +376,20 @@ private struct StatsCalendarCell: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(cellBackground(date))
+                    .overlay(alignment: .topTrailing) {
+                        if day.isJourneyStart {
+                            CalendarProvenanceMarker(kind: .journeyStart)
+                                .padding(5)
+                        } else if day.isImportedFromAppleHealth {
+                            CalendarProvenanceMarker(kind: .imported)
+                                .padding(6)
+                        }
+                    }
                 }
                 .buttonStyle(.plain)
                 .disabled(isFuture)
                 .opacity(isFuture ? 0.35 : 1)
+                .accessibilityLabel(accessibilityLabel(for: date))
             } else {
                 Color.clear
             }
@@ -285,6 +410,19 @@ private struct StatsCalendarCell: View {
                 isToday ? NanoTheme.teal : NanoTheme.teal.opacity(hasSteps ? 0.30 : 0.08),
                 lineWidth: isToday ? 2 : 1
             )
+    }
+
+    private func accessibilityLabel(for date: Date) -> String {
+        var parts = [
+            date.formatted(.dateTime.weekday(.wide).month(.wide).day().year()),
+            "\(day.steps.formatted()) steps",
+        ]
+        if day.isImportedFromAppleHealth {
+            parts.append("imported from Apple Health")
+        } else if day.isJourneyStart {
+            parts.append("Nanobeasts journey began")
+        }
+        return parts.joined(separator: ", ")
     }
 }
 
@@ -365,10 +503,20 @@ private struct WeeklyBar: View {
                     RoundedRectangle(cornerRadius: 12)
                         .stroke(Color.clear, lineWidth: 1)
                 )
+                .overlay(alignment: .topTrailing) {
+                    if day.isJourneyStart {
+                        CalendarProvenanceMarker(kind: .journeyStart)
+                            .padding(9)
+                    } else if day.isImportedFromAppleHealth {
+                        CalendarProvenanceMarker(kind: .imported)
+                            .padding(10)
+                    }
+                }
             }
             .buttonStyle(.plain)
             .disabled(isFuture)
             .opacity(isFuture ? 0.35 : 1)
+            .accessibilityLabel(accessibilityLabel)
 
             Text(day.date?.formatted(.dateTime.day()) ?? "")
                 .font(NanoFont.aldrich(10))
@@ -379,12 +527,42 @@ private struct WeeklyBar: View {
         }
         .frame(maxWidth: .infinity)
     }
+
+    private var accessibilityLabel: String {
+        guard let date = day.date else { return "Calendar day" }
+        var parts = [
+            date.formatted(.dateTime.weekday(.wide).month(.wide).day().year()),
+            "\(day.steps.formatted()) steps",
+        ]
+        if day.isImportedFromAppleHealth {
+            parts.append("imported from Apple Health")
+        } else if day.isJourneyStart {
+            parts.append("Nanobeasts journey began")
+        }
+        return parts.joined(separator: ", ")
+    }
 }
 
 struct StatsCalendarDay: Identifiable {
     let slot: Int
     let date: Date?
     let steps: Int
+    let isImportedFromAppleHealth: Bool
+    let isJourneyStart: Bool
+
+    init(
+        slot: Int,
+        date: Date?,
+        steps: Int,
+        isImportedFromAppleHealth: Bool = false,
+        isJourneyStart: Bool = false
+    ) {
+        self.slot = slot
+        self.date = date
+        self.steps = steps
+        self.isImportedFromAppleHealth = isImportedFromAppleHealth
+        self.isJourneyStart = isJourneyStart
+    }
 
     var id: String {
         if let date {
@@ -398,9 +576,12 @@ private struct DailyFieldReportView: View {
     let day: StatsCalendarDay
     let dailyGoal: Int
     let discoveryEvents: [CreatureDiscoveryEvent]
+    let workouts: [WorkoutHistoryRecord]
     let distanceUnit: DistanceUnitPreference
 
     @Environment(\.dismiss) private var dismiss
+    @State private var selectedWorkout: WorkoutHistoryRecord?
+    @State private var workoutsExpanded = false
 
     private var progress: Double {
         guard dailyGoal > 0 else { return 0 }
@@ -422,6 +603,14 @@ private struct DailyFieldReportView: View {
         return discoveryEvents
             .filter { calendar.isDate($0.timestamp, inSameDayAs: date) }
             .sorted { $0.timestamp < $1.timestamp }
+    }
+
+    private var workoutsForDay: [WorkoutHistoryRecord] {
+        guard let date = day.date else { return [] }
+        let calendar = Calendar.autoupdatingCurrent
+        return workouts
+            .filter { calendar.isDate($0.startedAt, inSameDayAs: date) }
+            .sorted { $0.startedAt < $1.startedAt }
     }
 
     var body: some View {
@@ -464,6 +653,10 @@ private struct DailyFieldReportView: View {
                         .accessibilityLabel("Close daily field report")
                     }
                     .padding(.bottom, 5)
+
+                    if day.isImportedFromAppleHealth {
+                        ImportedHistoryProvenanceView()
+                    }
 
                     VStack(spacing: 10) {
                         Text(day.steps.formatted())
@@ -509,6 +702,10 @@ private struct DailyFieldReportView: View {
                         )
                     }
 
+                    if !workoutsForDay.isEmpty {
+                        dailyWorkoutsSection
+                    }
+
                     VStack(spacing: 16) {
                         HStack {
                             Text("DISCOVERY LOG")
@@ -552,6 +749,148 @@ private struct DailyFieldReportView: View {
                 .padding(18)
             }
         }
+        .onChange(of: day.date) { workoutsExpanded = false }
+        .sheet(item: $selectedWorkout) { workout in
+            WorkoutHistoryDetailView(
+                workout: workout,
+                distanceUnit: distanceUnit
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.hidden)
+        }
+    }
+
+    private var dailyWorkoutsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            DisclosureGroup(isExpanded: $workoutsExpanded) {
+                ForEach(workoutsForDay) { workout in
+                    Button {
+                        selectedWorkout = workout
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: workout.symbol)
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(NanoTheme.background)
+                            .frame(width: 42, height: 42)
+                            .background(Circle().fill(NanoTheme.orange))
+
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(workout.name)
+                                .font(NanoFont.aldrich(12))
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+
+                            Text(workoutSummary(workout))
+                                .font(NanoFont.spaceMono(9))
+                                .foregroundStyle(NanoTheme.secondaryText)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.78)
+                        }
+
+                        Spacer(minLength: 6)
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(NanoTheme.orange)
+                    }
+                    .frame(minHeight: 50)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(
+                    "\(workout.name), \(workoutSummary(workout))"
+                )
+                .accessibilityHint("Shows full workout details")
+            }
+            } label: {
+                HStack {
+                    Text("WORKOUTS")
+                        .font(NanoFont.aldrich(13))
+                        .tracking(1.2)
+                    Spacer()
+                    Text(workoutsForDay.count.formatted())
+                        .font(NanoFont.spaceMono(11, bold: true))
+                        .foregroundStyle(NanoTheme.orange)
+                }
+                .frame(minHeight: 32)
+            }
+            .tint(NanoTheme.orange)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(NanoTheme.surface)
+                .stroke(NanoTheme.orange.opacity(0.34), lineWidth: 1)
+        )
+    }
+
+    private func workoutSummary(_ workout: WorkoutHistoryRecord) -> String {
+        var parts = [formattedWorkoutDuration(workout.duration)]
+        if workout.steps > 0 {
+            parts.append("\(workout.steps.formatted()) steps")
+        } else if workout.distanceMiles > 0 {
+            parts.append(formattedWorkoutDistance(workout.distanceMiles))
+        }
+        if workout.calories > 0 {
+            parts.append("\(Int(workout.calories.rounded())) kcal")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private func formattedWorkoutDuration(_ duration: TimeInterval) -> String {
+        let totalMinutes = max(0, Int(duration.rounded()) / 60)
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+        if hours > 0 { return "\(hours)h \(minutes)m" }
+        if minutes > 0 { return "\(minutes)m" }
+        return "<1m"
+    }
+
+    private func formattedWorkoutDistance(_ miles: Double) -> String {
+        let value = distanceUnit == .miles ? miles : miles * 1.609_344
+        return value.formatted(
+            .number.precision(.fractionLength(value < 10 ? 2 : 1))
+        ) + " \(distanceUnit.abbreviation.lowercased())"
+    }
+}
+
+private struct ImportedHistoryProvenanceView: View {
+    var body: some View {
+        HStack(spacing: 11) {
+            Image(systemName: "heart.fill")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(NanoTheme.secondaryText)
+                .frame(width: 30, height: 30)
+                .background(
+                    Circle()
+                        .fill(NanoTheme.elevated.opacity(0.78))
+                )
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("APPLE HEALTH HISTORY")
+                    .font(NanoFont.aldrich(10))
+                    .tracking(1.1)
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                Text("Imported before your Nanobeasts journey")
+                    .font(NanoFont.aldrich(9))
+                    .foregroundStyle(NanoTheme.secondaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 15, style: .continuous)
+                .fill(NanoTheme.surface.opacity(0.72))
+                .stroke(NanoTheme.secondaryText.opacity(0.18), lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -602,8 +941,10 @@ private struct ReportMetric: View {
             Image(systemName: icon)
                 .foregroundStyle(NanoTheme.teal)
             Text(value)
+                .lineLimit(1).minimumScaleFactor(0.75)
                 .font(NanoFont.aldrich(18))
             Text(label)
+                .lineLimit(1).minimumScaleFactor(0.75)
                 .font(NanoFont.aldrich(9))
                 .tracking(1)
                 .foregroundStyle(NanoTheme.secondaryText)

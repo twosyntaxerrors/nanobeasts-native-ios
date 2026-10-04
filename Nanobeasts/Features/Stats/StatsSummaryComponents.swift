@@ -16,7 +16,7 @@ struct StatsScreenHeader: View {
 
 struct LifetimeMovementCard: View {
     let steps: Int
-    let activeDays: Int
+    let trackedDays: Int
     let unlockedBadges: Int
     let totalBadges: Int
     let rangeLabel: String
@@ -94,9 +94,9 @@ struct LifetimeMovementCard: View {
 
             LifetimeMetric(
                 icon: "calendar",
-                value: activeDays.formatted(),
+                value: trackedDays.formatted(),
                 unit: "",
-                label: "ACTIVE DAYS"
+                label: "DAYS TRACKED"
             )
             .padding(.leading, 16)
         }
@@ -153,15 +153,18 @@ private struct LifetimeMetric: View {
             VStack(alignment: .leading, spacing: 1) {
                 HStack(alignment: .lastTextBaseline, spacing: 4) {
                     Text(value)
+                .lineLimit(1).minimumScaleFactor(0.75)
                         .font(NanoFont.aldrich(20))
                         .foregroundStyle(.white)
                     if !unit.isEmpty {
                         Text(unit)
+                .lineLimit(1).minimumScaleFactor(0.75)
                             .font(NanoFont.aldrich(9))
                             .foregroundStyle(NanoTheme.secondaryText)
                     }
                 }
                 Text(label)
+                .lineLimit(1).minimumScaleFactor(0.75)
                     .font(NanoFont.aldrich(8))
                     .tracking(1.1)
                     .foregroundStyle(NanoTheme.mutedText)

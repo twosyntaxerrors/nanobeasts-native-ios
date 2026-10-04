@@ -3,6 +3,7 @@ import UIKit
 
 struct DexView: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.appTourFocus) private var tourFocus
     @State private var selection: DexSelection?
     @State private var filter: DexFilter = .all
     @State private var isVisible = false
@@ -37,8 +38,9 @@ struct DexView: View {
             NanoTheme.background.ignoresSafeArea()
             LabGridBackground().ignoresSafeArea()
 
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 18) {
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 18) {
                     DexScreenHeader()
 
                     DexProgressHUD(
@@ -55,38 +57,73 @@ struct DexView: View {
                     if displayedStages.isEmpty {
                         DexEmptyState(filter: filter)
                     } else {
-                        LazyVGrid(columns: columns, spacing: 10) {
-                            ForEach(displayedStages) { stage in
-                                let isLocked = !foundStages.contains(stage)
-                                Button {
-                                    selection = DexSelection(stage: stage, isLocked: isLocked)
-                                } label: {
-                                    DexArchiveCard(
-                                        stage: stage,
-                                        number: dexNumber(for: stage),
-                                        isCurrent: store.isCurrent(stage),
-                                        isLocked: isLocked,
-                                        playsAnimation: isVisible
-                                    )
+                            LazyVGrid(columns: columns, spacing: 10) {
+                                ForEach(displayedStages) { stage in
+                                    let isLocked = !foundStages.contains(stage)
+                                    Button {
+                                        selection = DexSelection(stage: stage, isLocked: isLocked)
+                                    } label: {
+                                        DexArchiveCard(
+                                            stage: stage,
+                                            number: dexNumber(for: stage),
+                                            isCurrent: store.isCurrent(stage),
+                                            isLocked: isLocked,
+                                            playsAnimation: isVisible
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                    .appTourTarget(stage.id == displayedStages.first?.id ? .dex : nil)
+                                    .id(stage.id)
                                 }
-                                .buttonStyle(.plain)
                             }
                         }
                     }
+                    .padding(.horizontal, 18)
+                    .padding(.top, 14)
+                    .padding(.bottom, 28)
                 }
-                .padding(.horizontal, 18)
-                .padding(.top, 14)
-                .padding(.bottom, 28)
+                .scrollIndicators(.hidden)
+                .task(id: tourFocus) {
+                    guard tourFocus == .dex else { return }
+                    filter = .all
+                    await Task.yield()
+                    guard !Task.isCancelled, let first = displayedStages.first else { return }
+                    proxy.scrollTo(first.id, anchor: .top)
+                }
+                .task {
+                    guard AppScreenshotScenario.active == .featureTourDex else { return }
+                    let stages = store.catalog.creatureStages
+                    guard !stages.isEmpty else { return }
+                    let target = stages[min(22, stages.count - 1)]
+
+                    try? await Task.sleep(for: .seconds(5))
+                    guard !Task.isCancelled else { return }
+                    withAnimation(.smooth(duration: 4)) {
+                        proxy.scrollTo(target.id, anchor: .center)
+                    }
+
+                    try? await Task.sleep(for: .seconds(5))
+                    guard !Task.isCancelled else { return }
+                    selection = DexSelection(stage: target, isLocked: false)
+                }
             }
-            .scrollIndicators(.hidden)
         }
         .toolbar(.hidden, for: .navigationBar)
-        .onAppear { isVisible = true }
+        .onAppear {
+            isVisible = true
+            if AppScreenshotScenario.active == .dexDetail, selection == nil {
+                let stage = store.catalog.creatureStages.first(where: {
+                    $0.name == "Overnode"
+                }) ?? store.currentStage
+                selection = DexSelection(stage: stage, isLocked: false)
+            }
+        }
         .onDisappear { isVisible = false }
         .sheet(item: $selection) { selection in
             CreatureDetailView(
                 stage: selection.stage,
-                isLocked: selection.isLocked
+                isLocked: selection.isLocked,
+                unlockedEntries: foundStages
             )
         }
     }
@@ -278,6 +315,31 @@ private struct DexCollectionHeader: View {
     }
 }
 
+private struct LockedCreatureArtwork: View {
+    let stage: CreatureStage
+    let inset: CGFloat
+
+    // Blur radius as a percentage of the square artwork frame. Adjust here for
+    // both the collection cards and locked specimen profiles.
+    private static let blurPercentage: CGFloat = 2
+
+    var body: some View {
+        GeometryReader { proxy in
+            let artworkSize = max(0, min(proxy.size.width, proxy.size.height) - inset * 2)
+
+            NanoTheme.secondaryText
+                .mask {
+                    CreatureArtworkView(stage: stage)
+                        .padding(inset)
+                }
+                .opacity(0.75)
+                .blur(radius: artworkSize * Self.blurPercentage / 100)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Undiscovered Nanobeast silhouette")
+    }
+}
+
 private struct DexArchiveCard: View {
     let stage: CreatureStage
     let number: Int
@@ -310,11 +372,7 @@ private struct DexArchiveCard: View {
                 NanoTheme.background
                 LabGridBackground()
                 if isLocked {
-                    CreatureArtworkView(stage: stage)
-                        .padding(10)
-                        .saturation(0)
-                        .opacity(0.16)
-                        .blur(radius: 22)
+                    LockedCreatureArtwork(stage: stage, inset: 10)
                 } else {
                     AnimatedCreatureArtworkView(
                         stage: stage,
@@ -324,24 +382,18 @@ private struct DexArchiveCard: View {
                 }
 
                 if isLocked {
-                    Rectangle()
-                        .fill(NanoTheme.background.opacity(0.34))
-
-                    VStack(spacing: 7) {
+                    HStack(spacing: 5) {
                         Image(systemName: "lock.fill")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundStyle(NanoTheme.mutedText)
-                            .frame(width: 32, height: 32)
-                            .background(
-                                Circle()
-                                    .fill(NanoTheme.surface.opacity(0.90))
-                                    .stroke(NanoTheme.mutedText.opacity(0.52), lineWidth: 1)
-                            )
+                            .font(.system(size: 10, weight: .bold))
                         Text("LOCKED")
                             .font(NanoFont.aldrich(9))
                             .tracking(1.2)
-                            .foregroundStyle(NanoTheme.mutedText)
                     }
+                    .foregroundStyle(NanoTheme.secondaryText)
+                    .padding(7)
+                    .background(Capsule().fill(NanoTheme.surface.opacity(0.90)))
+                    .padding(7)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                 }
             }
             .frame(height: 126)
@@ -453,17 +505,24 @@ private struct DexEmptyState: View {
 
 struct CreatureDetailView: View {
     let isLocked: Bool
+    let unlockedEntries: [CreatureStage]
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @Environment(AppStore.self) private var store
     @State private var scanProgress: CGFloat = 0
     @State private var scanCompleted = false
+    @State private var scanningStageID: String?
     @State private var replayEvent: CreatureDiscoveryEvent?
     @State private var selectedStage: CreatureStage
 
-    init(stage: CreatureStage, isLocked: Bool) {
+    init(
+        stage: CreatureStage,
+        isLocked: Bool,
+        unlockedEntries: [CreatureStage] = []
+    ) {
         self.isLocked = isLocked
+        self.unlockedEntries = unlockedEntries
         _selectedStage = State(initialValue: stage)
     }
 
@@ -471,18 +530,25 @@ struct CreatureDetailView: View {
         selectedStage
     }
 
-    private var unlockedFamilyStages: [CreatureStage] {
+    private var navigableStages: [CreatureStage] {
+        guard !isLocked else { return [stage] }
+        // Eggs are family stages but are not necessarily Dex grid entries.
+        // Include them without collapsing browsing to a single selected page.
+        let family = unlockedFamilyStages(for: stage)
+        guard !unlockedEntries.isEmpty else { return family.isEmpty ? [stage] : family }
+        let availableIDs = Set((unlockedEntries + family).map(\.id))
+        return store.catalog.families.flatMap(\.stages)
+            .filter { availableIDs.contains($0.id) }
+    }
+
+    private func unlockedFamilyStages(for stage: CreatureStage) -> [CreatureStage] {
         guard !isLocked else { return [] }
-        if stage.isEgg {
-            return [stage]
-        }
-        return store.catalog.creatureStages
-            .filter {
-                $0.familyID == stage.familyID
-                    && !$0.isEgg
-                    && (store.isDiscovered($0) || store.isCurrent($0))
-            }
+        return store.catalog.families
+            .first(where: { $0.id == stage.familyID })?
+            .stages
+            .filter { store.isDiscovered($0) || store.isCurrent($0) }
             .sorted { $0.stage < $1.stage }
+            ?? []
     }
 
     var body: some View {
@@ -490,7 +556,98 @@ struct CreatureDetailView: View {
             NanoTheme.background.ignoresSafeArea()
             LabGridBackground().ignoresSafeArea()
 
-            ScrollView {
+            // Stage controls select a specimen in place. A paged TabView can
+            // traverse blank intermediate pages when jumping back to an egg.
+            ZStack {
+                detailPage(for: selectedStage)
+                    .id(selectedStage.id)
+                    .transition(.opacity)
+            }
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 40)
+                    .onEnded { value in
+                        let horizontal = value.translation.width
+                        guard abs(horizontal) > abs(value.translation.height) * 1.5,
+                              let index = navigableStages.firstIndex(where: { $0.id == selectedStage.id })
+                        else { return }
+                        let nextIndex = index + (horizontal < 0 ? 1 : -1)
+                        guard navigableStages.indices.contains(nextIndex) else { return }
+                        selectStage(navigableStages[nextIndex])
+                    }
+            )
+            .accessibilityLabel("Unlocked specimen profiles")
+            .accessibilityHint("Swipe left or right to browse unlocked entries")
+            .accessibilityAction(named: "Next specimen") { browseStage(offset: 1) }
+            .accessibilityAction(named: "Previous specimen") { browseStage(offset: -1) }
+
+        }
+        .task(id: stage.id) {
+            let stageID = stage.id
+            scanningStageID = nil
+            scanProgress = 0
+            scanCompleted = false
+            guard !isLocked else { return }
+
+            if store.reduceMotion || accessibilityReduceMotion {
+                scanningStageID = stageID
+                scanProgress = 1
+                scanCompleted = true
+                return
+            }
+
+            // Commit the reset before starting the next scan. Without this
+            // frame boundary, rapid page changes can coalesce 0 → 1 and make
+            // a later profile appear already scanned.
+            try? await Task.sleep(for: .milliseconds(24))
+            guard !Task.isCancelled, selectedStage.id == stageID else { return }
+            scanningStageID = stageID
+            withAnimation(.linear(duration: 1.65)) {
+                scanProgress = 1
+            }
+            try? await Task.sleep(for: .milliseconds(1_650))
+            guard
+                !Task.isCancelled,
+                selectedStage.id == stageID,
+                scanningStageID == stageID
+            else { return }
+            withAnimation(.snappy) {
+                scanCompleted = true
+            }
+            if store.hapticsEnabled {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            }
+        }
+        .onChange(of: selectedStage.id) {
+            guard store.hapticsEnabled else { return }
+            UISelectionFeedbackGenerator().selectionChanged()
+        }
+        .fullScreenCover(item: $replayEvent) { event in
+            EvolutionLifecycleExperience(
+                catalog: store.catalog,
+                event: event,
+                nextEggs: [],
+                allowsDismissal: true,
+                onChooseEgg: nil
+            )
+            .environment(store)
+        }
+    }
+
+    private func selectStage(_ next: CreatureStage) {
+        guard next.id != selectedStage.id else { return }
+        withAnimation(.easeOut(duration: store.reduceMotion || accessibilityReduceMotion ? 0.12 : 0.24)) {
+            selectedStage = next
+        }
+    }
+
+    private func browseStage(offset: Int) {
+        guard let index = navigableStages.firstIndex(where: { $0.id == selectedStage.id }),
+              navigableStages.indices.contains(index + offset) else { return }
+        selectStage(navigableStages[index + offset])
+    }
+
+    private func detailPage(for entry: CreatureStage) -> some View {
+        ScrollView {
                 VStack(spacing: 18) {
                     HStack(alignment: .center, spacing: 12) {
                         VStack(alignment: .leading, spacing: 5) {
@@ -498,7 +655,7 @@ struct CreatureDetailView: View {
                                 .font(NanoFont.aldrich(10))
                                 .tracking(1.5)
                                 .foregroundStyle(NanoTheme.teal)
-                            Text(isLocked ? "???" : stage.name.uppercased())
+                            Text(isLocked ? "???" : entry.name.uppercased())
                                 .font(NanoFont.aldrich(22))
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.68)
@@ -526,43 +683,48 @@ struct CreatureDetailView: View {
                                 .tracking(1)
                                 .foregroundStyle(NanoTheme.secondaryText)
                         } else {
-                            ForEach(unlockedFamilyStages) { familyStage in
+                            ForEach(unlockedFamilyStages(for: entry)) { familyStage in
                                 Button {
-                                    guard familyStage.id != stage.id else { return }
-                                    withAnimation(.snappy(duration: 0.30, extraBounce: 0.04)) {
-                                        selectedStage = familyStage
-                                    }
-                                    UISelectionFeedbackGenerator().selectionChanged()
+                                    guard familyStage.id != entry.id else { return }
+                                    selectStage(familyStage)
                                 } label: {
                                     DexStageCapsule(
-                                        title: "STAGE \(familyStage.stage)",
-                                        isSelected: familyStage.id == stage.id
+                                        title: familyStage.isEgg
+                                            ? "EGG"
+                                            : "STAGE \(familyStage.stage)",
+                                        isSelected: familyStage.id == entry.id
                                     )
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityLabel(
-                                    "View stage \(familyStage.stage), \(familyStage.name)"
+                                    familyStage.isEgg
+                                        ? "View egg, \(familyStage.name)"
+                                        : "View stage \(familyStage.stage), \(familyStage.name)"
                                 )
                                 .accessibilityAddTraits(
-                                    familyStage.id == stage.id ? .isSelected : []
+                                    familyStage.id == entry.id ? .isSelected : []
                                 )
                             }
 
                             Spacer(minLength: 4)
 
-                            if stage.stage > 0 {
+                            if entry.stage > 0 {
                                 Button {
                                     replayEvent = CreatureDiscoveryEvent(
-                                        stage: stage,
-                                        kind: stage.stage == 1 ? .hatch : .evolution
+                                        stage: entry,
+                                        kind: entry.stage == 1 ? .hatch : .evolution
                                     )
                                 } label: {
                                     Label(
-                                        stage.stage == 1 ? "HATCH" : "EVOLVE",
+                                        entry.stage == 1 ? "HATCH" : "EVOLVE",
                                         systemImage: "play.fill"
                                     )
                                     .font(NanoFont.aldrich(8))
                                     .tracking(0.6)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.72)
+                                    .allowsTightening(true)
+                                    .fixedSize(horizontal: true, vertical: false)
                                     .foregroundStyle(NanoTheme.background)
                                     .padding(.horizontal, 10)
                                     .frame(height: 32)
@@ -579,7 +741,7 @@ struct CreatureDetailView: View {
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityLabel(
-                                    stage.stage == 1 ? "Replay hatch" : "Replay evolution"
+                                    entry.stage == 1 ? "Replay hatch" : "Replay evolution"
                                 )
                             } else {
                                 Text("INCUBATING")
@@ -591,16 +753,16 @@ struct CreatureDetailView: View {
                     }
 
                     CreatureScannerView(
-                        stage: stage,
+                        stage: entry,
                         isLocked: isLocked,
-                        progress: scanProgress,
-                        scanCompleted: scanCompleted
+                        progress: entry.id == scanningStageID ? scanProgress : 0,
+                        scanCompleted: entry.id == scanningStageID && scanCompleted
                     )
                     .frame(height: 320)
 
                     if !isLocked {
                         HStack {
-                            ForEach(stage.types, id: \.self) { DexTypeChip(type: $0) }
+                            ForEach(entry.types, id: \.self) { DexTypeChip(type: $0) }
                         }
                     }
 
@@ -612,7 +774,7 @@ struct CreatureDetailView: View {
                         Text(
                             isLocked
                                 ? "This entry is encrypted. Keep walking and evolving creatures to reveal the specimen profile."
-                                : stage.description
+                                : entry.description
                         )
                         .font(NanoFont.aldrich(12))
                         .foregroundStyle(isLocked ? NanoTheme.secondaryText : .white)
@@ -632,12 +794,20 @@ struct CreatureDetailView: View {
                                     .font(NanoFont.aldrich(8))
                                     .tracking(1.2)
                                     .foregroundStyle(NanoTheme.teal)
-                                Text(scanCompleted ? "BIOMETRIC PROFILE VERIFIED" : "RENDERING SPECIMEN DATA")
+                                Text(
+                                    entry.id == scanningStageID && scanCompleted
+                                        ? "BIOMETRIC PROFILE VERIFIED"
+                                        : "RENDERING SPECIMEN DATA"
+                                )
                                     .font(NanoFont.aldrich(10))
                                     .foregroundStyle(.white)
                             }
                             Spacer()
-                            Image(systemName: scanCompleted ? "checkmark.seal.fill" : "waveform.path.ecg")
+                            Image(
+                                systemName: entry.id == scanningStageID && scanCompleted
+                                    ? "checkmark.seal.fill"
+                                    : "waveform.path.ecg"
+                            )
                                 .foregroundStyle(NanoTheme.teal)
                         }
                         .padding(14)
@@ -650,40 +820,8 @@ struct CreatureDetailView: View {
 
                 }
                 .padding(18)
-            }
         }
-        .task(id: stage.id) {
-            scanProgress = 0
-            scanCompleted = false
-            guard !isLocked else { return }
-
-            if store.reduceMotion || accessibilityReduceMotion {
-                scanProgress = 1
-                scanCompleted = true
-                return
-            }
-
-            withAnimation(.linear(duration: 1.65)) {
-                scanProgress = 1
-            }
-            try? await Task.sleep(for: .milliseconds(1_650))
-            guard !Task.isCancelled else { return }
-            withAnimation(.snappy) {
-                scanCompleted = true
-            }
-            if store.hapticsEnabled {
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-            }
-        }
-        .fullScreenCover(item: $replayEvent) { event in
-            EvolutionLifecycleExperience(
-                catalog: store.catalog,
-                event: event,
-                nextEggs: [],
-                onChooseEgg: nil
-            )
-            .environment(store)
-        }
+        .scrollIndicators(.hidden)
     }
 
 }
@@ -696,6 +834,9 @@ private struct DexStageCapsule: View {
         Text(title)
             .font(NanoFont.aldrich(8))
             .tracking(0.9)
+            .lineLimit(1)
+            .minimumScaleFactor(0.78)
+            .allowsTightening(true)
             .foregroundStyle(isSelected ? NanoTheme.background : NanoTheme.teal)
             .padding(.horizontal, 9)
             .frame(height: 32)
@@ -723,20 +864,20 @@ private struct CreatureScannerView: View {
                 LabGridBackground()
 
                 if isLocked {
-                    CreatureArtworkView(stage: stage)
-                        .padding(26)
-                        .saturation(0)
-                        .opacity(0.14)
-                        .blur(radius: 26)
+                    LockedCreatureArtwork(stage: stage, inset: 26)
 
-                    VStack(spacing: 12) {
+                    HStack(spacing: 8) {
                         Image(systemName: "lock.fill")
-                            .font(.system(size: 28, weight: .bold))
+                            .font(.system(size: 12, weight: .bold))
                         Text("UNDISCOVERED SPECIES")
                             .font(NanoFont.aldrich(10))
                             .tracking(1.4)
                     }
-                    .foregroundStyle(NanoTheme.mutedText)
+                    .foregroundStyle(NanoTheme.secondaryText)
+                    .padding(12)
+                    .background(Capsule().fill(NanoTheme.surface.opacity(0.90)))
+                    .padding(12)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                 } else {
                     if scanCompleted {
                         AnimatedCreatureArtworkView(stage: stage)

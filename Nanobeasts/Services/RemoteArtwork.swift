@@ -66,7 +66,9 @@ enum R2AssetManifest {
             } else {
                 filename = key + ".png"
             }
-            path = "images/modern-assets-only/\(filename)"
+            path = ExpandedRosterAssets.imageKeys.contains(key)
+                ? ExpandedRosterAssets.prefix + filename
+                : "images/modern-assets-only/\(filename)"
         }
 
         return baseURL.appending(path: path)
@@ -159,6 +161,13 @@ enum R2AnimationManifest {
         let normalizedName = stage.name
             .lowercased()
             .filter(\.isLetter)
+
+        if ExpandedRosterAssets.imageKeys.contains(stage.imageKey.lowercased()) {
+            let name = stage.isEgg && normalizedName.hasSuffix("egg")
+                ? String(normalizedName.dropLast(3)) + "-egg"
+                : normalizedName
+            return R2AssetManifest.baseURL.appending(path: ExpandedRosterAssets.prefix + name + "-idle.webp")
+        }
 
         let path: String
         let cacheVersion: String?
@@ -669,6 +678,7 @@ struct RemoteAnimatedWebPView: UIViewRepresentable {
     var loopCount: Int? = nil
     var freezesOnLastFrame = false
     var preloadsAllFrames = false
+    var maxBufferSize: UInt? = nil
     let onLoad: (Bool) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -691,6 +701,9 @@ struct RemoteAnimatedWebPView: UIViewRepresentable {
         imageView.animationRepeatCount = loopCount ?? 0
         imageView.resetFrameIndexWhenStopped = !freezesOnLastFrame
         imageView.isUserInteractionEnabled = false
+        if let maxBufferSize {
+            imageView.maxBufferSize = maxBufferSize
+        }
         return imageView
     }
 
@@ -755,5 +768,87 @@ struct RemoteAnimatedWebPView: UIViewRepresentable {
     final class Coordinator {
         var isPlaying = true
         var onLoad: (Bool) -> Void = { _ in }
+    }
+}
+
+// Approved expanded roster. Original family IDs and ordering remain unchanged.
+enum ExpandedRosterAssets {
+    static let prefix = "images/expanded-roster-v1/"
+    static let imageKeys: Set<String> = [
+        "dozolin-egg-stage-0-modern",
+        "dozolin-stage-1-modern",
+        "narcolin-stage-2-modern",
+        "collipup-egg-stage-0-modern",
+        "collipup-stage-1-modern",
+        "collibloom-stage-2-modern",
+        "collosom-stage-3-modern",
+        "rubbull-egg-stage-0-modern",
+        "rubbull-stage-1-modern",
+        "bullder-stage-2-modern",
+        "spirillo-egg-stage-0-modern",
+        "spirillo-stage-1-modern",
+        "runursa-stage-2-modern",
+        "anvilet-egg-stage-0-modern",
+        "anvilet-stage-1-modern",
+        "anvilon-stage-2-modern",
+        "brewbit-egg-stage-0-modern",
+        "brewbit-stage-1-modern",
+        "scaldron-stage-2-modern",
+        "chugernaut-stage-3-modern",
+        "wartox-egg-stage-0-modern",
+        "wartox-stage-1-modern",
+        "smogroak-stage-2-modern",
+        "miasmorg-stage-3-modern",
+        "reveri-egg-stage-0-modern",
+        "reveri-stage-1-modern",
+        "dremir-stage-2-modern",
+        "camolet-egg-stage-0-modern",
+        "camolet-stage-1-modern",
+        "camoflair-stage-2-modern",
+        "nimsect-egg-stage-0-modern",
+        "nimsect-stage-1-modern",
+        "sablade-stage-2-modern",
+        "neuril-egg-stage-0-modern",
+        "neuril-stage-1-modern",
+        "neuragon-stage-2-modern",
+        "jinxter-egg-stage-0-modern",
+        "jinxter-stage-1-modern",
+        "prankenstein-stage-2-modern",
+    ]
+
+    static let transitionMilliseconds: [String: Int64] = [
+        "dozolin-hatch": 5067,
+        "dozolin-narcolin-evolution": 5067,
+        "collipup-hatch": 5067,
+        "collipup-collibloom-evolution": 5067,
+        "collibloom-collosom-evolution": 5067,
+        "rubbull-hatch": 5067,
+        "rubbull-bullder-evolution": 5067,
+        "spirillo-hatch": 5167,
+        "spirillo-runursa-evolution": 5167,
+        "anvilet-hatch": 5167,
+        "anvilet-anvilon-evolution": 5167,
+        "brewbit-hatch": 5167,
+        "brewbit-scaldron-evolution": 5167,
+        "scaldron-chugernaut-evolution": 5167,
+        "wartox-hatch": 5167,
+        "wartox-smogroak-evolution": 5167,
+        "smogroak-miasmorg-evolution": 5167,
+        "reveri-hatch": 5167,
+        "reveri-dremir-evolution": 5167,
+        "camolet-hatch": 5167,
+        "camolet-camoflair-evolution": 5167,
+        "nimsect-hatch": 5167,
+        "nimsect-sablade-evolution": 5167,
+        "neuril-hatch": 5167,
+        "neuril-neuragon-evolution": 5167,
+        "jinxter-hatch": 5167,
+        "jinxter-prankenstein-evolution": 5167,
+    ]
+
+    static func transition(named key: String) -> (url: URL, duration: Duration)? {
+        guard let milliseconds = transitionMilliseconds[key] else { return nil }
+        return (R2AssetManifest.baseURL.appending(path: prefix + key + ".webp"),
+                .milliseconds(milliseconds))
     }
 }

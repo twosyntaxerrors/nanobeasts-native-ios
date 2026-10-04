@@ -9,226 +9,250 @@ struct RevenueCatPaywallScreen: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(AppStore.self) private var store
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     let playerName: String
+    var selectedGoals: Set<String> = []
+    var primaryGoal: String? = nil
+    var selectedBlockers: Set<String> = []
+    var isPreview = false
+    var onPreviewPurchase: (() -> Void)? = nil
+    var onPreviewClose: (() -> Void)? = nil
+    var previewMilestone: String? = nil
 
+    @AppStorage("nanobeasts.notifications.setup-reminders") private var setupReminders = false
     @State private var offering: Offering?
     @State private var selectedPlan: Plan = .yearly
     @State private var isPurchasing = false
     @State private var isRestoring = false
+    @State private var isLoadingPlans = true
+    @State private var yearlyTrialEligibility: IntroEligibilityStatus = .unknown
     @State private var errorMessage: String?
+    @State private var previewNotice: String?
+
+    private var copy: OnboardingCopy {
+        .forGoals(selectedGoals, primaryGoal: primaryGoal, blockers: selectedBlockers)
+    }
 
     var body: some View {
-        ZStack {
-            NanoTheme.background.ignoresSafeArea()
-            LabGridBackground().ignoresSafeArea()
+        PaywallPage(copy: copy, firstName: playerName, tint: NanoTheme.teal,
+                    milestone: isPreview ? previewMilestone : nil) {
+            topBar
+        } offers: {
+            offerSection
+        } checkout: {
+            purchaseFooter
+        }
+        .background { PaywallBackdrop(tint: NanoTheme.teal).ignoresSafeArea() }
+        .preferredColorScheme(.dark)
+        .task { await loadOffering() }
+        .alert("Preview", isPresented: Binding(get: { previewNotice != nil },
+            set: { if !$0 { previewNotice = nil } })) {
+            Button("OK") { previewNotice = nil }
+        } message: { Text(previewNotice ?? "") }
+    }
 
-            ScrollView {
-                VStack(spacing: 20) {
-                    topBar
+    private var offerSection: some View {
+        VStack(spacing: 16) {
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(spacing: 18)) : AnyLayout(HStackLayout(spacing: 12))
+            layout {
+                PaywallPlanCard(title: "MONTHLY", price: monthlyAmount, period: "/month",
+                    detail: "No free trial", selected: selectedPlan == .monthly, tint: NanoTheme.teal) {
+                    withAnimation(.snappy(duration: 0.25)) { selectedPlan = .monthly }
+                }
+                PaywallPlanCard(title: "YEARLY", price: yearlyWeeklyEquivalent ?? yearlyAmount,
+                    period: yearlyWeeklyEquivalent == nil ? "/year" : "/week",
+                    detail: yearlyDetail, badge: yearlySavingsBadge,
+                    accessibilityBillingDetail: yearlyWeeklyEquivalent == nil ? nil : "\(yearlyAmount) billed yearly",
+                    highlightsDetail: eligibleYearlyTrialDuration != nil,
+                    selected: selectedPlan == .yearly, tint: NanoTheme.teal) {
+                    withAnimation(.snappy(duration: 0.25)) { selectedPlan = .yearly }
+                }
+            }
+            .disabled(isPurchasing || isRestoring)
+            .padding(.top, 10)
 
-                    Text("YOUR NANOBEASTS ARE READY")
-                        .font(NanoFont.aldrich(11))
-                        .tracking(1.6)
-                        .foregroundStyle(NanoTheme.teal)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(NanoTheme.teal.opacity(0.07), in: Capsule())
-                        .overlay(Capsule().stroke(NanoTheme.teal.opacity(0.3)))
-
-                    VStack(spacing: 9) {
-                        Text("\(displayName), take the first step towards evolution")
-                            .font(.system(size: 31, weight: .bold, design: .rounded))
-                            .multilineTextAlignment(.center)
-                        Text("Turn everyday movement into a collection that grows with you.")
-                            .foregroundStyle(NanoTheme.secondaryText)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.horizontal, 24)
-
-                    VStack(spacing: 15) {
-                        BenefitRow(
-                            icon: "figure.walk.motion",
-                            title: "Grow with your Nanobeasts",
-                            detail: "Every step counts toward evolving your Nanobeasts, while supporting your own goals."
-                        )
-                        BenefitRow(
-                            icon: "chart.line.uptrend.xyaxis",
-                            title: "Progress you can see",
-                            detail: "Track the stats you care about, making it easy to stay consistent and see progress."
-                        )
-                        BenefitRow(
-                            icon: "sparkles",
-                            title: "New drops to keep you motivated",
-                            detail: "New eggs and evolutions updated regularly, so you never run out."
-                        )
-                    }
-                    .padding(18)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 26).stroke(NanoTheme.teal.opacity(0.22)))
-                    .padding(.horizontal, 18)
-
-                    VStack(spacing: 10) {
-                        PlanCard(
-                            eyebrow: "YEARLY",
-                            price: yearlyPrice,
-                            detail: yearlyDetail,
-                            badge: "SAVE 54%",
-                            selected: selectedPlan == .yearly
-                        ) {
-                            withAnimation(.snappy(duration: 0.25)) {
-                                selectedPlan = .yearly
-                            }
-                        }
-
-                        PlanCard(
-                            eyebrow: "MONTHLY",
-                            price: monthlyPrice,
-                            detail: "Billed monthly",
-                            badge: nil,
-                            selected: selectedPlan == .monthly
-                        ) {
-                            withAnimation(.snappy(duration: 0.25)) {
-                                selectedPlan = .monthly
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 18)
-
-                    Label("Cancel anytime  •  No 2,500-step cap", systemImage: "checkmark.shield.fill")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(NanoTheme.secondaryText)
-
-#if DEBUG
-                    if isUsingRevenueCatTestStore {
-                        Label("REVENUECAT TEST PURCHASE • NO CHARGE", systemImage: "checkmark.seal.fill")
-                            .font(NanoFont.aldrich(9))
-                            .tracking(0.7)
-                            .foregroundStyle(NanoTheme.teal)
-                    }
-#endif
-
-                    Button {
-                        Task { await purchaseSelectedPlan() }
-                    } label: {
-                        HStack(spacing: 9) {
-                            if isPurchasing {
-                                ProgressView()
-                                    .tint(.black)
-                            }
-                            Text(isPurchasing ? "Connecting securely…" : "Start My Evolution")
-                                .font(.headline)
-                        }
-                        .foregroundStyle(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 17)
-                        .background(
-                            LinearGradient(
-                                colors: [NanoTheme.teal, NanoTheme.cyan],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            ),
-                            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isPurchasing || selectedPackage == nil)
-                    .opacity(selectedPackage == nil && offering != nil ? 0.5 : 1)
-                    .padding(.horizontal, 18)
-
-                    if offering == nil && errorMessage == nil {
-                        HStack(spacing: 8) {
-                            ProgressView()
-                            Text("Loading subscription plans…")
-                        }
-                        .font(.caption)
-                        .foregroundStyle(NanoTheme.secondaryText)
-                    }
-
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .font(.caption)
-                            .foregroundStyle(NanoTheme.pink)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
-                    }
-
-                    HStack(spacing: 12) {
-                        Link("Privacy Policy", destination: URL(string: "https://nanobeasts.app/privacy")!)
-                        Text("•")
-                        Link("Terms of Service", destination: URL(string: "https://nanobeasts.app/terms")!)
-                        Text("•")
-                        Button(isRestoring ? "Restoring…" : "Restore") {
-                            Task { await restore() }
-                        }
-                        .disabled(isRestoring)
-                    }
-                    .font(.caption2)
-                    .foregroundStyle(NanoTheme.secondaryText)
-
-                    Text(selectedPlan == .yearly ? yearlyFooter : "Monthly access renews automatically until cancelled.")
-                        .font(.caption)
-                        .foregroundStyle(NanoTheme.secondaryText)
-                        .padding(.bottom, 16)
+            if isLoadingPlans {
+                HStack(spacing: 8) { ProgressView(); Text("Loading subscription plans…") }
+                    .font(.caption).foregroundStyle(NanoTheme.secondaryText)
+            }
+            if let errorMessage {
+                Text(errorMessage).font(.caption).foregroundStyle(NanoTheme.pink)
+                    .multilineTextAlignment(.center)
+                if !isLoadingPlans && (monthlyPackage == nil || yearlyPackage == nil) {
+                    Button("Try again") { Task { await loadOffering() } }
+                        .font(.caption.weight(.semibold)).tint(NanoTheme.teal)
+                        .frame(minHeight: 44)
                 }
             }
         }
-        .preferredColorScheme(.dark)
-        .task {
-            await loadOffering()
+    }
+
+    private var purchaseFooter: some View {
+        VStack(spacing: 12) {
+            PaywallCheckout(title: purchaseButtonTitle, summary: purchaseSummary,
+                renewalNotice: renewalDisclosure, tint: NanoTheme.teal,
+                billingPrice: annualBillingPrice, billingLeadIn: annualBillingLeadIn,
+                isPurchasing: isPurchasing, isRestoring: isRestoring,
+                isDisabled: isPurchasing || isRestoring || isLoadingPlans || selectedPackage == nil,
+                isRestoreDisabled: isPurchasing || isRestoring || isLoadingPlans,
+                onPurchase: { Task { await purchaseSelectedPlan() } },
+                onRestore: { Task { await restore() } })
+            if setupReminders && !isPreview {
+                Button("Turn off setup reminders") {
+                    NanoNotifications.shared.setSetupReminderPreference(false)
+                    setupReminders = false
+                }
+                .font(.caption).foregroundStyle(NanoTheme.secondaryText)
+                .frame(minHeight: 44)
+            }
         }
     }
 
     private var topBar: some View {
         HStack {
             Button {
-                dismiss()
+                if isPreview, let onPreviewClose { onPreviewClose() }
+                else { dismiss() }
             } label: {
-                Image(systemName: "xmark")
+                SolarImage(.closeCircle, size: 24)
+                    .frame(width: 44, height: 44)
             }
-            .buttonStyle(.bordered)
-            .buttonBorderShape(.circle)
-            .tint(NanoTheme.secondaryText)
-
+            .disabled(isPurchasing || isRestoring)
+            .accessibilityLabel(isPreview ? "Close preview paywall" : "Back to your plan")
+            .buttonStyle(.plain).foregroundStyle(NanoTheme.secondaryText)
             Spacer()
-
-            Image(systemName: "sparkles")
-                .foregroundStyle(NanoTheme.teal)
+            if isPreview {
+                Text("PREVIEW · NO CHARGE").font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(NanoTheme.secondaryText)
+            }
+#if DEBUG
+            if !isPreview && isUsingRevenueCatTestStore {
+                Text("TEST PURCHASE · NO CHARGE").font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(NanoTheme.secondaryText)
+            }
+#endif
         }
-        .padding(.horizontal, 18)
-        .padding(.top, 8)
-    }
-
-    private var displayName: String {
-        playerName.isEmpty ? "Researcher" : playerName
     }
 
     private var yearlyPrice: String {
         yearlyPackage.map {
             "\($0.storeProduct.localizedPriceString)/year"
-        } ?? "$32.99/year"
+        } ?? (isLoadingPlans ? "Loading…" : "Unavailable")
     }
 
     private var monthlyPrice: String {
         monthlyPackage.map {
             "\($0.storeProduct.localizedPriceString)/month"
-        } ?? "$5.99/month"
+        } ?? (isLoadingPlans ? "Loading…" : "Unavailable")
     }
 
     private var yearlyDetail: String {
-        if let annual = yearlyPackage?.storeProduct.price,
-           let monthly = monthlyPackage?.storeProduct.price {
-            let annualValue = NSDecimalNumber(decimal: annual).doubleValue
-            let monthlyValue = NSDecimalNumber(decimal: monthly).doubleValue
-            guard monthlyValue > 0 else { return "Billed yearly" }
-            let savings = max(0, Int((1 - annualValue / (monthlyValue * 12)) * 100))
-            return savings > 0 ? "Best value • save \(savings)%" : "Billed yearly"
+        if let duration = eligibleYearlyTrialDuration {
+            return "Free trial for \(duration)"
         }
-        return "$2.74/month billed yearly"
+        return "Billed yearly"
     }
 
-    private var yearlyFooter: String {
-        "Just \(yearlyPrice) — auto-renews yearly until cancelled."
+    private var yearlySavingsBadge: String? {
+        guard let annual = yearlyPackage?.storeProduct,
+              let monthly = monthlyPackage?.storeProduct,
+              let currency = annual.currencyCode,
+              currency == monthly.currencyCode,
+              annual.price > 0, monthly.price > 0 else { return nil }
+        let annualValue = NSDecimalNumber(decimal: annual.price).doubleValue
+        let monthlyValue = NSDecimalNumber(decimal: monthly.price).doubleValue
+        let savings = Int(((1 - annualValue / (monthlyValue * 12)) * 100).rounded())
+        return savings > 0 ? "SAVE \(savings)%" : nil
+    }
+
+    private var eligibleYearlyTrialDuration: String? {
+        guard yearlyTrialEligibility == .eligible,
+              let trial = yearlyPackage?.storeProduct.introductoryDiscount,
+              trial.paymentMode == .freeTrial else { return nil }
+
+        let count = trial.subscriptionPeriod.value * trial.numberOfPeriods
+        switch trial.subscriptionPeriod.unit {
+        case .day:
+            return "\(count) \(count == 1 ? "day" : "days")"
+        case .week:
+            return "\(count * 7) days"
+        case .month:
+            return "\(count) \(count == 1 ? "month" : "months")"
+        case .year:
+            return "\(count) \(count == 1 ? "year" : "years")"
+        @unknown default:
+            return nil
+        }
+    }
+
+    private var purchaseButtonTitle: String {
+        if isLoadingPlans { return "Loading plans…" }
+        if selectedPackage == nil { return "Plan unavailable" }
+        if selectedPlan == .yearly, eligibleYearlyTrialDuration != nil {
+            return localizedTrialZeroPrice.map { "Try for \($0)" } ?? "Start your free trial"
+        }
+        return "Start your journey"
+    }
+
+    private var localizedTrialZeroPrice: String? {
+        guard let formatter = yearlyPackage?.storeProduct.priceFormatter?.copy() as? NumberFormatter else {
+            return nil
+        }
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 0
+        return formatter.string(from: NSDecimalNumber.zero)
+    }
+
+    private var purchaseSummary: String {
+        guard !isLoadingPlans, selectedPackage != nil else { return "" }
+        if selectedPlan == .yearly {
+            if let duration = eligibleYearlyTrialDuration {
+                return "\(duration) free, then \(yearlyPrice)."
+            }
+            return "\(yearlyPrice), billed today."
+        }
+        return "\(monthlyPrice), billed today. No free trial."
+    }
+
+    private var renewalDisclosure: String {
+        guard !isLoadingPlans, selectedPackage != nil else { return "" }
+        if selectedPlan == .yearly, eligibleYearlyTrialDuration != nil {
+            return "Renews automatically. Cancel at least 24 hours before your trial ends to avoid being charged."
+        }
+        return "Renews automatically until cancelled."
+    }
+
+    private var yearlyAmount: String {
+        yearlyPackage?.storeProduct.localizedPriceString ?? (isLoadingPlans ? "Loading…" : "Unavailable")
+    }
+
+    /// A comparison only. The annual amount below checkout remains the charge.
+    /// Use the product's period and currency formatter, including zero-decimal currencies.
+    private var yearlyWeeklyEquivalent: String? {
+        guard !isLoadingPlans, let annual = yearlyPackage?.storeProduct,
+              annual.price > 0, let period = annual.subscriptionPeriod,
+              period.unit == .year, period.value == 1,
+              let formatter = annual.priceFormatter?.copy() as? NumberFormatter else { return nil }
+        let weeks = period.numberOfUnitsAs(unit: .week)
+        guard weeks > 0 else { return nil }
+        formatter.roundingMode = .halfUp
+        return formatter.string(from: NSDecimalNumber(decimal: annual.price / weeks))
+    }
+
+    private var annualBillingPrice: String? {
+        guard selectedPlan == .yearly, !isLoadingPlans, yearlyPackage != nil else { return nil }
+        return yearlyPrice
+    }
+
+    private var annualBillingLeadIn: String {
+        if let duration = eligibleYearlyTrialDuration { return "\(duration) free, then" }
+        return "Billed today, then annually"
+    }
+
+    private var monthlyAmount: String {
+        monthlyPackage?.storeProduct.localizedPriceString ?? (isLoadingPlans ? "Loading…" : "Unavailable")
     }
 
     private var monthlyPackage: Package? {
@@ -261,7 +285,17 @@ struct RevenueCatPaywallScreen: View {
 
     @MainActor
     private func loadOffering() async {
+        isLoadingPlans = true
+        yearlyTrialEligibility = .unknown
         errorMessage = nil
+        defer { isLoadingPlans = false }
+        // A replay models a new eligible customer, independent of prior test purchases.
+        // It uses the same offer-formatting code, and the purchase action remains simulated.
+        if isPreview {
+            offering = PaywallPreviewOffering.make()
+            yearlyTrialEligibility = .eligible
+            return
+        }
         guard Purchases.isConfigured else {
             errorMessage = "RevenueCat is not configured for this build."
             return
@@ -273,6 +307,9 @@ struct RevenueCatPaywallScreen: View {
             if monthlyPackage == nil || yearlyPackage == nil {
                 errorMessage = "The current RevenueCat offering is missing a monthly or yearly plan."
             }
+            if let product = yearlyPackage?.storeProduct {
+                yearlyTrialEligibility = await Purchases.shared.checkTrialOrIntroDiscountEligibility(product: product)
+            }
         } catch {
             errorMessage = "RevenueCat could not load the plans. Please check your connection and try again."
         }
@@ -280,7 +317,11 @@ struct RevenueCatPaywallScreen: View {
 
     @MainActor
     private func purchaseSelectedPlan() async {
-        guard let selectedPackage else { return }
+        guard !isLoadingPlans, !isPurchasing, !isRestoring, let selectedPackage else { return }
+        if isPreview {
+            onPreviewPurchase?()
+            return
+        }
         isPurchasing = true
         errorMessage = nil
         defer { isPurchasing = false }
@@ -289,7 +330,7 @@ struct RevenueCatPaywallScreen: View {
             let result = try await Purchases.shared.purchase(package: selectedPackage)
             guard !result.userCancelled else { return }
 
-            store.applyRevenueCatCustomerInfo(result.customerInfo)
+            await store.applyRevenueCatPurchase(result.customerInfo)
             if store.isPremium {
                 dismiss()
             } else {
@@ -302,13 +343,17 @@ struct RevenueCatPaywallScreen: View {
 
     @MainActor
     private func restore() async {
+        guard !isPreview else {
+            previewNotice = "Restore is simulated in this preview. Your existing subscription is unchanged."
+            return
+        }
         isRestoring = true
         errorMessage = nil
         defer { isRestoring = false }
 
         do {
             let customerInfo = try await Purchases.shared.restorePurchases()
-            store.applyRevenueCatCustomerInfo(customerInfo)
+            await store.applyRevenueCatCustomerInfo(customerInfo)
             if store.isPremium {
                 dismiss()
             } else {
@@ -377,84 +422,5 @@ struct RevenueCatPaywallScreen: View {
         }
 
         return "\(productID) · \(nsError.domain) \(nsError.code)"
-    }
-}
-
-private struct BenefitRow: View {
-    let icon: String
-    let title: String
-    let detail: String
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 13) {
-            Image(systemName: icon)
-                .font(.headline)
-                .foregroundStyle(.black)
-                .frame(width: 34, height: 34)
-                .background(NanoTheme.teal, in: Circle())
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.headline)
-                Text(detail)
-                    .font(.caption)
-                    .foregroundStyle(NanoTheme.secondaryText)
-                    .lineSpacing(3)
-            }
-            Spacer()
-        }
-    }
-}
-
-private struct PlanCard: View {
-    let eyebrow: String
-    let price: String
-    let detail: String
-    let badge: String?
-    let selected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 13) {
-                Image(systemName: selected ? "largecircle.fill.circle" : "circle")
-                    .font(.title3)
-                    .foregroundStyle(selected ? NanoTheme.teal : NanoTheme.secondaryText)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        Text(eyebrow)
-                            .font(NanoFont.aldrich(12))
-                            .tracking(1.2)
-                        if let badge {
-                            Text(badge)
-                                .font(.caption2.bold())
-                                .foregroundStyle(.black)
-                                .padding(.horizontal, 7)
-                                .padding(.vertical, 4)
-                                .background(NanoTheme.teal, in: Capsule())
-                        }
-                    }
-                    Text(detail)
-                        .font(.caption)
-                        .foregroundStyle(NanoTheme.secondaryText)
-                }
-                Spacer()
-                Text(price)
-                    .font(.subheadline.monospacedDigit().bold())
-                    .multilineTextAlignment(.trailing)
-            }
-            .foregroundStyle(.white)
-            .padding(16)
-            .background(
-                selected ? NanoTheme.teal.opacity(0.10) : NanoTheme.surface,
-                in: RoundedRectangle(cornerRadius: 20, style: .continuous)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .stroke(selected ? NanoTheme.teal : NanoTheme.border, lineWidth: selected ? 2 : 1)
-            )
-        }
-        .buttonStyle(.plain)
     }
 }

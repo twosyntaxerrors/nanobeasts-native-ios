@@ -24,3 +24,6 @@ build/
 # Local tooling
 .idea/
 .vscode/
+
+# Generated App Store media
+goldie/out/

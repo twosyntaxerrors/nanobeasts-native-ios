@@ -1,0 +1,51 @@
+let start = Date(timeIntervalSince1970: 1_800_000_000)
+var ledger = WorkoutMotionLedger(startedAt: start)
+ledger.resume(at: start)
+let first = ledger.segments[0].id
+ledger.update(segmentID: first, through: start.addingTimeInterval(600), steps: 1000, meters: 700)
+precondition(ledger.steps == 1000)
+// Screen locked for 20 minutes; one historical cumulative result fills the gap.
+ledger.update(segmentID: first, through: start.addingTimeInterval(1800), steps: 3000, meters: 2100)
+precondition(ledger.steps == 3000 && ledger.meters == 2100)
+// The live callback arrives late and must not replace a newer cumulative result.
+ledger.update(segmentID: first, through: start.addingTimeInterval(610), steps: 1010, meters: 707)
+precondition(ledger.steps == 3000 && ledger.meters == 2100)
+ledger.pause(at: start.addingTimeInterval(1800))
+ledger.update(segmentID: first, through: start.addingTimeInterval(2100), steps: 3500, meters: 2450)
+precondition(ledger.steps == 3000, "Samples after pause must be excluded")
+ledger.resume(at: start.addingTimeInterval(2400))
+let second = ledger.segments[1].id
+ledger.update(segmentID: second, through: start.addingTimeInterval(3000), steps: 1000, meters: 700)
+precondition(ledger.steps == 4000 && ledger.elapsed(at: start.addingTimeInterval(3000)) == 2400)
+ledger.pause(at: start.addingTimeInterval(3000))
+// Final query can repair an earlier segment without overwriting later segments.
+ledger.update(segmentID: first, through: start.addingTimeInterval(1800), steps: 3020, meters: 2114)
+ledger.update(segmentID: second, through: start.addingTimeInterval(3000), steps: 1000, meters: 700)
+precondition(ledger.steps == 4020 && ledger.meters == 2814)
+// Repeated foreground/finish queries are replacements, never additive.
+for _ in 0..<4 {
+    ledger.update(segmentID: first, through: start.addingTimeInterval(1800), steps: 3020, meters: 2114)
+}
+precondition(ledger.steps == 4020)
+let archived = try JSONEncoder().encode(ledger)
+var recovered = try JSONDecoder().decode(WorkoutMotionLedger.self, from: archived)
+precondition(recovered.steps == 4020 && recovered.elapsed(at: start.addingTimeInterval(6000)) == 2400)
+recovered.resume(at: start.addingTimeInterval(6100))
+recovered.resume(at: start.addingTimeInterval(6200))
+precondition(recovered.segments.count == 3, "Repeated resume must not create duplicate intervals")
+precondition(recovered.elapsed(at: start.addingTimeInterval(6400)) == 2700)
+recovered.update(segmentID: UUID(), through: start.addingTimeInterval(6400), steps: 9000, meters: 9000)
+precondition(recovered.steps == 4020, "An old session callback must not alter this ledger")
+var legacy = WorkoutMotionLedger(startedAt: start, baselineSteps: 1000, baselineMeters: 700, baselineDuration: 600)
+legacy.resume(at: start.addingTimeInterval(1000))
+legacy.update(segmentID: legacy.segments[0].id, through: start.addingTimeInterval(1600), steps: 1000, meters: 700)
+precondition(legacy.steps == 2000 && legacy.elapsed(at: start.addingTimeInterval(1600)) == 1200)
+print("PASS: background catch-up, stale updates, pauses, multi-interval totals, repeated queries, process recovery, legacy recovery, duplicate resume, foreign callbacks")
+
+var recoveredActive = WorkoutMotionLedger(startedAt: start)
+recoveredActive.resume(at: start)
+recoveredActive.update(segmentID: recoveredActive.segments[0].id, through: start.addingTimeInterval(300), steps: 500, meters: 350)
+recoveredActive = try JSONDecoder().decode(WorkoutMotionLedger.self, from: JSONEncoder().encode(recoveredActive))
+recoveredActive.update(segmentID: recoveredActive.segments[0].id, through: start.addingTimeInterval(900), steps: 1500, meters: 1050)
+precondition(recoveredActive.steps == 1500 && recoveredActive.elapsed(at: start.addingTimeInterval(900)) == 900)
+print("PASS: active-process recovery counts the suspended interval without adding it twice")

@@ -1,3 +1,4 @@
+import CryptoKit
 import SwiftUI
 import UIKit
 
@@ -10,6 +11,14 @@ struct StatsBadge: Identifiable, Hashable {
     let tint: Color
     let unlocked: Bool
     let completedAt: Date?
+
+    static func recentUnlocked(in sections: [StatsBadgeSection]) -> [StatsBadge] {
+        sections.flatMap(\.badges).filter(\.unlocked).sorted {
+            let lhs = $0.completedAt ?? .distantPast
+            let rhs = $1.completedAt ?? .distantPast
+            return lhs == rhs ? $0.id < $1.id : lhs > rhs
+        }
+    }
 }
 
 struct StatsBadgeSection: Identifiable {
@@ -22,19 +31,77 @@ private actor BadgeArtworkImageCache {
     static let shared = BadgeArtworkImageCache()
 
     private var processedData: [URL: Data] = [:]
+    private var activeLoads: [URL: Task<Data, Error>] = [:]
+    private let cacheDirectory: URL
+
+    init() {
+        cacheDirectory = FileManager.default.urls(
+            for: .cachesDirectory,
+            in: .userDomainMask
+        )[0]
+        .appending(path: "nanobeasts-badge-artwork-v2", directoryHint: .isDirectory)
+
+        try? FileManager.default.createDirectory(
+            at: cacheDirectory,
+            withIntermediateDirectories: true
+        )
+    }
 
     func data(for url: URL) async throws -> Data {
         if let cached = processedData[url] {
             return cached
         }
-        let sourceData = try await R2ArtworkCache.shared.data(for: url)
-        let data =
-            UIImage(data: sourceData)?
-            .trimmingTransparentCanvas()
-            .pngData()
-            ?? sourceData
-        processedData[url] = data
-        return data
+
+        let localURL = cachedURL(for: url)
+        if let cached = try? Data(contentsOf: localURL, options: .mappedIfSafe),
+           !cached.isEmpty {
+            processedData[url] = cached
+            return cached
+        }
+
+        if let activeLoad = activeLoads[url] {
+            return try await activeLoad.value
+        }
+
+        let load = Task<Data, Error>(priority: .userInitiated) {
+            let sourceData = try await R2ArtworkCache.shared.data(for: url)
+            return await Task.detached(priority: .userInitiated) {
+                UIImage(data: sourceData)?
+                    .trimmingTransparentCanvas()
+                    .pngData()
+                    ?? sourceData
+            }.value
+        }
+        activeLoads[url] = load
+
+        do {
+            let data = try await load.value
+            processedData[url] = data
+            activeLoads[url] = nil
+            try? data.write(to: localURL, options: .atomic)
+            return data
+        } catch {
+            activeLoads[url] = nil
+            throw error
+        }
+    }
+
+    func prefetch(urls: [URL]) async {
+        let uniqueURLs = Array(Set(urls))
+        await withTaskGroup(of: Void.self) { group in
+            for url in uniqueURLs {
+                group.addTask {
+                    _ = try? await self.data(for: url)
+                }
+            }
+        }
+    }
+
+    private func cachedURL(for url: URL) -> URL {
+        let digest = SHA256.hash(data: Data(url.absoluteString.utf8))
+            .map { String(format: "%02x", $0) }
+            .joined()
+        return cacheDirectory.appending(path: "\(digest).png")
     }
 }
 
@@ -42,16 +109,22 @@ enum StatsBadgeCatalog {
     static func make(
         records: [DailyStepRecord],
         dailyGoal: Int,
+        dailyGoalHistory: [DailyGoalRecord],
         discoveredStages: [CreatureStage],
-        distanceUnit: DistanceUnitPreference
+        distanceUnit: DistanceUnitPreference,
+        discoveryEvents: [CreatureDiscoveryEvent] = []
     ) -> [StatsBadgeSection] {
         let ordered = records.sorted { $0.day < $1.day }
+        let goalTimeline = DailyGoalTimeline(
+            history: dailyGoalHistory,
+            fallbackGoal: dailyGoal
+        )
         let totalSteps = ordered.reduce(0) { $0 + max($1.steps, 0) }
         let distanceKilometers = Double(totalSteps) * 0.000762
-        let activeDays = ordered.filter { $0.steps > 0 }
-        let goalDays = ordered.filter { $0.steps >= dailyGoal }
+        let goalDays = ordered.filter {
+            $0.steps >= goalTimeline.goal(on: $0.day)
+        }
         let maximumSteps = ordered.map(\.steps).max() ?? 0
-        let longestStreak = longestActiveStreak(in: ordered)
         let discoveredCreatures = discoveredStages.filter { !$0.isEgg }
         let speciesCount = Set(discoveredCreatures.map(\.familyID)).count
         let evolvedSpeciesCount = Set(
@@ -140,23 +213,32 @@ enum StatsBadgeCatalog {
                 description: definition.description,
                 tint: NanoTheme.teal,
                 unlocked: definition.unlocked,
-                completedAt: definition.unlocked ? activeDays.last?.day : nil
+                completedAt: definition.unlocked
+                    ? collectionCompletionDate(badgeID: definition.id, events: discoveryEvents) : nil
             )
         }
 
         let streakTargets = [3, 5, 7, 10, 14, 21, 30, 45, 60, 90, 120, 180]
         var consistencyBadges = streakTargets.map { target in
-            badge(
+            let completionDate = goalStreakCompletionDate(
+                records: ordered,
+                target: target,
+                goalTimeline: goalTimeline
+            )
+            return badge(
                 id: "streak-\(target)",
                 symbol: target >= 30 ? "flame.circle.fill" : "flame.fill",
                 title: "\(target) Day Streak",
-                description: "Walk every day for \(target) days",
+                description: "Reach your daily goal for \(target) consecutive days",
                 tint: NanoTheme.orange,
-                unlocked: longestStreak >= target,
-                completedAt: streakCompletionDate(records: ordered, target: target)
+                unlocked: completionDate != nil,
+                completedAt: completionDate
             )
         }
-        let weekendDate = weekendWarriorDate(records: ordered, dailyGoal: dailyGoal)
+        let weekendDate = weekendWarriorDate(
+            records: ordered,
+            goalTimeline: goalTimeline
+        )
         consistencyBadges.append(
             badge(
                 id: "weekend-warrior",
@@ -217,12 +299,56 @@ enum StatsBadgeCatalog {
             )
         })
 
-        return [
+        let sections = [
             StatsBadgeSection(id: "distance", title: "Distance", badges: distanceBadges),
             StatsBadgeSection(id: "collection", title: "Collection", badges: collectionBadges),
             StatsBadgeSection(id: "consistency", title: "Consistency", badges: consistencyBadges),
             StatsBadgeSection(id: "intensity", title: "Intensity", badges: intensityBadges)
         ]
+
+        guard
+            AppScreenshotScenario.active == .badges
+                || AppScreenshotScenario.active == .collectionBadges
+        else {
+            return sections
+        }
+        return sections.map { section in
+            StatsBadgeSection(
+                id: section.id,
+                title: section.title,
+                badges: section.badges.map { badge in
+                    StatsBadge(
+                        id: badge.id,
+                        symbol: badge.symbol,
+                        artworkURL: badge.artworkURL,
+                        title: badge.title,
+                        description: badge.description,
+                        tint: badge.tint,
+                        unlocked: true,
+                        completedAt: badge.completedAt ?? ordered.last?.day ?? Date()
+                    )
+                }
+            )
+        }
+    }
+
+    private static func collectionCompletionDate(
+        badgeID: String, events: [CreatureDiscoveryEvent]
+    ) -> Date? {
+        let components = badgeID.split(separator: "-")
+        guard let category = components.first, let milestone = components.last,
+              let target = milestone == "first" ? 1 : Int(milestone) else { return nil }
+        let minimumStage = category == "final" ? 3 : category == "evolve" ? 2 : 1
+        var families = Set<String>()
+        for event in events.sorted(by: { $0.timestamp < $1.timestamp })
+        where (event.kind == .hatch || event.kind == .evolution) && event.stage >= minimumStage {
+            if families.insert(event.familyID).inserted, families.count == target {
+                return event.timestamp
+            }
+        }
+        // Legacy discoveries without event history remain unlocked and undated.
+        // Using today's activity would incorrectly promote them as new awards.
+        return nil
     }
 
     private static func formattedDistance(
@@ -257,27 +383,6 @@ enum StatsBadgeCatalog {
         )
     }
 
-    private static func longestActiveStreak(in records: [DailyStepRecord]) -> Int {
-        let calendar = Calendar.autoupdatingCurrent
-        var longest = 0
-        var current = 0
-        var previous: Date?
-        for record in records where record.steps > 0 {
-            let day = calendar.startOfDay(for: record.day)
-            if
-                let previous,
-                calendar.dateComponents([.day], from: previous, to: day).day == 1
-            {
-                current += 1
-            } else {
-                current = 1
-            }
-            longest = max(longest, current)
-            previous = day
-        }
-        return longest
-    }
-
     private static func cumulativeCompletionDate(
         records: [DailyStepRecord],
         targetSteps: Int
@@ -290,22 +395,24 @@ enum StatsBadgeCatalog {
         return nil
     }
 
-    private static func streakCompletionDate(
+    private static func goalStreakCompletionDate(
         records: [DailyStepRecord],
-        target: Int
+        target: Int,
+        goalTimeline: DailyGoalTimeline
     ) -> Date? {
         let calendar = Calendar.autoupdatingCurrent
         var current = 0
         var previous: Date?
         for record in records {
-            guard record.steps > 0 else {
+            let day = calendar.startOfDay(for: record.day)
+            guard record.steps >= goalTimeline.goal(on: day) else {
                 current = 0
-                previous = nil
+                previous = day
                 continue
             }
-            let day = calendar.startOfDay(for: record.day)
             if
                 let previous,
+                current > 0,
                 calendar.dateComponents([.day], from: previous, to: day).day == 1
             {
                 current += 1
@@ -320,7 +427,7 @@ enum StatsBadgeCatalog {
 
     private static func weekendWarriorDate(
         records: [DailyStepRecord],
-        dailyGoal: Int
+        goalTimeline: DailyGoalTimeline
     ) -> Date? {
         let calendar = Calendar.autoupdatingCurrent
         let lookup = Dictionary(
@@ -329,18 +436,47 @@ enum StatsBadgeCatalog {
         )
         for record in records {
             let day = calendar.startOfDay(for: record.day)
-            guard calendar.component(.weekday, from: day) == 7, record.steps >= dailyGoal else {
+            guard
+                calendar.component(.weekday, from: day) == 7,
+                record.steps >= goalTimeline.goal(on: day)
+            else {
                 continue
             }
             guard
                 let sunday = calendar.date(byAdding: .day, value: 1, to: day),
-                (lookup[sunday] ?? 0) >= dailyGoal
+                (lookup[sunday] ?? 0) >= goalTimeline.goal(on: sunday)
             else {
                 continue
             }
             return sunday
         }
         return nil
+    }
+
+    private struct DailyGoalTimeline {
+        private let fallbackGoal: Int
+        private let entries: [(day: Date, goal: Int)]
+        private let calendar = Calendar.autoupdatingCurrent
+
+        init(history: [DailyGoalRecord], fallbackGoal: Int) {
+            self.fallbackGoal = fallbackGoal
+            let calendar = Calendar.autoupdatingCurrent
+            let goalsByDay = Dictionary(
+                history.map {
+                    (calendar.startOfDay(for: $0.day), $0.goal)
+                },
+                uniquingKeysWith: { _, latest in latest }
+            )
+            entries = goalsByDay
+                .map { (day: $0.key, goal: $0.value) }
+                .sorted { $0.day < $1.day }
+        }
+
+        func goal(on day: Date) -> Int {
+            let normalizedDay = calendar.startOfDay(for: day)
+            return entries.last(where: { $0.day <= normalizedDay })?.goal
+                ?? fallbackGoal
+        }
     }
 }
 
@@ -620,6 +756,7 @@ private struct StatsInsightPanel: View {
                 .tracking(1)
                 .foregroundStyle(panel.tint)
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .frame(minHeight: compact ? 166 : 186, alignment: .top)
@@ -638,7 +775,15 @@ struct RecentAchievementsRow: View {
     @State private var destination: BadgeDestination?
 
     private var unlocked: [StatsBadge] {
-        sections.flatMap(\.badges).filter(\.unlocked).reversed()
+        StatsBadge.recentUnlocked(in: sections)
+    }
+
+    private var artworkPrefetchID: String {
+        unlocked.map(\.id).joined(separator: "|")
+    }
+
+    private var unlockedArtworkURLs: [URL] {
+        unlocked.compactMap(\.artworkURL)
     }
 
     var body: some View {
@@ -666,9 +811,10 @@ struct RecentAchievementsRow: View {
                             Image(systemName: "sparkles")
                                 .font(.title2)
                                 .foregroundStyle(NanoTheme.teal)
-                            Text("Your first achievement will appear here.")
+                            Text("Earn badges for steps, streaks, and discoveries.\nTap View All to find your first goal.")
                                 .font(NanoFont.aldrich(9))
                                 .foregroundStyle(NanoTheme.secondaryText)
+                                .multilineTextAlignment(.center)
                         }
                         .frame(width: 250, height: 120)
                         .nanoHUDCard()
@@ -692,6 +838,11 @@ struct RecentAchievementsRow: View {
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
+        }
+        .task(id: artworkPrefetchID) {
+            await BadgeArtworkImageCache.shared.prefetch(
+                urls: unlockedArtworkURLs
+            )
         }
     }
 }
@@ -780,14 +931,17 @@ private struct AchievementCard: View {
             Text(badge.title)
                 .font(NanoFont.aldrich(10))
                 .foregroundStyle(.white)
-                .lineLimit(2)
+                .lineLimit(badge.title.contains(" ") ? 2 : 1)
+                .minimumScaleFactor(0.75)
                 .multilineTextAlignment(.center)
             Text(badge.completedAt?.formatted(.dateTime.month(.abbreviated).day()) ?? "UNLOCKED")
                 .font(NanoFont.aldrich(7))
                 .foregroundStyle(badge.tint)
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
-        .frame(width: 132, height: 154)
+        .frame(width: 132)
+        .frame(minHeight: 154)
         .background(
             RoundedRectangle(cornerRadius: 18)
                 .fill(NanoTheme.surface)
@@ -803,41 +957,47 @@ struct BadgeCollectionView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedBadge: StatsBadge?
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 12), count: 3)
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var columns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 14), count: dynamicTypeSize.isAccessibilitySize ? 1 : 2)
+    }
+
+    private var artworkPrefetchID: String {
+        sections
+            .flatMap(\.badges)
+            .filter(\.unlocked)
+            .map(\.id)
+            .joined(separator: "|")
+    }
+
+    private var unlockedArtworkURLs: [URL] {
+        sections
+            .flatMap(\.badges)
+            .filter(\.unlocked)
+            .compactMap(\.artworkURL)
+    }
 
     var body: some View {
         ZStack {
             NanoTheme.background.ignoresSafeArea()
-            LabGridBackground().ignoresSafeArea()
 
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 24) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text("BADGE COLLECTION")
-                                    .font(NanoFont.aldrich(22))
-                                Text("\(unlockedCount) / \(totalCount) UNLOCKED")
-                                    .font(NanoFont.aldrich(10))
-                                    .tracking(1)
-                                    .foregroundStyle(NanoTheme.teal)
-                            }
-                            Spacer()
-                            Button {
-                                dismiss()
-                            } label: {
-                                Image(systemName: "xmark")
-                            }
-                            .buttonStyle(.bordered)
-                            .buttonBorderShape(.circle)
-                        }
+                        collectionSummary
 
                         ForEach(sections) { section in
                             VStack(alignment: .leading, spacing: 14) {
-                                Text(section.title.uppercased())
-                                    .font(NanoFont.aldrich(13))
-                                    .tracking(1.2)
-                                    .foregroundStyle(NanoTheme.secondaryText)
+                                HStack(alignment: .firstTextBaseline) {
+                                    Text(section.title)
+                                        .font(.system(.title3, design: .rounded, weight: .semibold))
+                                        .foregroundStyle(.white)
+                                    Spacer()
+                                    Text("\(section.badges.filter(\.unlocked).count) / \(section.badges.count)")
+                                        .font(.subheadline.monospacedDigit())
+                                        .foregroundStyle(NanoTheme.secondaryText)
+                                }
 
                                 LazyVGrid(columns: columns, spacing: 18) {
                                     ForEach(section.badges) { badge in
@@ -849,14 +1009,20 @@ struct BadgeCollectionView: View {
                                                 highlighted: badge.id == highlightBadgeID
                                             )
                                         }
-                                        .buttonStyle(.plain)
+                                        .buttonStyle(BadgeCollectionPressStyle())
                                         .id(badge.id)
                                     }
                                 }
                             }
                         }
                     }
-                    .padding(18)
+                    .padding(.horizontal, 22)
+                    .padding(.top, 12)
+                    .padding(.bottom, 32)
+                }
+                .scrollIndicators(.hidden)
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    collectionToolbar
                 }
                 .task {
                     guard let highlightBadgeID else { return }
@@ -867,11 +1033,19 @@ struct BadgeCollectionView: View {
                     else {
                         return
                     }
-                    try? await Task.sleep(for: .milliseconds(120))
-                    withAnimation(.snappy) {
+                    let isFeatureTour =
+                        AppScreenshotScenario.active == .featureTourBadges
+                    try? await Task.sleep(
+                        for: isFeatureTour ? .seconds(8) : .milliseconds(120)
+                    )
+                    withAnimation(
+                        isFeatureTour ? .smooth(duration: 3) : .snappy
+                    ) {
                         proxy.scrollTo(highlightBadgeID, anchor: .center)
                     }
-                    try? await Task.sleep(for: .milliseconds(180))
+                    try? await Task.sleep(
+                        for: isFeatureTour ? .seconds(4) : .milliseconds(180)
+                    )
                     guard !Task.isCancelled else { return }
                     selectedBadge = highlightedBadge
                 }
@@ -879,9 +1053,60 @@ struct BadgeCollectionView: View {
         }
         .sheet(item: $selectedBadge) { badge in
             BadgeDetailView(badge: badge)
-                .presentationDetents([.medium])
+                .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
+        .task(id: artworkPrefetchID) {
+            await BadgeArtworkImageCache.shared.prefetch(
+                urls: unlockedArtworkURLs
+            )
+        }
+    }
+
+    private var collectionSummary: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Your achievements")
+                .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                .foregroundStyle(.white)
+            Text("A collection built one step at a time.")
+                .font(.subheadline)
+                .foregroundStyle(NanoTheme.secondaryText)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("\(unlockedCount)")
+                    .font(.system(.title2, design: .rounded, weight: .bold))
+                    .foregroundStyle(NanoTheme.teal)
+                Text("of \(totalCount) earned")
+                    .font(.subheadline)
+                    .foregroundStyle(NanoTheme.secondaryText)
+            }
+            .padding(.top, 8)
+            ProgressView(value: Double(unlockedCount), total: Double(max(totalCount, 1)))
+                .tint(NanoTheme.teal)
+                .accessibilityLabel("Badge collection progress")
+        }
+        .padding(.bottom, 8)
+    }
+
+    private var collectionToolbar: some View {
+        HStack {
+            Text("COLLECTION")
+                .font(NanoFont.aldrich(10))
+                .tracking(1.8)
+                .foregroundStyle(NanoTheme.secondaryText)
+            Spacer()
+            Button { dismiss() } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background(.white.opacity(0.07), in: Circle())
+            }
+            .buttonStyle(BadgeCollectionPressStyle())
+            .accessibilityLabel("Close badge collection")
+        }
+        .padding(.horizontal, 22)
+        .padding(.vertical, 8)
+        .background(NanoTheme.background)
     }
 
     private var unlockedCount: Int {
@@ -893,34 +1118,57 @@ struct BadgeCollectionView: View {
     }
 }
 
+private struct BadgeCollectionPressStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.8 : 1)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
+            .animation(.easeOut(duration: 0.14), value: configuration.isPressed)
+    }
+}
+
 private struct BadgeGridCell: View {
     let badge: StatsBadge
     let highlighted: Bool
 
     var body: some View {
-        VStack(spacing: 8) {
-            BadgeArtworkView(badge: badge, size: 78)
-                .scaleEffect(highlighted ? 1.08 : 1)
-                .shadow(
-                    color: badge.unlocked ? badge.tint.opacity(highlighted ? 0.55 : 0.18) : .clear,
-                    radius: highlighted ? 14 : 4
-                )
+        VStack(spacing: 12) {
+            BadgeArtworkView(badge: badge, size: 102)
+                .shadow(color: badge.unlocked ? badge.tint.opacity(0.16) : .clear, radius: 14)
+                .padding(.vertical, 8)
+                .accessibilityHidden(true)
             Text(badge.title)
-                .font(NanoFont.aldrich(8))
-                .foregroundStyle(badge.unlocked ? .white : NanoTheme.mutedText)
+                .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                .foregroundStyle(badge.unlocked ? .white : NanoTheme.secondaryText)
                 .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .frame(height: 26, alignment: .top)
-            Text(
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(minHeight: 40, alignment: .top)
+            Label(
                 badge.unlocked
-                    ? badge.completedAt?.formatted(.dateTime.month(.abbreviated).day()) ?? "UNLOCKED"
-                    : "LOCKED"
+                    ? badge.completedAt?.formatted(.dateTime.month(.abbreviated).day()) ?? "Earned"
+                    : "Locked",
+                systemImage: badge.unlocked ? "checkmark.seal.fill" : "lock.fill"
             )
-            .font(NanoFont.aldrich(7))
+            .font(.caption)
             .foregroundStyle(badge.unlocked ? badge.tint : NanoTheme.mutedText)
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 16)
         .frame(maxWidth: .infinity)
-        .accessibilityLabel("\(badge.title), \(badge.unlocked ? "unlocked" : "locked")")
+        .background {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(LinearGradient(colors: [.white.opacity(badge.unlocked ? 0.055 : 0.025), .white.opacity(0.015)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .strokeBorder(highlighted ? badge.tint.opacity(0.5) : .white.opacity(0.07), lineWidth: 1)
+                }
+        }
+        .contentShape(RoundedRectangle(cornerRadius: 24))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(badge.title), \(badge.unlocked ? "earned" : "locked")")
+        .accessibilityHint("Opens achievement details")
     }
 }
 
@@ -928,173 +1176,246 @@ private struct BadgeDetailView: View {
     let badge: StatsBadge
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
 
+    private var accent: Color { badge.unlocked ? badge.tint : NanoTheme.secondaryText }
+
     var body: some View {
-        ZStack {
-            NanoTheme.background.ignoresSafeArea()
-            LabGridBackground().ignoresSafeArea()
-
-            VStack(spacing: 22) {
-                HStack {
-                    Text("ACHIEVEMENT FILE")
-                        .font(NanoFont.aldrich(11))
-                        .tracking(1.4)
-                        .foregroundStyle(badge.tint)
-                    Spacer()
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 0) {
+                    HStack {
+                        Text("NANOBEASTS / ACHIEVEMENTS")
+                            .font(NanoFont.aldrich(10))
+                            .tracking(1.5)
+                            .foregroundStyle(NanoTheme.secondaryText)
+                        Spacer()
+                        Button { dismiss() } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 44, height: 44)
+                                .background(.white.opacity(0.07), in: Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Close badge")
                     }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.circle)
-                }
 
-                SpinningBadgeMedallion(
-                    badge: badge,
-                    appeared: appeared,
-                    size: 126
-                )
+                    ZStack {
+                        Circle()
+                            .fill(RadialGradient(
+                                colors: [accent.opacity(0.18), accent.opacity(0.04), .clear],
+                                center: .center, startRadius: 12, endRadius: 165
+                            ))
+                            .frame(width: 330, height: 330)
+                        Circle()
+                            .strokeBorder(accent.opacity(0.10), lineWidth: 1)
+                            .frame(width: 276, height: 276)
+                        Circle()
+                            .strokeBorder(.white.opacity(0.035), lineWidth: 1)
+                            .frame(width: 310, height: 310)
+                        SpinningBadgeMedallion(badge: badge, appeared: appeared, size: 220)
+                    }
+                    .frame(height: 330)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityHidden(true)
 
-                VStack(spacing: 10) {
-                    Text(badge.title)
-                        .font(NanoFont.aldrich(23))
-                        .multilineTextAlignment(.center)
-                    Text(badge.description)
-                        .font(NanoFont.aldrich(11))
-                        .foregroundStyle(NanoTheme.secondaryText)
-                        .multilineTextAlignment(.center)
-                        .lineSpacing(4)
-                    Text(
-                        badge.unlocked
-                            ? badge.completedAt?.formatted(.dateTime.month(.wide).day().year()) ?? "UNLOCKED"
-                            : "LOCKED"
-                    )
-                    .font(NanoFont.aldrich(10))
-                    .tracking(1.2)
-                    .foregroundStyle(badge.unlocked ? badge.tint : NanoTheme.mutedText)
+                    VStack(spacing: 16) {
+                        Label(badge.unlocked ? "EARNED" : "YET TO UNLOCK",
+                              systemImage: badge.unlocked ? "checkmark.seal.fill" : "lock.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .tracking(1.8)
+                            .foregroundStyle(accent)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 9)
+                            .background(accent.opacity(0.09), in: Capsule())
+
+                        Text(badge.title)
+                            .font(.system(.largeTitle, design: .rounded, weight: .bold))
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text(badge.description)
+                            .font(.body)
+                            .foregroundStyle(NanoTheme.secondaryText)
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(5)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: 310)
+                    }
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared || reduceMotion ? 0 : 8)
+
+                    Spacer(minLength: 32)
+
+                    if badge.unlocked {
+                        VStack(spacing: 20) {
+                            if let date = badge.completedAt {
+                                HStack(spacing: 12) {
+                                    Rectangle().fill(.white.opacity(0.10)).frame(height: 1)
+                                    Text(date.formatted(.dateTime.month(.wide).day().year()))
+                                        .font(.subheadline)
+                                        .foregroundStyle(NanoTheme.secondaryText)
+                                        .fixedSize()
+                                    Rectangle().fill(.white.opacity(0.10)).frame(height: 1)
+                                }
+                            }
+                            BadgeShareButton(badge: badge)
+                        }
+                    } else {
+                        Text("Every step brings you closer.")
+                            .font(.subheadline)
+                            .foregroundStyle(NanoTheme.secondaryText)
+                    }
                 }
+                .padding(.horizontal, 28)
+                .padding(.top, 16)
+                .padding(.bottom, 28)
+                .frame(minHeight: geometry.size.height)
+                .frame(maxWidth: 500)
+                .frame(maxWidth: .infinity)
             }
-            .padding(24)
+            .scrollIndicators(.hidden)
         }
+        .background(NanoTheme.background.ignoresSafeArea())
         .onAppear {
-            withAnimation(.spring(response: 0.9, dampingFraction: 0.72)) {
-                appeared = true
-            }
+            withAnimation(.easeOut(duration: 0.24)) { appeared = true }
         }
     }
 }
 
 struct BadgeAwardCelebrationView: View {
     let badge: StatsBadge
-    let sections: [StatsBadgeSection]
-    var onPresented: (() -> Void)? = nil
+    var onAcknowledged: (() -> Void)? = nil
 
+    @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
+    @AccessibilityFocusState private var titleHasFocus: Bool
     @State private var appeared = false
-    @State private var showsCollection = false
-    @State private var didReportPresentation = false
+    @State private var acknowledged = false
+
+    private var reduceMotion: Bool { systemReduceMotion || store.reduceMotion }
 
     var body: some View {
-        ZStack {
-            NanoTheme.background.ignoresSafeArea()
-            LabGridBackground().ignoresSafeArea()
-
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [badge.tint.opacity(0.24), .clear],
-                        center: .center,
-                        startRadius: 10,
-                        endRadius: 230
-                    )
-                )
-                .frame(width: 460, height: 460)
-                .scaleEffect(appeared ? 1 : 0.55)
-
-            VStack(spacing: 24) {
-                Spacer()
-
-                VStack(spacing: 7) {
-                    Text("ACHIEVEMENT UNLOCKED")
-                        .font(NanoFont.aldrich(11))
-                        .tracking(2)
-                        .foregroundStyle(badge.tint)
-                    Text("FIELD MILESTONE")
-                        .font(NanoFont.aldrich(9))
-                        .tracking(1.5)
-                        .foregroundStyle(NanoTheme.secondaryText)
-                }
-
-                SpinningBadgeMedallion(
-                    badge: badge,
-                    appeared: appeared,
-                    size: 174
-                )
-
-                VStack(spacing: 10) {
-                    Text(badge.title)
-                        .font(.system(size: 31, weight: .bold, design: .rounded))
-                        .multilineTextAlignment(.center)
-                    Text(badge.description)
-                        .font(NanoFont.aldrich(12))
-                        .foregroundStyle(NanoTheme.secondaryText)
-                        .multilineTextAlignment(.center)
-                        .lineSpacing(4)
-                }
-                .frame(maxWidth: 340)
-
-                Spacer()
-
-                VStack(spacing: 11) {
-                    BadgeShareButton(badge: badge)
-
-                    Button {
-                        showsCollection = true
-                    } label: {
-                        Label("VIEW BADGE COLLECTION", systemImage: "square.grid.3x3.fill")
-                            .font(NanoFont.aldrich(11))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 48)
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 20) {
+                    HStack {
+                        Label("BADGE UNLOCKED", systemImage: "checkmark.seal.fill")
+                            .font(.system(.caption, design: .rounded, weight: .semibold))
+                            .tracking(1.2)
+                            .foregroundStyle(NanoTheme.teal)
+                        Spacer(minLength: 8)
+                        Button(action: acknowledgeAndDismiss) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 15, weight: .semibold))
+                                .frame(width: 44, height: 44)
+                                .background(.white.opacity(0.06), in: Circle())
+                        }
+                        .buttonStyle(BadgePressStyle(suppressMotion: reduceMotion))
+                        .accessibilityLabel("Close achievement")
                     }
-                    .buttonStyle(.bordered)
-                    .tint(badge.tint)
 
-                    Button("CLOSE") {
-                        dismiss()
+                    ZStack {
+                        Circle()
+                            .fill(RadialGradient(colors: [badge.tint.opacity(0.23), .clear],
+                                                 center: .center, startRadius: 25, endRadius: 116))
+                            .frame(width: 232, height: 232)
+                        Circle().stroke(badge.tint.opacity(0.12), lineWidth: 1)
+                            .frame(width: 208, height: 208)
+                        SpinningBadgeMedallion(badge: badge, appeared: appeared, size: 178,
+                                              suppressMotion: reduceMotion)
                     }
-                    .font(NanoFont.aldrich(10))
-                    .foregroundStyle(NanoTheme.secondaryText)
-                    .padding(.top, 2)
+                    .frame(height: 232)
+                    .accessibilityHidden(true)
+
+                    VStack(spacing: 10) {
+                        Text(badge.title)
+                            .font(.system(.title, design: .rounded, weight: .bold))
+                            .accessibilityAddTraits(.isHeader)
+                            .accessibilityFocused($titleHasFocus)
+                        Text(badge.description)
+                            .font(.subheadline)
+                            .foregroundStyle(NanoTheme.secondaryText)
+                            .lineSpacing(3)
+                        if let date = badge.completedAt {
+                            Text("Earned \(date.formatted(date: .abbreviated, time: .omitted))")
+                                .font(.caption)
+                                .foregroundStyle(NanoTheme.secondaryText)
+                                .padding(.top, 4)
+                        }
+                    }
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                    VStack(spacing: 8) {
+                        BadgeShareButton(badge: badge, accentColor: NanoTheme.teal, suppressMotion: reduceMotion)
+                        Button(action: acknowledgeAndDismiss) {
+                            Text("Done")
+                                .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                        }
+                        .buttonStyle(BadgePressStyle(suppressMotion: reduceMotion))
+                    }
+                    .padding(.top, 6)
                 }
+                .padding(24)
+                .frame(maxWidth: 390)
+                .background(NanoTheme.surface, in: RoundedRectangle(cornerRadius: 32))
+                .overlay(RoundedRectangle(cornerRadius: 32).stroke(.white.opacity(0.09), lineWidth: 1))
+                .shadow(color: .black.opacity(0.35), radius: 32, y: 14)
+                .opacity(appeared ? 1 : 0)
+                .scaleEffect(appeared || reduceMotion ? 1 : 0.96)
+                .padding(22)
+                .frame(maxWidth: .infinity, minHeight: geometry.size.height)
             }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 22)
+            .scrollIndicators(.hidden)
         }
-        .onAppear {
-            if !didReportPresentation {
-                didReportPresentation = true
-                onPresented?()
+        .foregroundStyle(.white)
+        .background(Color.black.opacity(0.64).ignoresSafeArea())
+        .preferredColorScheme(.dark)
+        .interactiveDismissDisabled()
+        .accessibilityAction(.escape, acknowledgeAndDismiss)
+        .task {
+            guard !appeared else { return }
+            if store.hapticsEnabled {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
             }
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-            withAnimation(.spring(response: 1.0, dampingFraction: 0.68)) {
-                appeared = true
-            }
+            withAnimation(.timingCurve(0.23, 1, 0.32, 1, duration: 0.24)) { appeared = true }
+            try? await Task.sleep(for: .milliseconds(260))
+            guard !Task.isCancelled else { return }
+            titleHasFocus = true
         }
-        .sheet(isPresented: $showsCollection) {
-            BadgeCollectionView(
-                sections: sections,
-                highlightBadgeID: badge.id
-            )
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-        }
+    }
+
+    private func acknowledgeAndDismiss() {
+        guard !acknowledged else { return }
+        acknowledged = true
+        onAcknowledged?()
+        dismiss()
+    }
+}
+
+private struct BadgePressStyle: ButtonStyle {
+    var suppressMotion = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .contentShape(Rectangle())
+            .opacity(configuration.isPressed ? 0.85 : 1)
+            .scaleEffect(configuration.isPressed && !reduceMotion && !suppressMotion ? 0.97 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 
 private struct BadgeShareButton: View {
     let badge: StatsBadge
+    var accentColor: Color? = nil
+    var suppressMotion = false
 
     @State private var shareImage: UIImage?
     @State private var presentsShareSheet = false
@@ -1102,37 +1423,27 @@ private struct BadgeShareButton: View {
 
     var body: some View {
         Button {
-            Task {
-                await prepareSharePayload()
-            }
+            Task { await prepareSharePayload() }
         } label: {
             HStack(spacing: 9) {
                 if isPreparing {
-                    ProgressView()
-                        .controlSize(.small)
-                        .tint(.black)
+                    ProgressView().controlSize(.small).tint(.black)
                 } else {
                     Image(systemName: "square.and.arrow.up")
                 }
-                Text(isPreparing ? "PREPARING BADGE…" : "SHARE ACHIEVEMENT")
+                Text(isPreparing ? "Preparing…" : "Share achievement")
             }
-            .font(NanoFont.aldrich(12))
-            .frame(maxWidth: .infinity)
-            .frame(height: 52)
+            .font(.system(.subheadline, design: .rounded, weight: .semibold))
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background(accentColor ?? badge.tint, in: RoundedRectangle(cornerRadius: 17))
         }
-        .buttonStyle(.borderedProminent)
-        .tint(badge.tint)
+        .buttonStyle(BadgePressStyle(suppressMotion: suppressMotion))
         .foregroundStyle(.black)
         .disabled(isPreparing)
         .sheet(isPresented: $presentsShareSheet) {
             if let shareImage {
-                BadgeActivityShareSheet(
-                    items: [
-                        shareImage,
-                        "I just unlocked “\(badge.title)” in Nanobeasts — \(badge.description)."
-                    ]
-                )
-                .presentationDetents([.medium, .large])
+                BadgeActivityShareSheet(items: [shareImage, "I just unlocked “\(badge.title)” in Nanobeasts!"])
+                    .presentationDetents([.medium, .large])
             }
         }
     }
@@ -1140,17 +1451,70 @@ private struct BadgeShareButton: View {
     @MainActor
     private func prepareSharePayload() async {
         guard !isPreparing else { return }
+        if shareImage != nil { presentsShareSheet = true; return }
         isPreparing = true
         defer { isPreparing = false }
-
-        if let artworkURL = badge.artworkURL,
-           let data = try? await BadgeArtworkImageCache.shared.data(for: artworkURL),
+        let artwork: UIImage
+        if let url = badge.artworkURL,
+           let data = try? await BadgeArtworkImageCache.shared.data(for: url),
            let image = UIImage(data: data) {
-            shareImage = image
+            artwork = image
         } else {
-            shareImage = badge.fallbackShareImage()
+            artwork = badge.fallbackShareImage()
         }
+        shareImage = BadgeShareArtwork.render(badge: badge, artwork: artwork)
         presentsShareSheet = shareImage != nil
+    }
+}
+
+private struct BadgeShareArtwork: View {
+    let badge: StatsBadge
+    let artwork: UIImage
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("NANOBEASTS")
+                .font(NanoFont.aldrich(17)).tracking(3)
+                .foregroundStyle(NanoTheme.teal)
+            Text("ACHIEVEMENT UNLOCKED")
+                .font(.system(size: 10, weight: .semibold, design: .rounded)).tracking(2)
+                .foregroundStyle(.white.opacity(0.7))
+            Image(uiImage: artwork).resizable().scaledToFit()
+                .frame(width: 190, height: 190)
+                .shadow(color: badge.tint.opacity(0.35), radius: 24)
+                .padding(.vertical, 4)
+            Text(badge.title)
+                .font(.system(size: 27, weight: .bold, design: .rounded))
+                .minimumScaleFactor(0.8).lineLimit(2)
+            Text(badge.description)
+                .font(.system(size: 13)).foregroundStyle(.white.opacity(0.72))
+                .lineSpacing(3).fixedSize(horizontal: false, vertical: true)
+            if let date = badge.completedAt {
+                Text(date.formatted(date: .abbreviated, time: .omitted))
+                    .font(.system(size: 11)).foregroundStyle(NanoTheme.teal)
+            }
+        }
+        .multilineTextAlignment(.center)
+        .foregroundStyle(.white)
+        .padding(30)
+        .frame(width: 360, height: 560)
+        .background {
+            ZStack {
+                Color(red: 0.035, green: 0.045, blue: 0.05)
+                RadialGradient(colors: [badge.tint.opacity(0.15), .clear], center: .center,
+                               startRadius: 15, endRadius: 220)
+            }
+        }
+        .overlay(RoundedRectangle(cornerRadius: 24).stroke(NanoTheme.teal.opacity(0.2)).padding(12))
+    }
+
+    @MainActor
+    static func render(badge: StatsBadge, artwork: UIImage) -> UIImage? {
+        let renderer = ImageRenderer(content: BadgeShareArtwork(badge: badge, artwork: artwork)
+            .environment(\.colorScheme, .dark))
+        renderer.scale = 3
+        renderer.isOpaque = true
+        return renderer.uiImage
     }
 }
 
@@ -1174,7 +1538,10 @@ private struct SpinningBadgeMedallion: View {
     let badge: StatsBadge
     let appeared: Bool
     let size: CGFloat
+    var suppressMotion = false
 
+    @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
+    private var reduceMotion: Bool { systemReduceMotion || suppressMotion }
     @State private var artworkReady = false
 
     var body: some View {
@@ -1183,9 +1550,7 @@ private struct SpinningBadgeMedallion: View {
             size: size,
             onReady: {
                 guard !artworkReady else { return }
-                withAnimation(.easeInOut(duration: 0.88)) {
-                    artworkReady = true
-                }
+                artworkReady = true
             }
         )
             .overlay {
@@ -1194,15 +1559,17 @@ private struct SpinningBadgeMedallion: View {
                         .trim(from: 0.08, to: 0.42)
                         .stroke(Color.white.opacity(0.42), lineWidth: 2)
                         .padding(size * 0.11)
-                        .rotationEffect(.degrees(appeared ? 520 : 0))
+                        .rotationEffect(.degrees(appeared && !reduceMotion ? 520 : 0))
                 }
             }
             .rotation3DEffect(
-                .degrees(appeared && artworkReady && badge.unlocked ? 360 : 0),
+                .degrees(appeared && artworkReady && badge.unlocked && !reduceMotion ? 360 : 0),
                 axis: (0, 1, 0),
                 perspective: 0.62
             )
-            .scaleEffect(appeared ? 1 : 0.58)
+            .scaleEffect(appeared || reduceMotion ? 1 : 0.95)
+            .animation(reduceMotion ? nil : .timingCurve(0.23, 1, 0.32, 1, duration: 0.72),
+                       value: appeared && artworkReady)
             .shadow(color: badge.tint.opacity(badge.unlocked ? 0.48 : 0), radius: 24)
             .onChange(of: badge.id) {
                 artworkReady = false

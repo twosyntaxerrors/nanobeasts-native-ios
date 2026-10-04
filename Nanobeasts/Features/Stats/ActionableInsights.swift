@@ -308,6 +308,7 @@ struct ActionableInsightsCard: View {
                 .tracking(1.1)
                 .foregroundStyle(NanoTheme.teal)
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
 
             Rectangle()
                 .fill(
@@ -893,6 +894,7 @@ private struct CollapsedInsightMetric: View {
                 .tracking(0.65)
                 .foregroundStyle(NanoTheme.secondaryText)
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)
@@ -957,6 +959,7 @@ private struct SelectedInsightMetric: View {
                 .font(NanoFont.aldrich(11))
                 .foregroundStyle(tint)
                 .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
         .frame(minWidth: 55, alignment: .leading)
         .padding(.horizontal, 8)

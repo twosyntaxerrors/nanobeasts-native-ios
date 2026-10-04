@@ -15,7 +15,7 @@ struct ProgressRing: View {
                 .trim(from: 0, to: 0.75)
                 .stroke(
                     NanoTheme.elevated,
-                    style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                    style: StrokeStyle(lineWidth: 11, lineCap: .round)
                 )
                 .rotationEffect(.degrees(135))
 
@@ -23,7 +23,7 @@ struct ProgressRing: View {
                 .trim(from: 0, to: 0.75 * clampedProgress)
                 .stroke(
                     NanoTheme.teal,
-                    style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                    style: StrokeStyle(lineWidth: 11, lineCap: .round)
                 )
                 .rotationEffect(.degrees(135))
                 .shadow(
@@ -56,7 +56,9 @@ struct ProgressRing: View {
             }
 
             HomeR2AnimatedArtwork(stage: stage)
-                .padding(25)
+                // Animation canvases already include transparent space around the creature.
+                .padding(stage.isEgg ? 14 : 0)
+                .scaleEffect(stage.isEgg ? 1 : 1.08)
         }
         .aspectRatio(1, contentMode: .fit)
         .accessibilityElement(children: .combine)
@@ -117,6 +119,7 @@ struct StepMetricCard: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(unit.uppercased())
+                .lineLimit(1).minimumScaleFactor(0.8)
                 .font(.caption2.weight(.bold))
                 .tracking(1.2)
                 .foregroundStyle(NanoTheme.mutedText)
@@ -131,6 +134,7 @@ struct TypePill: View {
 
     var body: some View {
         Text(title.uppercased())
+            .lineLimit(1).minimumScaleFactor(0.8)
             .font(.caption2.weight(.bold))
             .tracking(0.8)
             .foregroundStyle(NanoTheme.teal)
@@ -159,7 +163,7 @@ struct HealthStatusBanner: View {
                     Text(message)
                         .font(.caption)
                         .foregroundStyle(NanoTheme.secondaryText)
-                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
@@ -169,6 +173,7 @@ struct HealthStatusBanner: View {
                 Button("Connect") {
                     Task { await store.requestHealthAccess() }
                 }
+                .fixedSize(horizontal: true, vertical: false)
                 .buttonStyle(.borderedProminent)
                 .tint(NanoTheme.teal)
                 .foregroundStyle(NanoTheme.background)
@@ -176,6 +181,7 @@ struct HealthStatusBanner: View {
                 Button("Retry") {
                     Task { await store.requestHealthAccess() }
                 }
+                .fixedSize(horizontal: true, vertical: false)
                 .buttonStyle(.bordered)
             }
         }
@@ -204,86 +210,72 @@ struct HealthStatusBanner: View {
 struct HealthAccessView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    var onPreviewCompletion: (() -> Void)? = nil
+    var onPreviewSkip: (() -> Void)? = nil
 
-    var body: some View {
-        ZStack {
-            NanoTheme.backgroundGradient.ignoresSafeArea()
-            LabGridBackground().ignoresSafeArea()
-
-            VStack(spacing: 24) {
-                Spacer()
-
-                ZStack {
-                    Circle()
-                        .fill(NanoTheme.pink.opacity(0.12))
-                        .frame(width: 132, height: 132)
-                    Image(systemName: "heart.text.square.fill")
-                        .font(.system(size: 62))
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(NanoTheme.pink, NanoTheme.teal)
-                }
-
-                VStack(spacing: 12) {
-                    Text("Power your Nanobeasts")
-                        .font(.largeTitle.bold())
-                        .multilineTextAlignment(.center)
-                    Text("Your steps from Apple Health become research energy. Walk to hatch eggs, evolve creatures, and fill your Dex.")
-                        .font(.body)
-                        .foregroundStyle(NanoTheme.secondaryText)
-                        .multilineTextAlignment(.center)
-                        .lineSpacing(4)
-                }
-
-                VStack(alignment: .leading, spacing: 14) {
-                    permissionRow(icon: "figure.walk", text: "Reads step count only")
-                    permissionRow(icon: "lock.shield.fill", text: "Health data stays on your device")
-                    permissionRow(icon: "arrow.clockwise", text: "Syncs when Apple Health changes")
-                }
-                .nanoCard()
-
-                Spacer()
-
-                Button {
-                    Task {
-                        await store.requestHealthAccess()
-                        if store.healthState == .connected {
-                            dismiss()
-                        }
-                    }
-                } label: {
-                    HStack {
-                        if store.healthState == .connecting {
-                            ProgressView()
-                                .tint(NanoTheme.background)
-                        }
-                        Text(store.healthState == .connecting ? "Connecting…" : "Connect Apple Health")
-                            .font(.headline)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(NanoTheme.teal)
-                .foregroundStyle(NanoTheme.background)
-                .disabled(store.healthState == .connecting)
-
-                Button("Not now") {
-                    dismiss()
-                }
-                .foregroundStyle(NanoTheme.secondaryText)
-            }
-            .padding(24)
-        }
+    private var isConnecting: Bool {
+        onPreviewCompletion == nil && store.healthState == .connecting
     }
 
-    private func permissionRow(icon: String, text: String) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .frame(width: 24)
-                .foregroundStyle(NanoTheme.teal)
-            Text(text)
-                .font(.subheadline)
-            Spacer()
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("Your steps grow this egg", systemImage: "heart.fill")
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(.white)
+                    Text("Every step can help hatch your egg. Connect Apple Health to add your walking steps to the ring automatically.")
+                        .font(.subheadline)
+                        .foregroundStyle(NanoTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Label("Reads step counts only. Your Health data stays on your device.", systemImage: "lock.shield")
+                        .font(.caption).foregroundStyle(NanoTheme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if case .failed = store.healthState {
+                        Text("Couldn’t connect. Try again, or continue and connect later in Settings.")
+                            .font(.caption).foregroundStyle(NanoTheme.pink)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+
+            Button(action: connect) {
+                HStack {
+                    if isConnecting { ProgressView().tint(.black) }
+                    Text(isConnecting ? "Connecting…" : "Connect Apple Health")
+                        .font(.headline)
+                }
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .foregroundStyle(.black)
+                .background(NanoTheme.teal, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .disabled(isConnecting)
+
+            Button("Not now") {
+                if let onPreviewSkip { onPreviewSkip() }
+                else if let onPreviewCompletion { onPreviewCompletion() }
+                else { dismiss() }
+            }
+            .font(.subheadline)
+            .foregroundStyle(NanoTheme.secondaryText)
+            .frame(maxWidth: .infinity, minHeight: 44)
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 26)
+        .padding(.bottom, 12)
+        .background(NanoTheme.background)
+        .presentationDetents(dynamicTypeSize.isAccessibilitySize ? [.large] : [.height(330)])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func connect() {
+        if let onPreviewCompletion { onPreviewCompletion(); return }
+        Task {
+            await store.requestHealthAccess()
+            if store.healthState == .connected { dismiss() }
         }
     }
 }

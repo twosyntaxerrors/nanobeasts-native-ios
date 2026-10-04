@@ -1,17 +1,22 @@
 import AVFoundation
 import SwiftUI
+import StoreKit
 import UIKit
 
 struct SettingsView: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.appTourFocus) private var tourFocus
+    var isTourPreview = false
+    var onExitReplay: (() -> Void)? = nil
     @State private var confirmsReset = false
-    @State private var cacheWasCleared = false
     @State private var showsPaywall = false
     @State private var showsOnboardingPreview = false
-    @State private var showsLifecyclePreview = false
     @State private var goalDraft = 10_000
-    @AppStorage("nanobeasts.testing.stepButtonEnabled")
-    private var testingStepButtonEnabled = false
+    @State private var showsManageSubscriptions = false
+    @StateObject private var notifications = NanoNotifications.shared
+    @AppStorage("nanobeasts.notifications.setup-reminders") private var setupReminders = false
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         @Bindable var store = store
@@ -20,6 +25,7 @@ struct SettingsView: View {
             NanoTheme.background.ignoresSafeArea()
             LabGridBackground().ignoresSafeArea()
 
+            ScrollViewReader { scroll in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
                     SettingsScreenHeader()
@@ -30,7 +36,46 @@ struct SettingsView: View {
                     )
 
                     SettingsProCard(isPremium: store.isPremium) {
-                        showsPaywall = true
+                        if isTourPreview { showsPaywall = true }
+                        else if store.isPremium { showsManageSubscriptions = true }
+                        else { showsPaywall = true }
+                    }
+
+                    if let onExitReplay {
+                        SettingsPanel(icon: "play.rectangle.fill", title: "ONBOARDING LAB",
+                                      subtitle: "Return to your saved profile.") {
+                            Button("End onboarding replay", action: onExitReplay)
+                                .frame(minHeight: 48)
+                        }
+                    } else {
+                        SettingsPanel(icon: "play.rectangle.fill", title: "ONBOARDING LAB",
+                                      subtitle: "Compare paywalls at the first hatch or a later evolution. Steps and purchases are simulated.") {
+                            Button { showsOnboardingPreview = true } label: {
+                                settingsActionLabel("Test onboarding & paywall", symbol: "play.rectangle")
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    notificationSettings
+
+                    SettingsPanel(
+                        icon: "paintpalette.fill",
+                        title: "APPEARANCE",
+                        subtitle: "Choose your interface signal color."
+                    ) {
+                        SettingsAccentPicker(
+                            selection: $store.interfaceAccent,
+                            hapticsEnabled: store.hapticsEnabled
+                        )
+
+                        SettingsDivider()
+
+                        SettingsToggleRow(
+                            title: "Reduce Motion",
+                            subtitle: "Use calmer transitions and animations.",
+                            isOn: $store.reduceMotion
+                        )
                     }
 
                     SettingsPanel(
@@ -64,22 +109,6 @@ struct SettingsView: View {
                             subtitle: "Tactile responses for key actions.",
                             isOn: $store.hapticsEnabled
                         )
-
-                        SettingsDivider()
-
-                        SettingsToggleRow(
-                            title: "Reduce Motion",
-                            subtitle: "Use calmer transitions and animations.",
-                            isOn: $store.reduceMotion
-                        )
-
-                        SettingsDivider()
-
-                        SettingsToggleRow(
-                            title: "Step Testing Shortcut",
-                            subtitle: "Tap your name on Home to preview +100 steps and advance hatch or evolution progress. Apple Health restores the real activity totals on sync.",
-                            isOn: $testingStepButtonEnabled
-                        )
                     }
 
                     DailyObjectiveCard(goal: $goalDraft) {
@@ -89,6 +118,9 @@ struct SettingsView: View {
                             UINotificationFeedbackGenerator().notificationOccurred(.success)
                         }
                     }
+
+                    .appTourTarget(.settingsGoal)
+                    .id(AppTourTarget.settingsGoal)
 
                     SettingsPanel(
                         icon: "person.crop.circle.fill",
@@ -121,37 +153,25 @@ struct SettingsView: View {
                                 .fill(NanoTheme.background.opacity(0.45))
                                 .stroke(NanoTheme.elevated, lineWidth: 1)
                         )
+                    }
 
+                    SettingsPanel(icon: "info.circle.fill", title: "HELP & LEGAL",
+                                  subtitle: "Support and information, always within reach.") {
+                        settingsLink("Privacy Policy", symbol: "hand.raised.fill", url: "https://nanobeasts.app/privacy")
                         SettingsDivider()
-
-                        SettingsActionRow(
-                            title: "Onboarding Preview",
-                            subtitle: "Preview onboarding without changing your real profile or progress."
-                        ) {
-                            showsOnboardingPreview = true
-                        }
-
+                        settingsLink("Terms of Service", symbol: "doc.text.fill", url: "https://nanobeasts.app/terms")
                         SettingsDivider()
-
-                        SettingsActionRow(
-                            title: "Evolution Lifecycle Preview",
-                            subtitle: "Preview hatching, evolution, full maturity, and the next egg."
-                        ) {
-                            showsLifecyclePreview = true
-                        }
-
+                        settingsLink("Support", symbol: "questionmark.circle.fill", url: "https://nanobeasts.app/support")
                         SettingsDivider()
-
-                        SettingsActionRow(
-                            title: cacheWasCleared ? "Artwork Cache Cleared" : "Clear Artwork Cache",
-                            subtitle: "Creature artwork and evolution cinematics will reload from Cloudflare R2."
-                        ) {
-                            Task {
-                                await R2ArtworkCache.shared.clear()
-                                await R2TransitionVideoCache.shared.clear()
-                                cacheWasCleared = true
-                            }
-                        }
+                        Button { if isTourPreview { showsPaywall = true } else { showsManageSubscriptions = true } } label: {
+                            settingsActionLabel("Manage Subscription", symbol: "creditcard.fill")
+                        }.buttonStyle(.plain)
+                        SettingsDivider()
+                        Text("Icons by [Solar / 480 Design](https://github.com/480-Design/Solar-Icon-Set), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Adapted with app colors and sizing.")
+                            .font(.caption)
+                            .foregroundStyle(NanoTheme.secondaryText)
+                            .tint(NanoTheme.teal)
+                            .padding(.vertical, 8)
                     }
 
                     ResetArchiveCard {
@@ -163,13 +183,30 @@ struct SettingsView: View {
                 .padding(.bottom, 28)
             }
             .scrollIndicators(.hidden)
+            .task(id: tourFocus) {
+                guard tourFocus == .settingsGoal else { return }
+                await Task.yield()
+                guard !Task.isCancelled else { return }
+                scroll.scrollTo(AppTourTarget.settingsGoal, anchor: .top)
+            }
+            }
         }
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             goalDraft = store.dailyGoal
         }
         .task {
+            guard !isTourPreview else { return }
             await store.refreshSubscriptionStatus()
+            await notifications.refreshAuthorization()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active, !isTourPreview { Task { await notifications.refreshAuthorization() } }
+        }
+        .manageSubscriptionsSheet(isPresented: $showsManageSubscriptions)
+        .onChange(of: showsManageSubscriptions) { wasPresented, isPresented in
+            guard wasPresented, !isPresented, !isTourPreview else { return }
+            Task { await store.refreshSubscriptionStatus(forceRefresh: true) }
         }
         .confirmationDialog(
             "Reset all Nanobeast progress?",
@@ -183,37 +220,154 @@ struct SettingsView: View {
         } message: {
             Text("Your Apple Health data is not affected.")
         }
-        .sheet(isPresented: $showsPaywall) {
-            RevenueCatPaywallScreen(playerName: store.playerName)
-                .presentationDragIndicator(.visible)
+        .fullScreenCover(isPresented: $showsPaywall) {
+            RevenueCatPaywallScreen(playerName: store.playerName, selectedGoals: store.onboardingGoals, primaryGoal: store.onboardingPrimaryGoal, selectedBlockers: store.onboardingBlockers, isPreview: isTourPreview)
         }
         .fullScreenCover(isPresented: $showsOnboardingPreview) {
-            OnboardingFlowView { _ in
-                showsOnboardingPreview = false
+            OnboardingReplayView()
+        }
+    }
+
+    private var notificationSettings: some View {
+        SettingsPanel(icon: "bell.badge.fill", title: "NOTIFICATIONS",
+                      subtitle: "Choose when Nanobeasts can give you a nudge.") {
+            SettingsToggleRow(title: "Notifications",
+                subtitle: "Hatch and evolution reminders, plus workout check-ins.",
+                isOn: Binding(get: {
+                    store.onboardingWantsReminders && (isTourPreview || notifications.authorized)
+                }, set: { enabled in
+                    if isTourPreview { store.onboardingWantsReminders = enabled }
+                    else if !enabled { store.onboardingWantsReminders = false }
+                    else {
+                        Task {
+                            store.onboardingWantsReminders = await notifications.requestAuthorizationIfNeeded()
+                        }
+                    }
+                }))
+                .disabled(notifications.isRequesting)
+            if setupReminders && !isTourPreview {
+                SettingsDivider()
+                SettingsToggleRow(title: "Setup reminders",
+                    subtitle: "Up to five nudges, two days apart. Stops when you subscribe or finish setup.",
+                    isOn: Binding(get: { setupReminders }, set: { enabled in
+                        NanoNotifications.shared.setSetupReminderPreference(enabled)
+                        setupReminders = enabled
+                    }))
             }
-            .environment(store)
-            .overlay(alignment: .topTrailing) {
+            if !isTourPreview, notifications.authorization == .denied {
+                SettingsDivider()
                 Button {
-                    showsOnboardingPreview = false
+                    if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
                 } label: {
-                    Image(systemName: "xmark")
-                }
-                .buttonStyle(.borderedProminent)
-                .buttonBorderShape(.circle)
-                .tint(NanoTheme.surface)
-                .padding(.top, 12)
-                .padding(.trailing, 14)
-                .accessibilityLabel("Close onboarding preview")
+                    settingsActionLabel("Allow in iPhone Settings", symbol: "arrow.up.forward.app")
+                }.buttonStyle(.plain)
+                Text("Notifications are disabled in iOS. Allow them there, then turn them on here.")
+                    .font(NanoFont.aldrich(11)).foregroundStyle(NanoTheme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .fullScreenCover(isPresented: $showsLifecyclePreview) {
-            EvolutionLifecycleExperience(
-                catalog: store.catalog,
-                event: nil,
-                nextEggs: store.nextEggCandidates,
-                onChooseEgg: nil
-            )
+    }
+
+    private func settingsLink(_ title: String, symbol: String, url: String) -> some View {
+        Link(destination: URL(string: url)!) { settingsActionLabel(title, symbol: symbol) }
+    }
+
+    private func settingsActionLabel(_ title: String, symbol: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: symbol).foregroundStyle(NanoTheme.teal).frame(width: 22)
+            Text(title).foregroundStyle(.white)
+            Spacer(minLength: 4)
+            Image(systemName: "chevron.right").foregroundStyle(NanoTheme.secondaryText)
         }
+        .font(NanoFont.aldrich(13)).frame(minHeight: 48)
+        .contentShape(Rectangle())
+    }
+}
+
+private struct SettingsAccentPicker: View {
+    @Binding var selection: NanoAccent
+    let hapticsEnabled: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 11) {
+            Text("INTERFACE ACCENT")
+                .font(NanoFont.aldrich(11))
+                .tracking(1.1)
+                .foregroundStyle(.white)
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    ForEach(NanoAccent.allCases) { accent in
+                        swatch(accent)
+                    }
+                }
+
+                LazyVGrid(
+                    columns: Array(repeating: GridItem(.flexible()), count: 3),
+                    spacing: 8
+                ) {
+                    ForEach(NanoAccent.allCases) { accent in
+                        swatch(accent)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 4)
+    }
+
+    private func swatch(_ accent: NanoAccent) -> some View {
+        let isSelected = selection == accent
+
+        return Button {
+            guard selection != accent else { return }
+            selection = accent
+            if hapticsEnabled {
+                UISelectionFeedbackGenerator().selectionChanged()
+            }
+        } label: {
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .fill(accent.color)
+                .frame(width: 38, height: 38)
+                .overlay {
+                    if isSelected {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 13, style: .continuous)
+                        .stroke(
+                            isSelected ? Color.white : Color.white.opacity(0.10),
+                            lineWidth: isSelected ? 2 : 1
+                        )
+                }
+                .shadow(
+                    color: isSelected ? accent.color.opacity(0.34) : .clear,
+                    radius: 8,
+                    y: 2
+                )
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(SettingsAccentSwatchButtonStyle())
+        .accessibilityLabel("\(accent.displayName) interface accent")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+private struct SettingsAccentSwatchButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.96 : 1)
+            .opacity(configuration.isPressed ? 0.84 : 1)
+            .animation(
+                reduceMotion ? nil : .easeOut(duration: 0.12),
+                value: configuration.isPressed
+            )
     }
 }
 
@@ -223,7 +377,6 @@ private struct SettingsProCard: View {
 
     var body: some View {
         Button {
-            guard !isPremium else { return }
             upgrade()
         } label: {
             HStack(spacing: 14) {
@@ -244,7 +397,7 @@ private struct SettingsProCard: View {
                         .foregroundStyle(.white)
                     Text(
                         isPremium
-                            ? "Every step counts toward your Nanobeasts."
+                            ? "Manage your subscription."
                             : "Remove the daily evolution cap and keep growing."
                     )
                     .font(NanoFont.aldrich(10))
@@ -254,11 +407,9 @@ private struct SettingsProCard: View {
 
                 Spacer(minLength: 8)
 
-                if !isPremium {
-                    Image(systemName: "chevron.right")
+                Image(systemName: "chevron.right")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(NanoTheme.teal)
-                }
             }
             .padding(16)
             .background(
@@ -274,7 +425,7 @@ private struct SettingsProCard: View {
         .buttonStyle(.plain)
         .accessibilityHint(
             isPremium
-                ? "Nanobeasts Pro is active"
+                ? "Opens subscription management"
                 : "Opens Nanobeasts Pro subscription options"
         )
     }
@@ -318,11 +469,13 @@ private struct SettingsProfileHero: View {
                     .font(NanoFont.aldrich(18))
                     .tracking(0.8)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 Text("LINKED TO \(stageName.uppercased())")
                     .font(NanoFont.aldrich(9))
                     .tracking(1)
                     .foregroundStyle(NanoTheme.secondaryText)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
 
             Spacer()
@@ -439,7 +592,7 @@ private struct SettingsDistanceUnitRow: View {
                 Text("Choose how distances and badges are displayed.")
                     .font(NanoFont.aldrich(9))
                     .foregroundStyle(NanoTheme.secondaryText)
-                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Spacer(minLength: 10)
@@ -473,8 +626,9 @@ private struct SettingsToggleRow: View {
                     .foregroundStyle(NanoTheme.secondaryText)
             }
             Spacer()
-            Toggle("", isOn: $isOn)
+            Toggle(title, isOn: $isOn)
                 .labelsHidden()
+                .accessibilityHint(subtitle)
                 .tint(NanoTheme.teal)
                 .scaleEffect(0.86)
         }
@@ -714,7 +868,19 @@ struct EvolutionLifecycleExperience: View {
     let catalog: CreatureCatalog
     let event: CreatureDiscoveryEvent?
     let nextEggs: [CreatureStage]
-    let onChooseEgg: ((CreatureStage) -> Void)?
+    let allowsDismissal: Bool
+    let onChooseEgg: ((CreatureStage) -> Bool)?
+    let automaticallyAdvances: Bool
+    let returnButtonTitle: String?
+    let onCompleted: (() -> Void)?
+    let workoutContext: Bool
+    let playsPrelude: Bool
+    let previewVideoStartTime: TimeInterval
+    let previewVideoPauseTime: TimeInterval?
+    let onPreviewVideoPause: (() -> Void)?
+    let previewFinishesAtReveal: Bool
+    let previewEggSelectionDetail: String?
+    let dismissesOnCompletion: Bool
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
@@ -737,22 +903,48 @@ struct EvolutionLifecycleExperience: View {
     @State private var dexScanComplete = false
     @State private var cinematicPreludeVisible = false
     @State private var cinematicPreludeBeat = 0
+    @State private var didComplete = false
 
     init(
         catalog: CreatureCatalog,
         event: CreatureDiscoveryEvent?,
         nextEggs: [CreatureStage],
-        onChooseEgg: ((CreatureStage) -> Void)?
+        allowsDismissal: Bool,
+        onChooseEgg: ((CreatureStage) -> Bool)?,
+        automaticallyAdvances: Bool = false,
+        returnButtonTitle: String? = nil,
+        workoutContext: Bool = false,
+        playsPrelude: Bool = true,
+        previewVideoStartTime: TimeInterval = 0,
+        previewVideoPauseTime: TimeInterval? = nil,
+        onPreviewVideoPause: (() -> Void)? = nil,
+        previewFinishesAtReveal: Bool = false,
+        previewStartsAtDex: Bool = false,
+        previewEggSelectionDetail: String? = nil,
+        dismissesOnCompletion: Bool = true,
+        onCompleted: (() -> Void)? = nil
     ) {
         self.catalog = catalog
         self.event = event
         self.nextEggs = nextEggs
+        self.allowsDismissal = allowsDismissal
         self.onChooseEgg = onChooseEgg
+        self.automaticallyAdvances = automaticallyAdvances
+        self.returnButtonTitle = returnButtonTitle
+        self.workoutContext = workoutContext
+        self.playsPrelude = playsPrelude
+        self.previewVideoStartTime = previewVideoStartTime
+        self.previewVideoPauseTime = previewVideoPauseTime
+        self.onPreviewVideoPause = onPreviewVideoPause
+        self.previewFinishesAtReveal = previewFinishesAtReveal
+        self.previewEggSelectionDetail = previewEggSelectionDetail
+        self.dismissesOnCompletion = dismissesOnCompletion
+        self.onCompleted = onCompleted
 
         let initialPhase: Phase
         switch event?.kind {
         case .hatch:
-            initialPhase = .hatch
+            initialPhase = previewStartsAtDex ? .hatchDex : .hatch
         case .evolution:
             initialPhase = (event?.creatureStage.stage ?? 2) >= 3 ? .evolution2 : .evolution
         case .maturity:
@@ -827,12 +1019,21 @@ struct EvolutionLifecycleExperience: View {
 
         switch phase {
         case .hatch:
+            let name = displayStage.name.lowercased().filter(\.isLetter)
+            if let clip = ExpandedRosterAssets.transition(named: name + "-hatch") {
+                return .transparentWebP(clip.url, duration: clip.duration)
+            }
             guard let url = R2TransitionManifest.hatchVideoURL(for: displayStage) else {
                 return nil
             }
             return .video(url, duration: .seconds(4.2))
         case .evolution, .evolution2:
             guard let previousStage else { return nil }
+            let from = previousStage.name.lowercased().filter(\.isLetter)
+            let to = displayStage.name.lowercased().filter(\.isLetter)
+            if let clip = ExpandedRosterAssets.transition(named: from + "-" + to + "-evolution") {
+                return .transparentWebP(clip.url, duration: clip.duration)
+            }
             if let url = R2TransitionManifest.evolutionVideoURL(
                 from: previousStage,
                 to: displayStage
@@ -912,8 +1113,22 @@ struct EvolutionLifecycleExperience: View {
             }
         }
         .preferredColorScheme(.dark)
+        .interactiveDismissDisabled(!allowsDismissal)
         .task(id: phase) {
+            if previewVideoPauseTime != nil, accessibilityReduceMotion || transitionMedia == nil {
+                // Preserve the gate without requiring motion to unlock the preview.
+                onPreviewVideoPause?()
+                return
+            }
             await runReveal()
+            guard !Task.isCancelled else { return }
+            if previewFinishesAtReveal, phase == .hatch || phase.isEvolution {
+                try? await Task.sleep(for: .seconds(2))
+                guard !Task.isCancelled else { return }
+                completeExperience()
+                return
+            }
+            await automaticallyAdvanceAfterReveal()
         }
     }
 
@@ -949,14 +1164,23 @@ struct EvolutionLifecycleExperience: View {
                 .accessibilityLabel("Restart lifecycle preview")
             }
 
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark")
+            if allowsDismissal {
+                Button {
+                    // Progress is already committed when the event is queued.
+                    // Closing its workout reveal must release the old companion
+                    // just like Back to Workout, without requiring a Dex visit.
+                    // Maturity remains pending until an egg is actually chosen.
+                    if workoutContext, event?.kind == .hatch || event?.kind == .evolution {
+                        onCompleted?()
+                    }
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.circle)
+                .accessibilityLabel("Close lifecycle experience")
             }
-            .buttonStyle(.bordered)
-            .buttonBorderShape(.circle)
-            .accessibilityLabel("Close lifecycle experience")
         }
         .padding(.horizontal, 20)
         .padding(.top, 14)
@@ -1078,7 +1302,7 @@ struct EvolutionLifecycleExperience: View {
                         Text(revealTitle)
                             .font(.system(size: 31, weight: .bold, design: .rounded))
                             .multilineTextAlignment(.center)
-                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                             .minimumScaleFactor(0.75)
 
                         Text(revealCopy)
@@ -1218,16 +1442,28 @@ struct EvolutionLifecycleExperience: View {
             RemoteTransitionVideoView(
                 url: url,
                 shouldPlay: shouldPlay,
+                startTime: previewVideoStartTime,
+                pauseTime: previewVideoPauseTime,
+                onPause: onPreviewVideoPause,
                 onReady: { succeeded in
+                    if !succeeded, previewVideoPauseTime != nil {
+                        onPreviewVideoPause?()
+                        return
+                    }
                     transitionLoaded = succeeded
                     transitionFailed = !succeeded
                 },
                 onFinished: {
+                    if previewVideoPauseTime != nil {
+                        onPreviewVideoPause?()
+                        return
+                    }
                     withAnimation(.easeOut(duration: 0.36)) {
                         transitionFinished = true
                     }
                 }
             )
+            .opacity(previewVideoStartTime > 0 && !transitionLoaded ? 0 : 1)
             .id(url)
         }
     }
@@ -1254,7 +1490,7 @@ struct EvolutionLifecycleExperience: View {
                     .foregroundStyle(NanoTheme.teal)
                 Text("Choose your next egg")
                     .font(.system(size: 29, weight: .bold, design: .rounded))
-                Text("Three specimens arrived at the lab. Their identities remain classified until they hatch.")
+                Text(previewEggSelectionDetail ?? "Three specimens arrived at the lab. Their identities remain classified until they hatch.")
                     .font(NanoFont.aldrich(12))
                     .foregroundStyle(NanoTheme.secondaryText)
                     .multilineTextAlignment(.center)
@@ -1429,7 +1665,9 @@ struct EvolutionLifecycleExperience: View {
         case .maturity:
             return "Every step in this lineage is complete. It’s time to begin a new field assignment."
         case .newAssignment:
-            return "Your new egg is cataloged and ready to grow from your next walk."
+            return workoutContext
+                ? "Your saved steps have been carried over. Keep walking to help your new egg grow."
+                : "Your new egg is cataloged. Any saved steps now count toward its growth."
         case .selection:
             return ""
         }
@@ -1440,17 +1678,20 @@ struct EvolutionLifecycleExperience: View {
     }
 
     private var actionTitle: String {
+        if previewFinishesAtReveal, phase == .hatch || phase.isEvolution {
+            return "CONTINUE"
+        }
         if phase == .selection {
             return "CONFIRM NEXT EGG"
         }
         if phase == .newAssignment {
-            return isPreview ? "CLOSE PREVIEW" : "RETURN TO LAB"
+            return isPreview ? "CLOSE PREVIEW" : (returnButtonTitle ?? "RETURN TO LAB")
         }
         if !isPreview, phase == .hatch || phase.isEvolution {
             return "UNLOCK DEX ENTRY"
         }
         if !isPreview, phase.isDexUnlock {
-            return "RETURN TO LAB"
+            return returnButtonTitle ?? "RETURN TO LAB"
         }
         if !isPreview, phase == .assigned {
             return "ENTER THE LAB"
@@ -1471,9 +1712,15 @@ struct EvolutionLifecycleExperience: View {
     }
 
     private func advance() {
+        if previewFinishesAtReveal, phase == .hatch || phase.isEvolution {
+            completeExperience()
+            return
+        }
         if phase == .selection {
             guard let selectedEgg else { return }
-            onChooseEgg?(selectedEgg)
+            if let onChooseEgg, !onChooseEgg(selectedEgg) {
+                return
+            }
             withAnimation(.snappy(duration: 0.46, extraBounce: 0.05)) {
                 phase = .newAssignment
             }
@@ -1481,7 +1728,7 @@ struct EvolutionLifecycleExperience: View {
         }
 
         if phase == .newAssignment {
-            dismiss()
+            completeExperience()
             return
         }
 
@@ -1503,7 +1750,7 @@ struct EvolutionLifecycleExperience: View {
                     phase = .evolution2Dex
                 }
             } else {
-                dismiss()
+                completeExperience()
             }
             return
         }
@@ -1515,6 +1762,31 @@ struct EvolutionLifecycleExperience: View {
         withAnimation(.snappy(duration: 0.46, extraBounce: 0.05)) {
             phase = next
         }
+    }
+
+    private func completeExperience() {
+        guard !didComplete else { return }
+        didComplete = true
+        onCompleted?()
+        if dismissesOnCompletion { dismiss() }
+    }
+
+    @MainActor
+    private func automaticallyAdvanceAfterReveal() async {
+        guard automaticallyAdvances else { return }
+        try? await Task.sleep(for: .milliseconds(1_250))
+        guard !Task.isCancelled else { return }
+
+        if phase == .selection {
+            guard let egg = eggCandidates.first else { return }
+            withAnimation(.spring(response: 0.34, dampingFraction: 0.76)) {
+                selectedEgg = egg
+            }
+            try? await Task.sleep(for: .milliseconds(1_000))
+            guard !Task.isCancelled else { return }
+        }
+
+        advance()
     }
 
     @MainActor
@@ -1547,7 +1819,7 @@ struct EvolutionLifecycleExperience: View {
         try? await Task.sleep(for: .milliseconds(140))
         guard !Task.isCancelled else { return }
 
-        if phase == .hatch || phase.isEvolution {
+        if playsPrelude, phase == .hatch || phase.isEvolution {
             await runCinematicPrelude()
             guard !Task.isCancelled else { return }
         }
@@ -1666,7 +1938,7 @@ struct EvolutionLifecycleExperience: View {
     }
 }
 
-private struct HatchEvolutionPreludeOverlay: View {
+struct HatchEvolutionPreludeOverlay: View {
     let beat: Int
 
     var body: some View {
@@ -1894,6 +2166,9 @@ private struct LifecycleDexScanner: View {
 private struct RemoteTransitionVideoView: UIViewRepresentable {
     let url: URL
     let shouldPlay: Bool
+    var startTime: TimeInterval = 0
+    var pauseTime: TimeInterval? = nil
+    var onPause: (() -> Void)? = nil
     let onReady: (Bool) -> Void
     let onFinished: () -> Void
 
@@ -1912,6 +2187,9 @@ private struct RemoteTransitionVideoView: UIViewRepresentable {
         context.coordinator.load(
             url: url,
             shouldPlay: shouldPlay,
+            startTime: startTime,
+            pauseTime: pauseTime,
+            onPause: onPause,
             onReady: onReady,
             onFinished: onFinished
         )
@@ -1921,10 +2199,14 @@ private struct RemoteTransitionVideoView: UIViewRepresentable {
     func updateUIView(_ view: TransitionPlayerView, context: Context) {
         context.coordinator.onReady = onReady
         context.coordinator.onFinished = onFinished
+        context.coordinator.onPause = onPause
         if context.coordinator.url != url {
             context.coordinator.load(
                 url: url,
                 shouldPlay: shouldPlay,
+                startTime: startTime,
+                pauseTime: pauseTime,
+                onPause: onPause,
                 onReady: onReady,
                 onFinished: onFinished
             )
@@ -1943,6 +2225,11 @@ private struct RemoteTransitionVideoView: UIViewRepresentable {
         var url: URL?
         var onReady: (Bool) -> Void = { _ in }
         var onFinished: () -> Void = {}
+        var onPause: (() -> Void)?
+        private var startTime: TimeInterval = 0
+        private var pauseTime: TimeInterval?
+        private var hasPausedAtCheckpoint = false
+        private var boundaryObserver: Any?
         private var shouldPlay = false
         private var isReady = false
         private var hasStarted = false
@@ -1961,6 +2248,9 @@ private struct RemoteTransitionVideoView: UIViewRepresentable {
         func load(
             url: URL,
             shouldPlay: Bool,
+            startTime: TimeInterval = 0,
+            pauseTime: TimeInterval? = nil,
+            onPause: (() -> Void)? = nil,
             onReady: @escaping (Bool) -> Void,
             onFinished: @escaping () -> Void
         ) {
@@ -1968,6 +2258,11 @@ private struct RemoteTransitionVideoView: UIViewRepresentable {
             self.shouldPlay = shouldPlay
             self.onReady = onReady
             self.onFinished = onFinished
+            self.startTime = max(startTime, 0)
+            self.pauseTime = pauseTime
+            self.onPause = onPause
+            hasPausedAtCheckpoint = false
+            removeBoundaryObserver()
             isReady = false
             hasStarted = false
             statusObservation?.invalidate()
@@ -1999,30 +2294,48 @@ private struct RemoteTransitionVideoView: UIViewRepresentable {
         private func preparePlayer(with localURL: URL) {
             let item = AVPlayerItem(asset: AVURLAsset(url: localURL))
             item.preferredForwardBufferDuration = 0
+            if let pauseTime {
+                // Bound playback in the media timeline so a busy UI cannot expose later frames.
+                item.forwardPlaybackEndTime = CMTime(seconds: pauseTime, preferredTimescale: 600)
+            }
             player.replaceCurrentItem(with: item)
+            if let pauseTime {
+                boundaryObserver = player.addBoundaryTimeObserver(
+                    forTimes: [NSValue(time: CMTime(seconds: pauseTime, preferredTimescale: 600))],
+                    queue: .main
+                ) { [weak self] in self?.pauseAtCheckpoint() }
+            }
             endObserver = NotificationCenter.default.addObserver(
                 forName: .AVPlayerItemDidPlayToEndTime,
                 object: item,
                 queue: .main
             ) { [weak self] _ in
-                self?.onFinished()
+                guard let self, self.hasStarted else { return }
+                if self.pauseTime != nil { self.pauseAtCheckpoint() }
+                else { self.onFinished() }
             }
             statusObservation = item.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
                 guard let self else { return }
                 DispatchQueue.main.async {
                     switch item.status {
                     case .readyToPlay:
-                        self.player.preroll(atRate: 1) { [weak self, weak item] succeeded in
+                        let start = CMTime(seconds: self.startTime, preferredTimescale: 600)
+                        self.player.seek(to: start, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self, weak item] sought in
                             DispatchQueue.main.async {
                                 guard let self,
                                       let item,
                                       self.player.currentItem === item else {
                                     return
                                 }
-                                self.isReady = succeeded
-                                self.onReady(succeeded)
-                                if succeeded {
-                                    self.setShouldPlay(self.shouldPlay)
+                                guard sought else { self.onReady(false); return }
+                                self.player.preroll(atRate: 1) { [weak self, weak item] succeeded in
+                                    DispatchQueue.main.async {
+                                        guard let self, let item,
+                                              self.player.currentItem === item else { return }
+                                        self.isReady = succeeded
+                                        self.onReady(succeeded)
+                                        if succeeded { self.setShouldPlay(self.shouldPlay) }
+                                    }
                                 }
                             }
                         }
@@ -2042,17 +2355,30 @@ private struct RemoteTransitionVideoView: UIViewRepresentable {
             self.shouldPlay = shouldPlay
             guard isReady else { return }
 
-            if shouldPlay, !hasStarted {
+            if shouldPlay, !hasPausedAtCheckpoint {
                 hasStarted = true
-                onReady(true)
-                player.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
                 player.play()
-            } else if !shouldPlay, !hasStarted {
+            } else {
                 player.pause()
             }
         }
 
+        private func pauseAtCheckpoint() {
+            guard hasStarted, pauseTime != nil, !hasPausedAtCheckpoint else { return }
+            hasPausedAtCheckpoint = true
+            player.pause()
+            onPause?()
+        }
+
+        private func removeBoundaryObserver() {
+            if let boundaryObserver {
+                player.removeTimeObserver(boundaryObserver)
+                self.boundaryObserver = nil
+            }
+        }
+
         func stop() {
+            removeBoundaryObserver()
             statusObservation?.invalidate()
             statusObservation = nil
             if let endObserver {

@@ -59,7 +59,7 @@
           ]
         },
         {
-          "description": "Upon evolving, Ampact achieves complete mastery over its bio-electrical systems. Its muscles act as super-capacitors, capable of storing immense amounts of energy which it can discharge in a single, devastating blow. The blue markings across its body are specialized conductive tissues that glow brightly when it's fully charged. Legends say that an Ampact's punch is so fast and powerful that it ionizes the air, leaving behind the scent of ozone and the crackle of static long after the strike has landed. It is a noble creature that often acts as a guardian, using its overwhelming power to protect those it deems worthy.",
+          "description": "Ampact stores immense electrical energy in its muscles and releases it through devastating punches. Its blue markings glow when fully charged, and its strikes leave the air crackling with static.",
           "image_key": "ampact-stage-3-modern",
           "name": "Ampact",
           "stage": 3,
@@ -95,7 +95,7 @@
           ]
         },
         {
-          "description": "Hydralilly, the embodiment of mystical rivers and flourishing plant life, is revered for its ability to purify polluted waters and bring life to barren lands. It is a protector of nature, fiercely guarding its territory with its powerful hydrokinetic abilities.",
+          "description": "Hydralilly purifies polluted rivers and restores plant life along their banks. Normally serene, it fiercely protects its waters, using powerful currents to drive away creatures that threaten the surrounding ecosystem.",
           "image_key": "hydralilly-stage-2-modern",
           "name": "Hydralilly",
           "stage": 2,
@@ -141,7 +141,7 @@
           ]
         },
         {
-          "description": "Seraphydra is a majestic and powerful creature, embodying spiritual harmony and mastery over water and the heavens. Legends say it can summon rainstorms and calm raging seas with a single thought. Those who bond with Seraphydra achieve a profound connection to the natural world.",
+          "description": "Seraphydra brings balance to water and sky, calming rough seas and summoning gentle rain. Legends say its glowing presence guides those who have lost their way through violent storms.",
           "image_key": "seraphydra-stage-3-modern",
           "name": "Seraphydra",
           "stage": 3,
@@ -229,7 +229,7 @@
           ]
         },
         {
-          "description": "Cosmeraus is a majestic celestial dragon, now adorned with the soft glow of a pale purple hue. It soars through the void, manipulating starlight and creating constellations, a guardian of the night sky, its presence a beacon of cosmic wonder.",
+          "description": "Cosmeraus travels through the night sky, weaving starlight into shifting constellations. Its pale purple glow guides wandering creatures, and its arrival is said to mark a peaceful night beneath the stars.",
           "image_key": "cosmeraus-stage-3-modern",
           "name": "Cosmeraus",
           "stage": 3,
@@ -255,7 +255,7 @@
           ]
         },
         {
-          "description": "Draklysms are elusive specters often sighted near ancient ruins, flitting through the shadows. They are known for their mischievous nature and their ability to phase through solid objects, leaving trails of chilling mist in their wake. Despite their playful demeanor, they possess surprising strength, able to knock down small trees with a flick of their tail.",
+          "description": "Draklysm slips through the walls of ancient ruins, leaving cold mist behind. Though fond of harmless tricks, it can topple a small tree with a single flick of its spectral tail.",
           "image_key": "draklysm-stage-1-modern",
           "name": "Draklysm",
           "stage": 1,
@@ -265,7 +265,7 @@
           ]
         },
         {
-          "description": "Triklopsars are formidable predators that command vast territories, often marked by scorched earth and lingering spectral energy. Their intimidating presence alone is enough to drive away most rivals. Triklopsars are solitary creatures, fiercely protective of their lairs and known to unleash devastating blasts of spectral energy upon intruders.",
+          "description": "Triklopsar guards its solitary lair with devastating blasts of spectral energy. Scorched ground marks the edges of its territory, warning rival creatures to keep their distance from the fiercely protective predator.",
           "image_key": "triklopsar-stage-2-modern",
           "name": "Triklopsar",
           "stage": 2,
@@ -414,7 +414,7 @@
           ]
         },
         {
-          "description": "Kittanium are playful cubs known for their boundless energy and tendency to tumble head over heels. Despite their small size, they possess surprising strength, often playfully batting around objects many times their weight. Their metallic fur glimmers in the sunlight, making them a delightful sight to behold.",
+          "description": "Kittanium tumbles through play with boundless energy, its metallic fur flashing in the sunlight. Despite its small size, this lively cub easily bats around objects several times its own weight.",
           "image_key": "kittanium-stage-1-modern",
           "name": "Kittanium",
           "stage": 1,
@@ -423,7 +423,7 @@
           ]
         },
         {
-          "description": "Leonite are fiercely protective creatures, often seen guarding their territory with unwavering determination. Their metallic armor provides excellent defense, allowing them to withstand even the most powerful blows. Despite their imposing presence, they retain a playful streak, often engaging in mock battles with each other.",
+          "description": "Leonite stands guard over its territory, trusting its metallic armor to withstand powerful blows. Beneath its imposing appearance, it retains a playful streak and frequently challenges companions to spirited mock battles.",
           "image_key": "leonite-stage-2-modern",
           "name": "Leonite",
           "stage": 2,
@@ -432,7 +432,7 @@
           ]
         },
         {
-          "description": "Steelking are majestic and powerful creatures revered for their unwavering loyalty and regal presence. They are said to possess unmatched strength and resilience, capable of withstanding even the fiercest storms. As natural leaders, they inspire those around them to strive for greatness, their metallic hides gleaming like beacons of hope.",
+          "description": "Steelking leads through unwavering loyalty, sheltering companions behind its resilient metallic hide. It stands firm through fierce storms, earning the trust of creatures that gather around it when danger approaches.",
           "image_key": "steelking-stage-3-modern",
           "name": "Steelking",
           "stage": 3,
@@ -456,7 +456,7 @@
           ]
         },
         {
-          "description": "Komantis are curious creatures often found near power sources, absorbing stray energy with their conductive scales. Their playful nature leads them to create miniature static storms, much to the amusement (and occasional shock) of onlookers. They are easily startled, but their docile disposition quickly returns, making them popular companions.",
+          "description": "Komantis gathers stray electricity through its conductive scales while exploring nearby power sources. Its playful bursts create miniature static storms, though an unexpected noise quickly sends this gentle creature into hiding.",
           "image_key": "komantis-stage-1-modern",
           "name": "Komantis",
           "stage": 1,
@@ -465,7 +465,7 @@
           ]
         },
         {
-          "description": "Dracmanteon are powerful hunters, using their electric breath and swift movements to stun prey. Their chitinous armor protects them from harm as they stalk through the wilderness. Despite their formidable appearance, they possess a strong sense of loyalty and protect their territory fiercely.",
+          "description": "Dracmanteon stalks the wilderness behind tough chitinous armor, stunning prey with swift movements and electric breath. It fiercely defends its territory and remains loyal to companions that have earned its trust.",
           "image_key": "dracmanteon-stage-2-modern",
           "name": "Dracmanteon",
           "stage": 2,
@@ -547,7 +547,7 @@
           ]
         },
         {
-          "description": "Armalisks are fiercely territorial, engaging in sparring matches to hone their combat skills. During this pupal stage, they remain dormant, but inside, their bodies develop hardened, jointed limbs and more elaborate plates. Its signature crest is more prominent, signaling increased aggression and combat readiness.",
+          "description": "Armalisk rests while hardened limbs and elaborate armor develop beneath its pupal shell. As its crest becomes more prominent, it grows increasingly territorial, preparing to defend itself when its transformation is complete.",
           "image_key": "armalisk-stage-2-modern",
           "name": "Armalisk",
           "stage": 2,
@@ -557,7 +557,7 @@
           ]
         },
         {
-          "description": "Gladiatorbs are formidable fighters, known for their strategic prowess and unwavering courage in battle. They use their bladed forearms and powerful mandibles to deliver devastating blows, leading their colonies to victory. Their crest now forms a helmet, completing the metamorphosis.",
+          "description": "Gladiatorb leads its colony with careful tactics and unwavering courage. Its crest has hardened into a helmet, protecting its head as bladed forearms and powerful mandibles deliver precise strikes in battle.",
           "image_key": "gladiatorb-stage-3-modern",
           "name": "Gladiatorb",
           "stage": 3,
@@ -583,7 +583,7 @@
           ]
         },
         {
-          "description": "Leafalon are playful fledglings often found in sun-dappled groves, practicing their pouncing skills on fallen leaves. Though small, their talons are surprisingly sharp, a hint of the power to come. They are known to bring shiny metal scraps to their nests as offerings.",
+          "description": "Leafalon practices pouncing on fallen leaves in sunlit groves, revealing surprisingly sharp talons for its size. It carries shiny metal scraps back to its nest, carefully arranging them among its treasures.",
           "image_key": "leafalon-stage-1-modern",
           "name": "Leafalon",
           "stage": 1,
@@ -661,7 +661,7 @@
           ]
         },
         {
-          "description": "Solvolt are territorial and quick to anger, lashing out with jets of supercooled water and crackling electrical arcs when threatened. Despite their volatile nature, these creatures are deeply empathetic, often mirroring the emotions of those around them, making calm companionship key.",
+          "description": "Solvolt lashes out with supercooled water and electrical arcs when threatened. Sensitive to nearby emotions, it mirrors the mood of its companions and becomes noticeably calmer in the presence of reassurance.",
           "image_key": "solvolt-stage-2-modern",
           "name": "Solvolt",
           "stage": 2,
@@ -696,7 +696,7 @@
           ]
         },
         {
-          "description": "Pebblatops are the titans of the rocky crags, their massive forms a testament to eons of geological evolution! These behemoths command the earth itself, summoning tremors and landslides to defend their territory, a true display of their Rock-type power.",
+          "description": "Pebblatops commands the rocky crags with its massive body and earthshaking power. When its territory is threatened, it summons tremors and landslides that send intruders scrambling away from the surrounding cliffs.",
           "image_key": "pebblatops-stage-1-modern",
           "name": "Pebblatops",
           "stage": 1,
@@ -705,7 +705,7 @@
           ]
         },
         {
-          "description": "Ceraforge are known for their territorial nature and impressive displays of strength. They patrol rocky landscapes, using their powerful horns to carve out their domains and ward off intruders. Their geode-like patterns shimmer faintly, hinting at the immense power within.",
+          "description": "Ceraforge patrols rocky terrain, carving territorial marks with its powerful horns. Its geode-like patterns shimmer faintly as it gathers strength, warning approaching rivals before a forceful display drives them away.",
           "image_key": "ceraforge-stage-2-modern",
           "name": "Ceraforge",
           "stage": 2,
@@ -714,7 +714,7 @@
           ]
         },
         {
-          "description": "Terraton are living fortresses, their very presence reshaping the landscape. They are revered for their unwavering defense of their territory and ability to withstand immense forces. Their horn glows with a fiery intensity, a sign of the earth's power coursing through them.",
+          "description": "Terraton stands like a living fortress, enduring immense force while defending its territory. Its horn glows with fiery energy drawn from the earth, and its movements reshape the rocky ground around it.",
           "image_key": "terraton-stage-3-modern",
           "name": "Terraton",
           "stage": 3,
@@ -898,7 +898,7 @@
           ]
         },
         {
-          "description": "Ampteras are the energetic adolescents of the Sparklutter family, constantly honing their aerial skills by chasing lightning bolts. Their control over static electricity has increased dramatically, allowing them to create dazzling light shows during storms and defend themselves with focused blasts of energy.",
+          "description": "Ampterra hones its flight by chasing lightning through storm clouds. As its control over static electricity improves, it creates dazzling aerial displays and releases focused blasts to defend itself against approaching threats.",
           "image_key": "ampterra-stage-2-modern",
           "name": "Ampterra",
           "stage": 2,
@@ -1052,7 +1052,7 @@
           ]
         },
         {
-          "description": "Nocturnyx are the apex guardians of forgotten realms, their very presence radiating an oppressive heat and an aura of impenetrable darkness. Patches of fiery red skin hint at the embers of its previous evolution, a stark contrast to its obsidian armor.",
+          "description": "Nocturnyx guards forgotten places beneath a hide of dark obsidian armor. Fiery patches glow between its plates, revealing the fierce heat within and warning intruders away before it begins to move.",
           "image_key": "nocturnyx-stage-2-modern",
           "name": "Nocturnyx",
           "stage": 2,
@@ -1078,7 +1078,7 @@
           ]
         },
         {
-          "description": "Vexile are the terror of the highlands, their claws crackling with spectral energy as they bound from crag to crag. When angered, they unleash a torrent of electric force, turning the very air around them into a shocking hazard zone.",
+          "description": "Vexile bounds between highland crags with spectral electricity crackling along its claws. When angered, it releases a violent surge that charges the surrounding air and forces nearby creatures to retreat.",
           "image_key": "vexile-stage-1-modern",
           "name": "Vexile",
           "stage": 1,
@@ -1088,7 +1088,7 @@
           ]
         },
         {
-          "description": "Clawgusts are solitary hunters, known for their electrifying claws that leave permanent marks on their prey. They stalk their territory with silent purpose, a chilling presence in the darkest storms. Few have survived an encounter with this spectral predator to tell the tale.",
+          "description": "Clawgust hunts alone through dark storms, moving silently until its electrified claws strike. The lasting marks it leaves warn other creatures away from its territory long after the storm has passed.",
           "image_key": "clawgust-stage-3-modern",
           "name": "Clawgust",
           "stage": 2,
@@ -1122,7 +1122,7 @@
           ]
         },
         {
-          "description": "Purrltergeist are territorial and fiercely protective of their domains, haunting abandoned places with chilling howls that echo through the night. These spectral guardians are known to unleash gusts of eerie, cold winds to repel intruders, showcasing their mastery over Ghost-type energies.",
+          "description": "Purrltergeist haunts abandoned places, fiercely guarding its chosen home. Its chilling howls travel through empty rooms, followed by sudden gusts of cold wind that drive unwelcome visitors back outside.",
           "image_key": "purrltergeist-stage-2-modern",
           "name": "Purrltergeist",
           "stage": 2,
@@ -1157,7 +1157,7 @@
           ]
         },
         {
-          "description": "Wyborg are rarely seen, but when injustices occur online, they materialize from the digital ether, their psychic energies crackling. Their presence brings a sense of swift and decisive justice, leaving calm in their wake. Wyborg are viewed as protectors, intervening only when digital communities are threatened.",
+          "description": "Wyborg emerges from the digital ether when online communities are threatened. It uses crackling psychic energy to confront those causing harm, then disappears once calm has returned to the network.",
           "image_key": "wyborg-stage-2-modern",
           "name": "Wyborg",
           "stage": 2,
@@ -1191,6 +1191,445 @@
             "Dragon",
             "Fire"
           ]
+        }
+      ]
+    },
+    {
+      "evolution_family_id": "c4a685fd-c87b-5dc7-85b8-730f01f411ab",
+      "family_name": "Dozolin Line",
+      "stages": [
+        {
+          "name": "Dozolin Egg",
+          "stage": 0,
+          "image_key": "dozolin-egg-stage-0-modern",
+          "types": [
+            "Psychic"
+          ],
+          "description": "A sealed Dozolin waits within. Its markings hint at the creature growing inside."
+        },
+        {
+          "name": "Dozolin",
+          "stage": 1,
+          "image_key": "dozolin-stage-1-modern",
+          "types": [
+            "Psychic"
+          ],
+          "description": "Dozolin follows pleasant dreams with its long snout. When it falls asleep mid-step, its psychic power carries it forward until it wakes, often leaving it somewhere it never meant to go."
+        },
+        {
+          "name": "Narcolin",
+          "stage": 2,
+          "image_key": "narcolin-stage-2-modern",
+          "types": [
+            "Psychic"
+          ],
+          "description": "Narcolin amplifies dream energy through the plates along its back. Even with its eyes closed, it senses approaching creatures through their thoughts and quietly nudges danger away without interrupting its sleep."
+        }
+      ]
+    },
+    {
+      "evolution_family_id": "8852fdfe-bfbe-5504-9cfd-31ed36b0df5b",
+      "family_name": "Collipup Line",
+      "stages": [
+        {
+          "name": "Collipup Egg",
+          "stage": 0,
+          "image_key": "collipup-egg-stage-0-modern",
+          "types": [
+            "Grass"
+          ],
+          "description": "A sealed Collipup waits within. Its markings hint at the creature growing inside."
+        },
+        {
+          "name": "Collipup",
+          "stage": 1,
+          "image_key": "collipup-stage-1-modern",
+          "types": [
+            "Grass"
+          ],
+          "description": "Collipup instinctively rounds up smaller creatures, sometimes mistaking drifting leaves for strays. The flower on its head opens when its little flock is safely gathered beneath the shade of a tree."
+        },
+        {
+          "name": "Collibloom",
+          "stage": 2,
+          "image_key": "collibloom-stage-2-modern",
+          "types": [
+            "Grass"
+          ],
+          "description": "Collibloom guides wandering creatures home with gentle nudges from its flowering tail. Pollen caught in its shaggy coat spreads along familiar trails, turning its daily herding routes into ribbons of wildflowers."
+        },
+        {
+          "name": "Collosom",
+          "stage": 3,
+          "image_key": "collosom-stage-3-modern",
+          "types": [
+            "Grass"
+          ],
+          "description": "Collosom shelters its flock beneath a thick coat of leaves and blossoms. It remembers every creature in its care and searches tirelessly for stragglers, even after the rest have settled down."
+        }
+      ]
+    },
+    {
+      "evolution_family_id": "df3a8549-b487-521d-ba7a-6fbcbac41d98",
+      "family_name": "Rubbull Line",
+      "stages": [
+        {
+          "name": "Rubbull Egg",
+          "stage": 0,
+          "image_key": "rubbull-egg-stage-0-modern",
+          "types": [
+            "Ground"
+          ],
+          "description": "A sealed Rubbull waits within. Its markings hint at the creature growing inside."
+        },
+        {
+          "name": "Rubbull",
+          "stage": 1,
+          "image_key": "rubbull-stage-1-modern",
+          "types": [
+            "Ground"
+          ],
+          "description": "Rubbull rubs against mineral-rich cliffs to strengthen the stones growing across its back. Young ones challenge boulders to pushing contests and celebrate even the smallest movement with an excited little snort."
+        },
+        {
+          "name": "Bullder",
+          "stage": 2,
+          "image_key": "bullder-stage-2-modern",
+          "types": [
+            "Ground"
+          ],
+          "description": "Bullder braces its interlocking stone armor before charging, spreading the impact across its powerful body. It becomes perfectly still just before a rush; even its tail stops moving as it takes aim."
+        }
+      ]
+    },
+    {
+      "evolution_family_id": "878c6b88-fbb2-58ae-8565-2f4456eebefc",
+      "family_name": "Spirillo Line",
+      "stages": [
+        {
+          "name": "Spirillo Egg",
+          "stage": 0,
+          "image_key": "spirillo-egg-stage-0-modern",
+          "types": [
+            "Rock",
+            "Psychic"
+          ],
+          "description": "A sealed Spirillo waits within. Its markings hint at the creature growing inside."
+        },
+        {
+          "name": "Spirillo",
+          "stage": 1,
+          "image_key": "spirillo-stage-1-modern",
+          "types": [
+            "Rock",
+            "Psychic"
+          ],
+          "description": "Spirillo stores memories within the spirals on its shell, which brighten while it sleeps. Researchers report that touching an older marking sometimes brings back a dream they had long forgotten."
+        },
+        {
+          "name": "Runursa",
+          "stage": 2,
+          "image_key": "runursa-stage-2-modern",
+          "types": [
+            "Rock",
+            "Psychic"
+          ],
+          "description": "Runursa senses an approaching attack through the crystal on its tail. It turns its armored body toward the danger before the attacker has finished deciding exactly where to strike."
+        }
+      ]
+    },
+    {
+      "evolution_family_id": "dca030a5-4032-5466-9caf-96ac0ae8651d",
+      "family_name": "Anvilet Line",
+      "stages": [
+        {
+          "name": "Anvilet Egg",
+          "stage": 0,
+          "image_key": "anvilet-egg-stage-0-modern",
+          "types": [
+            "Steel"
+          ],
+          "description": "A sealed Anvilet waits within. Its markings hint at the creature growing inside."
+        },
+        {
+          "name": "Anvilet",
+          "stage": 1,
+          "image_key": "anvilet-stage-1-modern",
+          "types": [
+            "Steel"
+          ],
+          "description": "Anvilet searches riverbeds for iron-rich stones to strengthen its growing armor. The plates along its back click together whenever it finds an unfamiliar object, drawing curious companions to investigate alongside it."
+        },
+        {
+          "name": "Anvilon",
+          "stage": 2,
+          "image_key": "anvilon-stage-2-modern",
+          "types": [
+            "Steel"
+          ],
+          "description": "Anvilon absorbs metal into overlapping armor plates that harden with each battle. Before a clash, it braces its heavy tail behind itself, becoming an obstacle even larger creatures struggle to move."
+        }
+      ]
+    },
+    {
+      "evolution_family_id": "fa207ce0-2584-5665-a339-4bea7ef93122",
+      "family_name": "Brewbit Line",
+      "stages": [
+        {
+          "name": "Brewbit Egg",
+          "stage": 0,
+          "image_key": "brewbit-egg-stage-0-modern",
+          "types": [
+            "Steel"
+          ],
+          "description": "A sealed Brewbit waits within. Its markings hint at the creature growing inside."
+        },
+        {
+          "name": "Brewbit",
+          "stage": 1,
+          "image_key": "brewbit-stage-1-modern",
+          "types": [
+            "Steel"
+          ],
+          "description": "Brewbit turns collected water into steam inside its tiny boiler. When excitement raises the pressure too quickly, its spout lets out a squeaky whistle that gives away its hiding place."
+        },
+        {
+          "name": "Scaldron",
+          "stage": 2,
+          "image_key": "scaldron-stage-2-modern",
+          "types": [
+            "Steel"
+          ],
+          "description": "Scaldron regulates its boiler by tapping its feet in precise patterns. A sudden pause in the rhythm warns that pressure is building and a powerful burst of steam is about to follow."
+        },
+        {
+          "name": "Chugernaut",
+          "stage": 3,
+          "image_key": "chugernaut-stage-3-modern",
+          "types": [
+            "Steel"
+          ],
+          "description": "Chugernaut grips uneven ground with its many legs while its boiler drives it steadily forward. Travelers follow its distant whistle, knowing it returns to the same freshwater spring each evening."
+        }
+      ]
+    },
+    {
+      "evolution_family_id": "0dd48996-3a8b-5b3e-93e1-d8dcb7e674dc",
+      "family_name": "Wartox Line",
+      "stages": [
+        {
+          "name": "Wartox Egg",
+          "stage": 0,
+          "image_key": "wartox-egg-stage-0-modern",
+          "types": [
+            "Poison"
+          ],
+          "description": "A sealed Wartox waits within. Its markings hint at the creature growing inside."
+        },
+        {
+          "name": "Wartox",
+          "stage": 1,
+          "image_key": "wartox-stage-1-modern",
+          "types": [
+            "Poison"
+          ],
+          "description": "Wartox shelters beneath a cap that absorbs gases from stagnant marshes. When startled, it releases a small puff and freezes, apparently convinced the foul-smelling cloud has hidden it completely from view."
+        },
+        {
+          "name": "Smogroak",
+          "stage": 2,
+          "image_key": "smogroak-stage-2-modern",
+          "types": [
+            "Poison"
+          ],
+          "description": "Smogroak releases rolling fumes from the vents on its back. Its latest meal changes their scent, allowing other Smogroak to recognize familiar individuals long before they become visible through the marsh fog."
+        },
+        {
+          "name": "Miasmorg",
+          "stage": 3,
+          "image_key": "miasmorg-stage-3-modern",
+          "types": [
+            "Poison",
+            "Steel"
+          ],
+          "description": "Miasmorg filters swamp toxins through the chimneys on its back, storing them in a potent mixture. Nearby creatures carefully check the wind before approaching its territory, even when it appears asleep."
+        }
+      ]
+    },
+    {
+      "evolution_family_id": "922f741c-f882-5127-b7b0-160f509cf32e",
+      "family_name": "Reveri Line",
+      "stages": [
+        {
+          "name": "Reveri Egg",
+          "stage": 0,
+          "image_key": "reveri-egg-stage-0-modern",
+          "types": [
+            "Psychic",
+            "Fairy"
+          ],
+          "description": "A sealed Reveri waits within. Its markings hint at the creature growing inside."
+        },
+        {
+          "name": "Reveri",
+          "stage": 1,
+          "image_key": "reveri-stage-1-modern",
+          "types": [
+            "Psychic",
+            "Fairy"
+          ],
+          "description": "Reveri balances floating spheres while listening to thoughts too quiet for others to notice. A wobbling sphere usually means someone nearby is trying very hard to keep a secret from it."
+        },
+        {
+          "name": "Dremir",
+          "stage": 2,
+          "image_key": "dremir-stage-2-modern",
+          "types": [
+            "Psychic",
+            "Fairy"
+          ],
+          "description": "Dremir senses sleeping minds through its sweeping fins. When its three orbiting spheres align, nearby creatures briefly share the same dream, sometimes waking with memories of places they have never visited."
+        }
+      ]
+    },
+    {
+      "evolution_family_id": "9b31f47f-0ab0-5949-8511-6c36c8e78ae7",
+      "family_name": "Camolet Line",
+      "stages": [
+        {
+          "name": "Camolet Egg",
+          "stage": 0,
+          "image_key": "camolet-egg-stage-0-modern",
+          "types": [
+            "Grass"
+          ],
+          "description": "A sealed Camolet waits within. Its markings hint at the creature growing inside."
+        },
+        {
+          "name": "Camolet",
+          "stage": 1,
+          "image_key": "camolet-stage-1-modern",
+          "types": [
+            "Grass"
+          ],
+          "description": "Camolet changes the shades of its leafy scales to blend into surrounding branches. Its curled tail grips tightly while it watches insects, though an excited rustle of its crest can betray it."
+        },
+        {
+          "name": "Camoflair",
+          "stage": 2,
+          "image_key": "camoflair-stage-2-modern",
+          "types": [
+            "Grass"
+          ],
+          "description": "Camoflair shifts intricate patterns across its leaf-like armor, disappearing among sunlit foliage. When challenged, it flashes a brilliant contrasting display before darting away, leaving its rival staring at an empty branch."
+        }
+      ]
+    },
+    {
+      "evolution_family_id": "041f469e-030d-5726-b2c7-1d7ef41ecd26",
+      "family_name": "Nimsect Line",
+      "stages": [
+        {
+          "name": "Nimsect Egg",
+          "stage": 0,
+          "image_key": "nimsect-egg-stage-0-modern",
+          "types": [
+            "Bug",
+            "Dark"
+          ],
+          "description": "A sealed Nimsect waits within. Its markings hint at the creature growing inside."
+        },
+        {
+          "name": "Nimsect",
+          "stage": 1,
+          "image_key": "nimsect-stage-1-modern",
+          "types": [
+            "Bug",
+            "Dark"
+          ],
+          "description": "Nimsect trims tough stems with the small blades along its body. Its long feelers detect vibrations through leaves, helping it locate food while keeping its soft underside safely hidden from predators."
+        },
+        {
+          "name": "Sablade",
+          "stage": 2,
+          "image_key": "sablade-stage-2-modern",
+          "types": [
+            "Bug",
+            "Dark"
+          ],
+          "description": "Sablade folds its pale wing covers around itself until it resembles a hanging seedpod. When prey wanders close, its crimson blades unfold in one precise movement before the disguise settles again."
+        }
+      ]
+    },
+    {
+      "evolution_family_id": "a717bb1f-c25f-52d2-9785-5bc1e55dab97",
+      "family_name": "Neuril Line",
+      "stages": [
+        {
+          "name": "Neuril Egg",
+          "stage": 0,
+          "image_key": "neuril-egg-stage-0-modern",
+          "types": [
+            "Dragon",
+            "Psychic"
+          ],
+          "description": "A sealed Neuril waits within. Its markings hint at the creature growing inside."
+        },
+        {
+          "name": "Neuril",
+          "stage": 1,
+          "image_key": "neuril-stage-1-modern",
+          "types": [
+            "Dragon",
+            "Psychic"
+          ],
+          "description": "Neuril reveals ripples of light beneath its transparent crown whenever it learns something new. It may stare at unfamiliar objects for hours, occasionally lifting them without realizing its thoughts have moved them."
+        },
+        {
+          "name": "Neuragon",
+          "stage": 2,
+          "image_key": "neuragon-stage-2-modern",
+          "types": [
+            "Dragon",
+            "Psychic"
+          ],
+          "description": "Neuragon predicts nearby movements as signals race beneath its transparent crown. Brief psychic impulses help it change direction sharply without losing speed, leaving pursuers struggling to follow its sudden turns."
+        }
+      ]
+    },
+    {
+      "evolution_family_id": "f39b305d-6e33-5b0e-aae8-70e2f3d6cb8c",
+      "family_name": "Jinxter Line",
+      "stages": [
+        {
+          "name": "Jinxter Egg",
+          "stage": 0,
+          "image_key": "jinxter-egg-stage-0-modern",
+          "types": [
+            "Dark",
+            "Ghost"
+          ],
+          "description": "A sealed Jinxter waits within. Its markings hint at the creature growing inside."
+        },
+        {
+          "name": "Jinxter",
+          "stage": 1,
+          "image_key": "jinxter-stage-1-modern",
+          "types": [
+            "Dark",
+            "Ghost"
+          ],
+          "description": "Jinxter slips its wispy tail through narrow gaps to move objects just beyond reach. If its victim laughs instead of getting angry, it returns the object and eagerly follows them home."
+        },
+        {
+          "name": "Prankenstein",
+          "stage": 2,
+          "image_key": "prankenstein-stage-2-modern",
+          "types": [
+            "Dark",
+            "Ghost"
+          ],
+          "description": "Prankenstein builds elaborate pranks from misplaced objects, using its ghostly tail to work unseen around corners. Despite its wicked grin, it quietly dismantles any trick that might cause someone genuine harm."
         }
       ]
     }

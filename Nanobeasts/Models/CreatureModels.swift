@@ -11,6 +11,21 @@ struct CreatureCatalog: Decodable, Sendable {
         families.flatMap(\.stages).filter { $0.stage > 0 }
     }
 
+    /// Full lifecycle cost per true evolution across species that can evolve.
+    /// Includes hatching and maturity; neither is counted as an evolution.
+    var averageStepsPerEvolution: Int? {
+        var steps = 0
+        var evolutions = 0
+        for (index, family) in families.enumerated() {
+            let count = zip(family.stages, family.stages.dropFirst()).filter { !$0.0.isEgg }.count
+            guard count > 0 else { continue }
+            steps += family.stages.reduce(0) { $0 + CreatureProgressionRules.steps(familyIndex: index, stage: $1.stage) }
+            evolutions += count
+        }
+        guard evolutions > 0 else { return nil }
+        return Int(ceil(Double(steps) / Double(evolutions)))
+    }
+
     static func load() -> CreatureCatalog {
         guard
             let url = Bundle.main.url(forResource: "creatures-by-family", withExtension: "json"),
@@ -47,6 +62,22 @@ struct CreatureCatalog: Decodable, Sendable {
             ]
         )
     ])
+}
+
+/// Shared by actual progression and the onboarding challenge estimate.
+enum CreatureProgressionRules {
+    static func steps(familyIndex: Int, stage: Int) -> Int {
+        if familyIndex == 0 { return stage == 0 ? 250 : 500 }
+        let base = 10_000 + 1_500 * max(familyIndex - 1, 0)
+        let multiplier: Double = switch min(max(stage, 0), 3) {
+        case 0: 0.30
+        case 1: 0.55
+        case 2: 0.75
+        default: 1
+        }
+        let rounded = Int((Double(base) * multiplier / 100).rounded()) * 100
+        return min(max(rounded, 500), 15_000)
+    }
 }
 
 struct CreatureFamily: Decodable, Identifiable, Hashable, Sendable {
