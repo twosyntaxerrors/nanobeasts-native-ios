@@ -111,9 +111,12 @@ struct SettingsView: View {
                         )
                     }
 
-                    DailyObjectiveCard(goal: $goalDraft) {
-                        store.dailyGoal = min(max(goalDraft, 2_000), 20_000)
-                        goalDraft = store.dailyGoal
+                    DailyObjectiveCard(goal: $goalDraft,
+                                       todayGoal: store.dailyGoal,
+                                       scheduledGoal: store.scheduledDailyGoal,
+                                       minimum: min(store.dailyGoal, DailyGoalPolicy.manualMinimum)) {
+                        store.scheduleDailyGoal(goalDraft)
+                        goalDraft = store.upcomingDailyGoal
                         if store.hapticsEnabled {
                             UINotificationFeedbackGenerator().notificationOccurred(.success)
                         }
@@ -193,7 +196,7 @@ struct SettingsView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
-            goalDraft = store.dailyGoal
+            goalDraft = store.upcomingDailyGoal
         }
         .task {
             guard !isTourPreview else { return }
@@ -673,7 +676,28 @@ private struct SettingsDivider: View {
 
 private struct DailyObjectiveCard: View {
     @Binding var goal: Int
+    let todayGoal: Int
+    let scheduledGoal: Int?
+    let minimum: Int
     let save: () -> Void
+
+    private var savedGoal: Int { scheduledGoal ?? todayGoal }
+    private var hasChanges: Bool { goal != savedGoal }
+
+    private var statusText: String {
+        if hasChanges {
+            return goal < DailyGoalPolicy.manualMinimum
+                ? "Saving starts it tomorrow, then it rises 500 a week to \(DailyGoalPolicy.manualMinimum.formatted())."
+                : "Saving starts it tomorrow. Today’s goal stays \(todayGoal.formatted())."
+        }
+        if let scheduledGoal {
+            return "Today: \(todayGoal.formatted()). Your new goal of \(scheduledGoal.formatted()) starts tomorrow."
+        }
+        if todayGoal < DailyGoalPolicy.manualMinimum {
+            return "Your goal rises 500 a week until it reaches \(DailyGoalPolicy.manualMinimum.formatted())."
+        }
+        return "Minimum objective: \(DailyGoalPolicy.manualMinimum.formatted()) steps. Changes start tomorrow."
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -710,8 +734,10 @@ private struct DailyObjectiveCard: View {
 
             HStack {
                 objectiveButton(icon: "minus") {
-                    goal = max(goal - 1_000, 2_000)
+                    goal = max(goal - 1_000, minimum)
                 }
+                .disabled(goal <= minimum)
+                .opacity(goal <= minimum ? 0.35 : 1)
                 Spacer()
                 Text("ADJUST BY 1,000")
                     .font(NanoFont.aldrich(9))
@@ -719,7 +745,7 @@ private struct DailyObjectiveCard: View {
                     .foregroundStyle(NanoTheme.secondaryText)
                 Spacer()
                 objectiveButton(icon: "plus") {
-                    goal = min(goal + 1_000, 20_000)
+                    goal = min(goal + 1_000, DailyGoalPolicy.maximum)
                 }
             }
             .padding(5)
@@ -729,15 +755,17 @@ private struct DailyObjectiveCard: View {
                     .stroke(NanoTheme.elevated, lineWidth: 1)
             )
 
-            Text("Minimum objective: 2,000 steps")
+            Text(statusText)
                 .font(NanoFont.aldrich(9))
-                .foregroundStyle(NanoTheme.secondaryText)
+                .foregroundStyle(hasChanges || scheduledGoal != nil ? NanoTheme.teal : NanoTheme.secondaryText)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity)
 
             Button(action: save) {
                 HStack(spacing: 8) {
                     Image(systemName: "bolt.fill")
-                    Text("SAVE OBJECTIVE")
+                    Text(hasChanges ? "SAVE FOR TOMORROW" : "SAVED")
                         .font(NanoFont.aldrich(11))
                         .tracking(1.2)
                 }
@@ -751,6 +779,8 @@ private struct DailyObjectiveCard: View {
                 )
             }
             .buttonStyle(.plain)
+            .disabled(!hasChanges)
+            .opacity(hasChanges ? 1 : 0.45)
         }
         .nanoHUDCard(radius: 24, padding: 16, illuminated: true)
     }
@@ -878,6 +908,7 @@ struct EvolutionLifecycleExperience: View {
     let previewVideoStartTime: TimeInterval
     let previewVideoPauseTime: TimeInterval?
     let onPreviewVideoPause: (() -> Void)?
+    @State private var webPReachedPreviewCutoff = false
     let previewFinishesAtReveal: Bool
     let previewEggSelectionDetail: String?
     let dismissesOnCompletion: Bool
@@ -1429,15 +1460,29 @@ struct EvolutionLifecycleExperience: View {
         case .transparentWebP(let url, _):
             RemoteAnimatedWebPView(
                 url: url,
-                isPlaying: shouldPlay,
+                isPlaying: shouldPlay && !webPReachedPreviewCutoff,
                 loopCount: 1,
                 freezesOnLastFrame: true,
                 preloadsAllFrames: true
             ) { succeeded in
+                if !succeeded, previewVideoPauseTime != nil {
+                    onPreviewVideoPause?()
+                    return
+                }
                 transitionLoaded = succeeded
                 transitionFailed = !succeeded
             }
             .id(url)
+            // WebP clips can't seek, so the preview gate freezes them on a timer,
+            // stopping before the new form takes shape (like the video checkpoint).
+            .task(id: shouldPlay && transitionLoaded && previewVideoPauseTime != nil) {
+                guard shouldPlay, transitionLoaded, let pauseTime = previewVideoPauseTime,
+                      !webPReachedPreviewCutoff else { return }
+                try? await Task.sleep(for: .seconds(max(pauseTime - previewVideoStartTime, 0)))
+                guard !Task.isCancelled else { return }
+                webPReachedPreviewCutoff = true
+                onPreviewVideoPause?()
+            }
         case .video(let url, _):
             RemoteTransitionVideoView(
                 url: url,

@@ -16,7 +16,7 @@ struct OnboardingCopy {
     static let eggDetail = "Press and hold the egg to make your promise."
     static let eggInstruction = "Hold the egg for 2 seconds"
     static let eggConfirmed = "Your goal. Your commitment."
-    static let targetNote = "Based on your answers. Adjust it anytime in Settings."
+    static let targetNote = "Adjust anytime in Settings."
 
     struct Benefit: Identifiable {
         let symbol: String
@@ -45,7 +45,6 @@ struct OnboardingCopy {
         case .fitness: "lose fat and keep muscle"
         case .habit: "build a daily walking habit"
         case .collection: "grow my Nanobeasts collection"
-        case .fun: "make every day an adventure"
         case nil: "work toward my goals"
         }
         return "\(opening) to walk more to \(goal)."
@@ -62,8 +61,6 @@ struct OnboardingCopy {
             "You want to make walking a daily habit."
         case .collection:
             "You want to walk more and collect Nanobeasts."
-        case .fun:
-            "You want your walks to feel like an adventure."
         case nil:
             "You want to walk more toward your goals."
         }
@@ -72,25 +69,18 @@ struct OnboardingCopy {
 
     var comparisonTitle: String {
         switch motivation {
-        case .weight: "Walk toward the body you want"
-        case .fitness: "Build momentum between workouts"
-        case .habit: "Make daily walking your new normal"
-        case .collection: "Bring your next evolution closer"
-        case .fun: "Make every walk worth taking"
-        case nil: "Give your next 30 days a goal"
+        case .weight: "Here’s you in 30 days"
+        case .fitness: "Your next 30 days"
+        case .habit: "Watch walking become routine"
+        case .collection: "Your first month of discoveries"
+        case nil: "Here’s you in 30 days"
         }
     }
 
-    var comparisonDetail: String {
-        switch motivation {
-        case .weight: "Use your daily target to add calorie-burning walks. Growing creatures gives you a reason to keep going."
-        case .fitness: "Add calorie-burning walks alongside strength training, with a daily target and clear progress to keep you going."
-        case .habit: "Know how much to walk each day, then use streaks and creature milestones to keep showing up."
-        case .collection: "Your added steps help hatch eggs and evolve creatures. Keep walking to grow your Field Dex."
-        case .fun: "Trade the same old walk for creatures to grow and a map to explore."
-        case nil: "A personal step target, visible progress, and creatures to grow give your next walk a purpose."
-        }
-    }
+    var comparisonDetail: String { "Within weeks, you’ll see and feel the difference." }
+
+    /// Body-focused goals lead the long-term projection with the energy estimate.
+    var emphasizesBody: Bool { motivation == .weight || motivation == .fitness }
 
     var paywallAccent: String {
         switch motivation {
@@ -98,7 +88,6 @@ struct OnboardingCopy {
         case .fitness: "your momentum"
         case .habit: "your everyday"
         case .collection: "new discoveries"
-        case .fun: "adventure"
         case nil: "come to life"
         }
     }
@@ -152,15 +141,6 @@ struct OnboardingCopy {
                     .init(symbol: "figure.walk", title: "Walk your way to new creatures", detail: "Reach step milestones to hatch eggs and evolve your Nanobeasts."),
                     .init(symbol: "chart.xyaxis.line", title: "See your collection fill up", detail: "Your Field Dex records each species you unlock through walking."),
                     .init(symbol: "pawprint.fill", title: "Take your creature on an adventure", detail: "Clear map fog together, then share your route replay and stats.")])
-        case .fun:
-            Self(paywallHeadline: "Turn your walks into an adventure",
-                paywallDetail: "Unlock your walking plan and watch everyday steps become creatures, discoveries, and adventures.",
-                planHeadline: "Give your everyday walk a little wonder.",
-                planDetail: "We’ll give your walks a game to play, with creatures to grow and a map to explore.",
-                paywallBenefits: [
-                    .init(symbol: "figure.walk", title: "Give your steps a game to play", detail: "Walking toward step milestones hatches eggs and evolves your creatures."),
-                    .init(symbol: "chart.xyaxis.line", title: "Explore beyond your usual route", detail: "Outdoor walks clear pink fog from the places you visit."),
-                    .init(symbol: "pawprint.fill", title: "Bring your adventures back to life", detail: "Replay your route with your creature, then share the video.")])
         case nil:
             Self(paywallHeadline: "Evolve your habits. Watch progress come to life.",
                 paywallDetail: "Unlock your personalized walking plan and give your next walk a purpose.",
@@ -183,7 +163,7 @@ struct OnboardingCopy {
             planDetail = "Keep your strength training. We’ll help you add calorie-burning walks and make them easier to repeat."
             paywallBenefits[0].detail = "An adjustable walking target adds movement alongside your strength training."
         }
-        if (motivation == .collection || motivation == .fun), secondaryMotivations.contains(.habit) {
+        if motivation == .collection, secondaryMotivations.contains(.habit) {
             paywallBenefits[2] = .init(symbol: "pawprint.fill", title: "Make adventure a daily habit", detail: "Grow creatures with your steps and build streaks for daily goals.")
         }
     }
@@ -204,7 +184,7 @@ struct OnboardingCopy {
                 detail: "Add a Nanobeasts widget to check your steps without opening the app.")
         }
         if blockers.contains("Walking feels boring") {
-            let gameIndex = motivation == .collection || motivation == .fun ? 0 : 2
+            let gameIndex = motivation == .collection ? 0 : 2
             paywallBenefits[gameIndex] = .init(symbol: paywallBenefits[gameIndex].symbol,
                 title: "Turn boring walks into an adventure",
                 detail: motivation == .weight || motivation == .fitness

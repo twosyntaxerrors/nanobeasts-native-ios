@@ -27,3 +27,6 @@ build/
 
 # Generated App Store media
 goldie/out/
+
+# Cloudflare Wrangler local state
+.wrangler/

@@ -5,6 +5,8 @@ struct LabView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.appTourFocus) private var tourFocus
     var onReplayNameTap: (() -> Void)? = nil
+    /// The replay opens its own scripted paywall instead of the live one.
+    var onReplayUpgradeTap: (() -> Void)? = nil
     var defersCelebrations = false
     var onPresentationStateChanged: (Bool) -> Void = { _ in }
 
@@ -75,13 +77,15 @@ struct LabView: View {
                             ),
                             nextMilestone: homeCreatureNextMilestone,
                             isSyncingSteps: store.isSyncingSteps,
-                            isProgressionCapped: store.freeProgressionCapReached,
+                            isEvolutionLocked: store.isEvolutionLocked,
+                            uncountedSteps: store.uncountedTodaySteps,
                             animationEnergy: stepAnimationEnergy,
                             showStepsRemaining: $showStepsRemaining,
                             ringDiameter: heroDiameter,
                             onEXPBadgeTap: {
-                                if store.freeProgressionCapReached {
-                                    showsProgressionPaywall = true
+                                if store.isEvolutionLocked {
+                                    if let onReplayUpgradeTap { onReplayUpgradeTap() }
+                                    else { showsProgressionPaywall = true }
                                 } else {
                                     withAnimation(
                                         .easeInOut(duration: store.reduceMotion ? 0 : 0.24)
@@ -160,7 +164,7 @@ struct LabView: View {
                 DailyGoalCompletionCard(
                     goal: store.dailyGoal,
                     creatureName: homeCreatureStage.name,
-                    progressionCapped: store.freeProgressionCapReached
+                    evolutionLocked: store.isEvolutionLocked
                 ) {
                     withAnimation(.easeOut(duration: 0.22)) {
                         showsDailyGoalCard = false
@@ -188,7 +192,7 @@ struct LabView: View {
             stepAnimationEnergy = 0
         }
         .task(id: expBadgeCycleID) {
-            guard !store.isSyncingSteps, !store.freeProgressionCapReached else {
+            guard !store.isSyncingSteps, !store.isEvolutionLocked else {
                 return
             }
             try? await Task.sleep(for: .seconds(5))
@@ -329,7 +333,7 @@ struct LabView: View {
         [
             showStepsRemaining.description,
             store.isSyncingSteps.description,
-            store.freeProgressionCapReached.description,
+            store.isEvolutionLocked.description,
             homeCreatureStage.id,
         ].joined(separator: "-")
     }
@@ -375,7 +379,7 @@ struct LabView: View {
 private struct DailyGoalCompletionCard: View {
     let goal: Int
     let creatureName: String
-    let progressionCapped: Bool
+    let evolutionLocked: Bool
     let onDismiss: () -> Void
 
     var body: some View {
@@ -408,8 +412,8 @@ private struct DailyGoalCompletionCard: View {
                     .multilineTextAlignment(.center)
 
                 Text(
-                    progressionCapped
-                        ? "Today counts toward your streak. Your free evolution steps are full for today, but every step is still recorded."
+                    evolutionLocked
+                        ? "Today counts toward your streak. Upgrade to Pro to put your steps toward \(creatureName)’s evolution."
                         : "Today counts toward your streak. Every extra step still powers \(creatureName)’s evolution."
                 )
                 .font(NanoFont.aldrich(10))
@@ -702,7 +706,9 @@ struct CreatureResearchHero: View {
     let stepsRemaining: Int
     let nextMilestone: ProgressMilestone
     let isSyncingSteps: Bool
-    let isProgressionCapped: Bool
+    let isEvolutionLocked: Bool
+    /// Shown while locked: today's steps since evolution locked.
+    var uncountedSteps = 0
     let animationEnergy: Double
     @Binding var showStepsRemaining: Bool
     let ringDiameter: CGFloat
@@ -737,7 +743,7 @@ struct CreatureResearchHero: View {
                                 ProgressView()
                                     .controlSize(.mini)
                                     .tint(NanoTheme.teal)
-                            } else if isProgressionCapped {
+                            } else if isEvolutionLocked {
                                 Image(systemName: "lock.fill")
                                     .font(.system(size: 11, weight: .black))
                             }
@@ -745,15 +751,15 @@ struct CreatureResearchHero: View {
                             Text(
                                 isSyncingSteps
                                     ? "SYNCING STEPS"
-                                    : isProgressionCapped
-                                        ? "TAP TO KEEP GROWING"
+                                    : isEvolutionLocked
+                                        ? "UPGRADE TO EVOLVE"
                                     : showStepsRemaining
                                         ? "\(stepsRemaining.formatted()) TO \(nextMilestone.rawValue)"
                                         : "\(Int(progress * 100))% EXP"
                             )
                             .font(
                                 .system(
-                                    size: isProgressionCapped ? 12 : 14,
+                                    size: isEvolutionLocked ? 12 : 14,
                                     weight: .bold,
                                     design: .rounded
                                 )
@@ -763,7 +769,7 @@ struct CreatureResearchHero: View {
                             .minimumScaleFactor(0.82)
                         }
                         .tracking(1.0)
-                        .foregroundStyle(isProgressionCapped ? NanoTheme.orange : NanoTheme.teal)
+                        .foregroundStyle(isEvolutionLocked ? NanoTheme.orange : NanoTheme.teal)
                         .contentTransition(.numericText())
                         .padding(.horizontal, 14)
                         .padding(.vertical, 5)
@@ -771,7 +777,7 @@ struct CreatureResearchHero: View {
                             Capsule()
                                 .fill(NanoTheme.background.opacity(0.90))
                                 .stroke(
-                                    (isProgressionCapped ? NanoTheme.orange : NanoTheme.teal)
+                                    (isEvolutionLocked ? NanoTheme.orange : NanoTheme.teal)
                                         .opacity(0.62),
                                     lineWidth: 1
                                 )
@@ -781,8 +787,8 @@ struct CreatureResearchHero: View {
                     .appTourTarget(.expBadge)
                     .id(AppTourTarget.expBadge)
                     .accessibilityLabel(
-                        isProgressionCapped
-                            ? "Free progression limit reached. Tap to keep growing with Premium."
+                        isEvolutionLocked
+                            ? "Evolution is locked. Upgrade to Pro to evolve \(stage.name)."
                             : "\(stepsRemaining) steps to \(nextMilestone.accessibilityName)"
                     )
                 }
@@ -796,6 +802,18 @@ struct CreatureResearchHero: View {
                     .accessibilityHint("Adds 100 simulated steps")
             } else {
                 creatureName
+            }
+            if isEvolutionLocked {
+                // One line that never wraps, so it can't push Home down.
+                Text(uncountedSteps > 0
+                     ? "\(uncountedSteps.formatted()) steps aren’t counting toward evolution."
+                     : "Upgrade so your steps count toward evolution.")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(NanoTheme.orange)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                    .contentTransition(.numericText(value: Double(uncountedSteps)))
+                    .padding(.top, 3)
             }
         }
         .frame(maxWidth: .infinity)

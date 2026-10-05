@@ -168,7 +168,8 @@ struct WorkoutView: View {
     }
 
     private var liveActivityState: WorkoutActivityAttributes.ContentState {
-        WorkoutActivityAttributes.ContentState(
+        let evolution = store.workoutCompanionProgress.duringWorkout(steps: steps, anchor: evolutionAnchor)
+        return WorkoutActivityAttributes.ContentState(
             timerAnchor: Date().addingTimeInterval(-Double(elapsedSeconds)),
             elapsedSeconds: elapsedSeconds,
             steps: steps,
@@ -177,7 +178,9 @@ struct WorkoutView: View {
             goalProgress: goalKind == .open ? 0 : goalProgress,
             isPaused: phase == .paused,
             goalReached: didReachGoal,
-            isComplete: phase == .summary
+            isComplete: phase == .summary,
+            evolutionFraction: evolution.fraction,
+            evolutionCaption: evolution.caption
         )
     }
 
@@ -614,6 +617,9 @@ struct WorkoutView: View {
                 goalKind: goalKind.rawValue,
                 goalTarget: goalTarget,
                 companionID: (workoutCompanion ?? store.currentStage).id,
+                companionName: (workoutCompanion ?? store.currentStage).name,
+                companionStage: (workoutCompanion ?? store.currentStage).stage,
+                companionImageKey: (workoutCompanion ?? store.currentStage).imageKey,
                 sessionID: phoneSessionID,
                 state: liveActivityState
             )

@@ -330,7 +330,12 @@ final class WorkoutWatchBridge: NSObject, ObservableObject {
             await previousTask?.value
             guard let self else { return }
             let sessionID = "watch-\(state.id.uuidString)"
-            let content = state.workoutActivityState
+            var content = state.workoutActivityState
+            if let evolution = self.watchArtwork?.evolution,
+               evolution.stageID == self.watchArtwork?.stageID {
+                content.evolutionFraction = evolution.fraction
+                content.evolutionCaption = evolution.caption
+            }
             if !state.isActive {
                 if self.liveActivityController.sessionID != sessionID {
                     // Final snapshots can arrive after iOS relaunched the app.
@@ -348,6 +353,8 @@ final class WorkoutWatchBridge: NSObject, ObservableObject {
                         symbolName: workout?.symbol ?? "figure.walk", indoor: state.indoor,
                         goalDescription: "Apple Watch workout", goalKind: "Open Goal", goalTarget: nil,
                         companionID: self.companion?.creatureStage.id ?? "",
+                        companionName: self.companion?.name, companionStage: self.companion?.stage,
+                        companionImageKey: self.companion?.imageKey,
                         sessionID: sessionID, workoutSource: "watch", state: content)
                 }
             }

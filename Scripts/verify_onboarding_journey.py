@@ -118,7 +118,7 @@ defaults.set(try! JSONSerialization.data(withJSONObject: oldJSON), forKey: Onboa
 check(OnboardingDraft.load(defaults: defaults).playerName == "Sam", "Adding connection completion keeps old drafts decodable")
 for activity in ["Sedentary", "Lightly Active", "Moderately Active", "Very Active", "Everyday Walker"] {
     for steps in ["Under 2,000", "2,000 – 5,000", "5,000 – 8,000", "8,000+", "8,000 – 10,000", "10,000 – 15,000", "15,000+"] {
-        for goal in ["Walk More", "Lose Weight", "Get Fit", "Have Fun", "Collect Creatures"] {
+        for goal in ["Walk More", "Lose Weight", "Get Fit", "Collect Creatures"] {
             draft.activity = activity; draft.currentSteps = steps; draft.selectedGoals = [goal]
             check(draft.recommendedGoal > draft.baselineSteps, "Suggested goal must exceed its displayed baseline")
             check(draft.recommendedGoal <= 20_000, "Respect editable goal bounds")
@@ -166,7 +166,7 @@ for goal in WalkingMotivation.allCases {
     }
 }
 check(!OnboardingCopy.eggDetail.contains("hatching"), "Commitment art does not promise an assigned first egg")
-let commitmentGoals: [(WalkingMotivation, String)] = [(.weight, "lose weight"), (.fitness, "lose fat and keep muscle"), (.habit, "build a daily walking habit"), (.collection, "grow my Nanobeasts collection"), (.fun, "make every day an adventure")]
+let commitmentGoals: [(WalkingMotivation, String)] = [(.weight, "lose weight"), (.fitness, "lose fat and keep muscle"), (.habit, "build a daily walking habit"), (.collection, "grow my Nanobeasts collection")]
 for (goal, outcome) in commitmentGoals {
     let copy = OnboardingCopy.forGoals(Set(WalkingMotivation.allCases.map(\.rawValue)), primaryGoal: goal.rawValue)
     check(copy.commitmentPromise(name: " Sinatra Noel ") == "I, Sinatra, promise to walk more to \(outcome).", "All-goals commitment follows the explicit primary goal and first name")
@@ -229,7 +229,7 @@ for mask in 1..<(1 << allReasons.count) {
         chosenVariants += 1
     }
 }
-check(chosenVariants == 80, "Exercised all valid primary-goal choices across all 31 nonempty selections")
+check(chosenVariants == allReasons.count * (1 << (allReasons.count - 1)), "Exercised every valid primary-goal choice across all nonempty selections")
 let allWeight = OnboardingCopy.forGoals(Set(allReasons.map(\.rawValue)), primaryGoal: WalkingMotivation.weight.rawValue)
 check(allWeight.paywallHeadline.contains("weight goal"), "All reasons with weight primary leads with the weight goal")
 check(allWeight.paywallDetail.contains("walking plan") && allWeight.paywallDetail.contains("weight goal"), "Daily walking serves the chosen outcome")
@@ -238,11 +238,11 @@ check(OnboardingCopy.forGoals([]).motivation == nil, "Missing answers use genera
 check(OnboardingCopy.forGoals(["Future Goal"]).motivation == nil, "Unknown answers never invent a motivation")
 check(OnboardingCopy.forGoals(Set(allReasons.map(\.rawValue))).motivation == nil, "Legacy multiple-choice profiles receive neutral copy instead of a guessed priority")
 var unansweredFocus = OnboardingDraft()
-unansweredFocus.selectedGoals = ["Get Fit", "Have Fun"]
+unansweredFocus.selectedGoals = ["Get Fit", "Collect Creatures"]
 check(unansweredFocus.firstUnansweredQuestion == .focus, "Resume an unfinished main-goal question before unrelated questions")
-unansweredFocus.primaryGoal = "Have Fun"
+unansweredFocus.primaryGoal = "Collect Creatures"
 check(unansweredFocus.firstUnansweredQuestion == .blocker, "Continue after an explicit focus choice")
-unansweredFocus.selectedGoals.remove("Have Fun")
+unansweredFocus.selectedGoals.remove("Collect Creatures")
 check(unansweredFocus.goalSelection.primary == .fitness, "Removing a main goal resolves the remaining sole reason")
 let fitnessCopy = OnboardingCopy.forGoals(["Get Fit"])
 check(fitnessCopy.personalizedPaywallHeadline(name: "  Sam Jones \n").hasPrefix("Sam, evolve"), "Checkout uses the first name and natural sentence casing")
@@ -251,9 +251,12 @@ check(fitnessCopy.personalizedPaywallHeadline(name: "Élodie").hasPrefix("Élodi
 check(fitnessCopy.personalizedPaywallHeadline(name: "Researcher") == fitnessCopy.paywallHeadline, "Do not address a user by an automatic placeholder")
 check(fitnessCopy.personalizedPaywallHeadline(name: " \n ") == fitnessCopy.paywallHeadline, "Blank names have no stray comma")
 let legacyGoals: Set<String> = ["Walk More", "Lose Weight", "Get Fit", "Have Fun", "Collect Creatures"]
-check(Set(WalkingMotivation.selected(in: legacyGoals).map(\.rawValue)) == legacyGoals, "Every previously saved goal still maps to a visible motivation")
+check(Set(WalkingMotivation.selected(in: legacyGoals).map(\.rawValue)) == legacyGoals.subtracting(["Have Fun"]), "Every previously saved goal still maps to a visible motivation")
+check(WalkingMotivation.selected(in: ["Have Fun"]) == [.collection], "Retired Have Fun answers become Collect Nanobeasts")
+check(WalkingGoalSelection(values: ["Get Fit", "Have Fun"], preferred: "Have Fun").primary == .collection, "A retired main goal resolves to collecting")
+check(!WalkingMotivation.allCases.map(\.title).contains("Have more fun"), "Have more fun is no longer offered")
 check(WalkingMotivation.selected(in: ["Get Fit", "Unknown Future Goal"]) == [.fitness], "Unknown choices do not invent a motivation or hide recognized ones")
-draft.selectedGoals = ["Get Fit", "Have Fun"]; draft.primaryGoal = "Have Fun"
+draft.selectedGoals = ["Get Fit", "Collect Creatures"]; draft.primaryGoal = "Collect Creatures"
 draft.phase = .connections; draft.chatStep = .health; draft.playerName = "Ervenst"
 draft.selectedBlockers = ["Walking feels boring"]; draft.save(defaults: defaults)
 var expectedDraft = draft
@@ -267,8 +270,13 @@ draft.reachedPaywall = true; draft.phase = .commitment; draft.save(defaults: def
 let returning = OnboardingDraft.load(defaults: defaults)
 check(returning.phase == .plan, "Paywall return goes to recap, before commitment and checkout")
 check(returning.playerName == "Ervenst" && returning.selectedBlockers == draft.selectedBlockers, "Recap preserves personalization")
-check(returning.primaryGoal == "Have Fun", "Chosen main goal survives relaunch and paywall return")
-check(returning.selectedGoals == ["Get Fit", "Have Fun"], "Multiple motivations survive relaunch and the paywall return")
+check(returning.primaryGoal == "Collect Creatures", "Chosen main goal survives relaunch and paywall return")
+check(returning.selectedGoals == ["Get Fit", "Collect Creatures"], "Multiple motivations survive relaunch and the paywall return")
+var retiredDraft = OnboardingDraft()
+retiredDraft.selectedGoals = ["Have Fun", "Lose Weight"]; retiredDraft.primaryGoal = "Have Fun"
+retiredDraft.save(defaults: defaults)
+let migratedRetired = OnboardingDraft.load(defaults: defaults)
+check(migratedRetired.selectedGoals == ["Collect Creatures", "Lose Weight"] && migratedRetired.primaryGoal == "Collect Creatures", "Saved drafts migrate Have Fun to Collect Nanobeasts")
 draft.reachedPaywall = false
 for oldPhase in [OnboardingPhase.profile, .projection, .building] {
     draft.phase = oldPhase; draft.save(defaults: defaults)
@@ -338,7 +346,7 @@ for name in ["", "Researcher", "Sam", "  Sam  "] {
     }
 }
 check(OnboardingReminderPolicy.interval == 172_800, "Two days between reminders")
-print("PASS: flow ordering and legacy migration; 161 animation frames; 175 target/chart combinations; all 31 reason combinations and 80 valid primary choices; legacy and multiple goal persistence; saved progress and paywall return; 160 goal/obstacle combinations; 32 reminder eligibility states; five unique messages and name fallback.")
+print("PASS: flow ordering and legacy migration; 161 animation frames; 140 target/chart combinations; all 15 reason combinations and 32 valid primary choices; legacy and multiple goal persistence; saved progress and paywall return; 160 goal/obstacle combinations; 32 reminder eligibility states; five unique messages and name fallback.")
 '''
 # Integration guards for actual authorization entry points and screen wiring.
 flow = (root/'Nanobeasts/Features/Onboarding/OnboardingFlowView.swift').read_text()

@@ -7,6 +7,7 @@ struct OnboardingDailyLoopPreview: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var isOnScreen = false
     @State private var videoState = DemoVideoState.loading
+    @State private var secondsRemaining: Int?
 
     private var reduceMotion: Bool { systemReduceMotion || store.reduceMotion }
 
@@ -14,13 +15,16 @@ struct OnboardingDailyLoopPreview: View {
         RemoteLoopingVideoView(
             url: OnboardingDemoMedia.url,
             isPlaying: isOnScreen && scenePhase == .active && !reduceMotion,
-            state: $videoState
+            state: $videoState,
+            onSecondsRemaining: { secondsRemaining = $0 }
         )
-            .aspectRatio(1080.0 / 1666.0, contentMode: .fit)
+            .aspectRatio(OnboardingDemoMedia.aspectRatio, contentMode: .fit)
             .frame(maxWidth: .infinity)
             .overlay {
                 if videoState == .loading {
                     ProgressView().tint(NanoTheme.teal)
+                } else if videoState == .ready, let secondsRemaining, !reduceMotion {
+                    DemoCountdownOverlay(seconds: secondsRemaining)
                 }
             }
         .accessibilityElement(children: .contain)
@@ -39,6 +43,7 @@ struct OnboardingPlanView: View {
     let selectedBlockers: Set<String>
     let playerName: String
     let evolutionChallenge: WalkingEvolutionChallenge?
+    var journey: WalkingJourneyProjection? = nil
     let onBack: () -> Void
     let onContinue: () -> Void
 
@@ -85,7 +90,9 @@ struct OnboardingPlanView: View {
                             WalkingPlanPageContent(page: page, comparison: comparison, headline: opening.headline,
                                 detail: opening.detail, comparisonHeadline: copy.comparisonTitle,
                                 tint: NanoTheme.teal, elapsed: elapsed, benefits: copy.paywallBenefits,
-                                evolutionChallenge: evolutionChallenge, comparisonDetail: copy.comparisonDetail)
+                                evolutionChallenge: evolutionChallenge, comparisonDetail: copy.comparisonDetail,
+                                journey: journey, emphasizesBody: copy.emphasizesBody,
+                                milestoneArtwork: milestoneArtwork)
                         }
                         .id(page)
                     }
@@ -96,7 +103,7 @@ struct OnboardingPlanView: View {
                 .scrollIndicators(.hidden)
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                Button(page == .target ? "SEE HOW IT ADDS UP" : "LET’S MAKE IT HAPPEN", action: advance)
+                Button(page == .target ? "SEE WHERE THIS TAKES YOU" : "LET’S MAKE IT HAPPEN", action: advance)
                     .font(NanoFont.aldrich(13)).foregroundStyle(.black)
                     .frame(maxWidth: .infinity, minHeight: 54)
                     .background(LinearGradient(colors: [NanoTheme.teal, NanoTheme.cyan], startPoint: .leading, endPoint: .trailing), in: RoundedRectangle(cornerRadius: 18))
@@ -107,6 +114,13 @@ struct OnboardingPlanView: View {
         }
         .background(NanoTheme.background)
     }
+    /// Real creatures you'll meet at each milestone, kept as silhouettes so they stay a surprise.
+    private func milestoneArtwork(_ creature: Int) -> AnyView? {
+        let creatures = store.catalog.discoveredCreatures
+        guard creature > 0, creature <= creatures.count else { return nil }
+        return AnyView(CreatureArtworkView(stage: creatures[creature - 1], isLocked: true))
+    }
+
     private func advance() {
         if let next = page.next { setPage(next) } else { onContinue() }
     }

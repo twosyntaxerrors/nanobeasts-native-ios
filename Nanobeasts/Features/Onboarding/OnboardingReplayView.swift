@@ -17,7 +17,10 @@ struct TutorialPaywallJourney {
     }
 
     enum Phase: Equatable {
-        case walking, charging, paywall, paused, revealing, choosingEgg, receivingEgg, complete
+        case walking, charging, paywall, revealing, choosingEgg, receivingEgg, complete
+        /// Walking after closing the paywall: steps count for the day and bank,
+        /// but the creature waits, ready to evolve, until Pro unlocks it.
+        case lockedWalking
     }
 
     enum Milestone { case tutorialHatch, tutorialMaturity, nextHatch, firstEvolution }
@@ -40,6 +43,10 @@ struct TutorialPaywallJourney {
     private(set) var hasHatchedNextEgg = false
     private(set) var hasMaturedTutorial = false
     private(set) var hasEvolved = false
+    /// Today's steps walked while locked. Like the live app, upgrading the same day
+    /// credits them; there is no multi-day bank.
+    private(set) var uncountedSteps = 0
+    var isEvolutionLocked: Bool { phase == .lockedWalking }
     private var nextHatchTarget = 0
     private var evolutionTarget = 0
 
@@ -68,6 +75,11 @@ struct TutorialPaywallJourney {
     }
 
     mutating func addSteps() {
+        if phase == .lockedWalking {
+            steps += 1_000
+            uncountedSteps += 1_000
+            return
+        }
         guard phase == .walking else { return }
         let increment = milestone == .tutorialHatch ? 100
             : min(milestone == .tutorialMaturity ? 100 : 1_000, target - stageSteps)
@@ -116,7 +128,9 @@ struct TutorialPaywallJourney {
             case .firstEvolution:
                 guard hasPurchased else { return }
                 hasEvolved = true
-                stageSteps = 0
+                // Upgrading credits today's steps, so they carry into the new stage.
+                stageSteps = min(uncountedSteps, max(target - 1, 0))
+                uncountedSteps = 0
                 phase = .complete
             }
             return
@@ -148,13 +162,15 @@ struct TutorialPaywallJourney {
         phase = .walking
     }
 
+    /// Closing the paywall goes straight back to walking, with evolution locked.
     mutating func closePaywall() {
         guard phase == .paywall else { return }
-        phase = .paused
+        phase = .lockedWalking
     }
 
-    mutating func resume() {
-        guard phase == .paused else { return }
+    /// The orange badge on Home reopens the paywall from the locked state.
+    mutating func openUpgrade() {
+        guard phase == .lockedWalking else { return }
         phase = .paywall
     }
 }
@@ -228,7 +244,8 @@ struct OnboardingReplayView: View {
                     openWorkouts: { showsWorkoutNotice = true },
                     defersHomeCelebrations: showsTour || presentation != nil,
                     onHomePresentationChanged: { _ in },
-                    onReplayNameTap: addSteps, onExitReplay: { dismiss() },
+                    onReplayNameTap: addSteps, onReplayUpgradeTap: openUpgrade,
+                    onExitReplay: { dismiss() },
                     showsTour: showsTour, onTourFinished: { showsTour = false })
                     .allowsHitTesting(!pendingHomeHealth)
             }
@@ -373,12 +390,10 @@ struct OnboardingReplayView: View {
                 selectedBlockers: replayStore.onboardingBlockers,
                 isPreview: true,
                 onPreviewPurchase: { journey.purchase(); syncProfile() },
-                onPreviewClose: { journey.closePaywall() },
+                onPreviewClose: closePaywall,
                 previewMilestone: journey.hasRevealed
                     ? "YOU BROUGHT \(creature.name.uppercased()) TO LIFE"
                     : "YOUR FIRST COMPANION IS READY TO HATCH")
-        case .paused:
-            SubscriptionReturnView(reviewPlans: { journey.resume() }, isPreview: true)
         case .complete:
             if timing == .afterReveal {
                 EvolutionLifecycleExperience(catalog: replayStore.catalog,
@@ -389,7 +404,7 @@ struct OnboardingReplayView: View {
             } else {
                 Color.clear
             }
-        case .walking, .charging, .choosingEgg, .receivingEgg:
+        case .walking, .charging, .choosingEgg, .receivingEgg, .lockedWalking:
             Color.clear
         }
     }
@@ -439,11 +454,11 @@ struct OnboardingReplayView: View {
                 selectedBlockers: replayStore.onboardingBlockers,
                 isPreview: true,
                 onPreviewPurchase: { journey.purchase(); syncProfile() },
-                onPreviewClose: { journey.closePaywall() },
-                previewMilestone: "\(replayFamily.stages[1].name.uppercased()) IS READY TO EVOLVE")
-        case .paused:
-            SubscriptionReturnView(reviewPlans: { journey.resume() }, isPreview: true)
-        case .walking, .charging, .complete:
+                onPreviewClose: closePaywall,
+                previewMilestone: journey.uncountedSteps > 0
+                    ? "TODAY’S \(journey.uncountedSteps.formatted()) STEPS CAN STILL COUNT"
+                    : "\(replayFamily.stages[1].name.uppercased()) IS READY TO EVOLVE")
+        case .walking, .charging, .complete, .lockedWalking:
             Color.clear
         }
     }
@@ -465,7 +480,21 @@ struct OnboardingReplayView: View {
             familyIndex: journey.familyIndex,
             stageIndex: journey.isLaterTiming ? journey.stageIndex : nil,
             stageSteps: journey.isLaterTiming ? journey.stageSteps : nil,
-            tutorialMatured: journey.hasMaturedTutorial)
+            tutorialMatured: journey.hasMaturedTutorial,
+            evolutionLocked: journey.isEvolutionLocked,
+            uncountedSteps: journey.uncountedSteps)
+    }
+
+    private func closePaywall() {
+        journey.closePaywall()
+        syncProfile()
+        presentation = nil
+    }
+
+    private func openUpgrade() {
+        journey.openUpgrade()
+        syncProfile()
+        presentation = .hatch
     }
 
     private func addSteps() {

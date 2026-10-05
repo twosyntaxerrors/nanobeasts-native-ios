@@ -1,5 +1,6 @@
 import AVFoundation
 import RevenueCat
+import SDWebImage
 import SwiftUI
 import UIKit
 
@@ -113,6 +114,9 @@ struct OnboardingFlowView: View {
                     selectedBlockers: draft.selectedBlockers,
                     playerName: draft.playerName,
                     evolutionChallenge: evolutionChallenge,
+                    journey: WalkingJourneyProjection(
+                        comparison: WalkingPlanComparison(baselineSteps: baselineDailySteps, targetSteps: recommendedGoal),
+                        discoverySteps: store.catalog.discoveryStepCosts),
                     onBack: { draft.chatStep = .name; transition(to: .chat) },
                     onContinue: {
                         draft.completedConnections = true
@@ -131,6 +135,7 @@ struct OnboardingFlowView: View {
         }
         .preferredColorScheme(.dark)
         .task {
+            OnboardingStoryMedia.prefetch()
             await ProfessorNanoPose.prefetchArtwork(animationsEnabled: !reduceMotion && !store.reduceMotion)
         }
         .onChange(of: draft) { _, value in
@@ -227,7 +232,6 @@ private struct OnboardingOption: Identifiable {
         case "Lose Weight": .walking
         case "Get Fit": .dumbbell
         case "Collect Creatures": .paw
-        case "Have Fun": .map
         default: nil
         }
     }
@@ -249,9 +253,27 @@ private let walkingRoutineOptions = WalkingRoutine.allCases.map {
     OnboardingOption(title: $0.title, detail: $0.detail, value: $0.rawValue)
 }
 
+/// The evolution screen sits a few steps into onboarding. Downloading and decoding
+/// its clip as onboarding opens means it plays the instant the screen appears,
+/// instead of after a 2.4 MB download plus an 81-frame decode.
+enum OnboardingStoryMedia {
+    @MainActor static func prefetch() {
+        _ = SDWebImagePrefetcher.shared.prefetchURLs(
+            [R2TransitionManifest.onboardingGlitchletEvolutionURL],
+            options: [.highPriority, .preloadAllFrames],
+            context: [.animatedImageClass: SDAnimatedImage.self],
+            progress: nil,
+            completed: nil
+        )
+    }
+}
+
 enum OnboardingDemoMedia {
+    /// v3 matches the landing page cut: no baked-in progress rail or label, so the
+    /// in-app countdown can sit in the top-right corner.
     static let url = R2AssetManifest.baseURL
-        .appending(path: "videos/onboarding/nanobeasts-field-demo-v2.mp4")
+        .appending(path: "videos/onboarding/nanobeasts-field-demo-v3.mp4")
+    static let aspectRatio: CGFloat = 1080.0 / 1666.0
 }
 
 private struct FieldDemoView: View {
@@ -261,6 +283,7 @@ private struct FieldDemoView: View {
     @State private var isRevealed = false
     @State private var isOnScreen = false
     @State private var videoState = DemoVideoState.loading
+    @State private var secondsRemaining: Int?
     let onStart: () -> Void
 
     private var reduceMotion: Bool { systemReduceMotion || store.reduceMotion }
@@ -271,8 +294,12 @@ private struct FieldDemoView: View {
                 RemoteLoopingVideoView(
                     url: OnboardingDemoMedia.url,
                     isPlaying: isRevealed && isOnScreen && scenePhase == .active,
-                    state: $videoState
+                    state: $videoState,
+                    onSecondsRemaining: { secondsRemaining = $0 }
                 )
+                if videoState == .ready, let secondsRemaining {
+                    DemoCountdownOverlay(seconds: secondsRemaining)
+                }
                 if videoState == .loading {
                     ProgressView().tint(NanoTheme.teal)
                 } else if videoState == .failed {
@@ -389,11 +416,38 @@ private struct FieldDemoPresentation<Demo: View>: View {
 
 enum DemoVideoState { case loading, ready, failed }
 
+/// Time left in the demo loop, matching the landing page, so it's clear how long
+/// the video runs. Pinned to the video's own rect, not the letterboxed frame.
+struct DemoCountdownOverlay: View {
+    let seconds: Int
+
+    var body: some View {
+        Color.clear
+            .aspectRatio(OnboardingDemoMedia.aspectRatio, contentMode: .fit)
+            .overlay(alignment: .topTrailing) {
+                Text("\(seconds / 60):\(String(format: "%02d", seconds % 60))")
+                    .font(NanoFont.aldrich(13))
+                    .monospacedDigit()
+                    .tracking(0.5)
+                    .foregroundStyle(NanoTheme.teal)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 3)
+                    .background(Color(red: 0.035, green: 0.035, blue: 0.043), in: Capsule())
+                    .overlay(Capsule().stroke(Color(red: 0.153, green: 0.153, blue: 0.165), lineWidth: 1))
+                    .padding(10)
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+}
+
 struct RemoteLoopingVideoView: UIViewRepresentable {
     let url: URL
     let isPlaying: Bool
     @Binding var state: DemoVideoState
     var loopDuration: TimeInterval? = nil
+    /// Whole seconds left in the current loop, for an on-screen countdown.
+    var onSecondsRemaining: ((Int) -> Void)? = nil
 
     func makeCoordinator() -> Coordinator {
         Coordinator { state = $0 }
@@ -404,6 +458,7 @@ struct RemoteLoopingVideoView: UIViewRepresentable {
         view.backgroundColor = .black
         view.playerLayer.videoGravity = .resizeAspect
         view.playerLayer.player = context.coordinator.player
+        context.coordinator.onSecondsRemaining = onSecondsRemaining
         context.coordinator.attach(to: view.playerLayer)
         context.coordinator.prepare(url: url, loopDuration: loopDuration)
         context.coordinator.setPlaying(isPlaying)
@@ -412,6 +467,7 @@ struct RemoteLoopingVideoView: UIViewRepresentable {
 
     func updateUIView(_ view: LoopingPlayerView, context: Context) {
         context.coordinator.onStateChange = { state = $0 }
+        context.coordinator.onSecondsRemaining = onSecondsRemaining
         if context.coordinator.url != url || context.coordinator.loopDuration != loopDuration {
             context.coordinator.prepare(url: url, loopDuration: loopDuration)
         }
@@ -429,6 +485,9 @@ struct RemoteLoopingVideoView: UIViewRepresentable {
         var url: URL?
         var loopDuration: TimeInterval?
         var onStateChange: (DemoVideoState) -> Void
+        var onSecondsRemaining: ((Int) -> Void)?
+        private var timeObserver: Any?
+        private var lastSecondsRemaining: Int?
         private var isPlaying = false
         private var isAttached = false
         private var displayObservation: NSKeyValueObservation?
@@ -455,6 +514,22 @@ struct RemoteLoopingVideoView: UIViewRepresentable {
             itemObservation = player.observe(\.currentItem, options: [.new]) { [weak self] _, _ in
                 DispatchQueue.main.async { self?.observeCurrentItem() }
             }
+            // The looper swaps in a fresh item each pass, so currentTime restarts at zero per loop.
+            timeObserver = player.addPeriodicTimeObserver(
+                forInterval: CMTime(value: 1, timescale: 4), queue: .main
+            ) { [weak self] time in
+                MainActor.assumeIsolated { self?.publishRemaining(at: time) }
+            }
+        }
+
+        private func publishRemaining(at time: CMTime) {
+            guard let onSecondsRemaining, let item = player.currentItem else { return }
+            let duration = loopDuration ?? item.duration.seconds
+            guard duration.isFinite, duration > 0, time.seconds.isFinite else { return }
+            let remaining = max(0, Int(ceil(duration - time.seconds)))
+            guard remaining != lastSecondsRemaining else { return }
+            lastSecondsRemaining = remaining
+            onSecondsRemaining(remaining)
         }
 
         private func observeCurrentItem() {
@@ -504,6 +579,8 @@ struct RemoteLoopingVideoView: UIViewRepresentable {
 
         func stop() {
             isAttached = false
+            if let timeObserver { player.removeTimeObserver(timeObserver) }
+            timeObserver = nil
             player.cancelPendingPrerolls()
             displayObservation = nil
             itemObservation = nil

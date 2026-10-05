@@ -13,9 +13,10 @@ while depth:
     depth += (source[end] == '{') - (source[end] == '}')
     end += 1
 method = source[start:end]
-cap_start = source.index('    var freeProgressionCapReached: Bool {')
-cap_end = source.index('\n    }', cap_start) + len('\n    }')
-method += '\n' + source[cap_start:cap_end]
+lock_start = source.index('    var isEvolutionLocked: Bool {')
+lock_end = source.index('    var uncountedTodaySteps: Int {', lock_start)
+lock_end = source.index('\n    }', lock_end) + len('\n    }')
+method += '\n' + source[lock_start:lock_end]
 fixture = r'''
 import Foundation
 struct Stage { let id: String; let stage: Int }
@@ -35,9 +36,9 @@ enum CreatureProgressionRules {
     static func steps(familyIndex: Int, stage: Int) -> Int { 250 }
 }
 final class Profile {
-    static let freeDailyProgressionCap = 2_500
-    var testingProgressionCreditSteps = 0
-    var progressionStepsCreditedToday: Int { progressionCreditHistory.first?.steps ?? 0 }
+    var replayEvolutionLocked = false
+    var replayUncountedSteps = 0
+    var onboardingCompleted = true
     let isOnboardingReplay: Bool
     let catalog = Catalog()
     var familyIndex = 0, stageIndex = 0, progressionSteps = 0
@@ -120,11 +121,19 @@ expect(!mature.isPremium && !mature.discoveredStageIDs.contains("evolved"))
 real.updateOnboardingReplay(steps: 750, revealed: true, purchased: false, stageIndex: 1, stageSteps: 0, tutorialMatured: true)
 expect(!real.awaitingEggSelection && real.discoveryEvents.isEmpty)
 preview.isPremium = false
-expect(!preview.freeProgressionCapReached)
-real.progressionCreditHistory = [DailyStepRecord(day: Date(), steps: 3_000)]
-expect(real.freeProgressionCapReached)
+expect(!preview.isEvolutionLocked)
+preview.updateOnboardingReplay(steps: 10_250, revealed: true, purchased: false, evolutionLocked: true, uncountedSteps: 1_000)
+expect(preview.isEvolutionLocked && preview.displayedTodaySteps == 10_250 && preview.uncountedTodaySteps == 1_000)
+real.isPremium = false
+real.dailyHistory = [DailyStepRecord(day: Date(), steps: 6_000)]
+real.progressionCreditHistory = []
+expect(real.isEvolutionLocked && real.uncountedTodaySteps == 6_000)
+real.progressionCreditHistory = [DailyStepRecord(day: Date(), steps: 4_500)]
+expect(real.uncountedTodaySteps == 1_500)
 real.isPremium = true
-expect(!real.freeProgressionCapReached)
+expect(!real.isEvolutionLocked)
+real.isPremium = false; real.onboardingCompleted = false
+expect(!real.isEvolutionLocked)
 print("Passed \(count) replay-profile checks: steps, fresh history, reveal timing, discovery deduplication, and live-profile guard.")
 '''
 with tempfile.TemporaryDirectory(prefix='nano-replay-profile-') as temp:

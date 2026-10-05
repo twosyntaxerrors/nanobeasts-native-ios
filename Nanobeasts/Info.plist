@@ -6,17 +6,6 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Nanobeasts</string>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>com.twosyntaxerrors.nanobeasts.native</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>nanobeasts</string>
-			</array>
-		</dict>
-	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -29,8 +18,44 @@
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.twosyntaxerrors.nanobeasts.native</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>nanobeasts</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Nanobeasts uses the camera so you can add a finish-line photo to your workout share card.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Nanobeasts reads your steps to hatch and evolve your creatures, and can import your workouts and recorded routes from Apple Health for your history and sharing.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Nanobeasts saves completed workouts, distance, and active energy to Apple Health when you allow it.</string>
+	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
+	<dict>
+		<key>WorkoutRoute</key>
+		<string>Precise location keeps your workout route accurate and clears fog only where you actually traveled.</string>
+	</dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Nanobeasts uses your location during outdoor workouts to measure distance and draw your route.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Nanobeasts uses your iPhone motion data to count steps when Apple Health is not connected.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Save the achievements, workout photos, and route videos you choose to your photo library.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>RevenueCatAPIKey</key>
+	<string>$(REVENUECAT_PUBLIC_SDK_KEY)</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Aldrich_400Regular.ttf</string>
@@ -38,36 +63,16 @@
 		<string>SpaceMono_400Regular.ttf</string>
 		<string>SpaceMono_700Bold.ttf</string>
 	</array>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
-	<key>NSHealthShareUsageDescription</key>
-	<string>Nanobeasts reads your steps to hatch and evolve your creatures, and can import your workouts and recorded routes from Apple Health for your history and sharing.</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>Nanobeasts saves completed workouts, distance, and active energy to Apple Health when you allow it.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Nanobeasts uses your location during outdoor workouts to measure distance and draw your route.</string>
-	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
-	<dict>
-		<key>WorkoutRoute</key>
-		<string>Precise location keeps your workout route accurate and clears fog only where you actually traveled.</string>
-	</dict>
-	<key>NSCameraUsageDescription</key>
-	<string>Nanobeasts uses the camera so you can add a finish-line photo to your workout share card.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Save the achievements, workout photos, and route videos you choose to your photo library.</string>
-	<key>NSMotionUsageDescription</key>
-	<string>Nanobeasts uses your iPhone motion data to count steps when Apple Health is not connected.</string>
-	<key>NSSupportsLiveActivities</key>
-	<true/>
-	<key>RevenueCatAPIKey</key>
-	<string>$(REVENUECAT_PUBLIC_SDK_KEY)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>
 	</dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>workout-processing</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>
@@ -76,10 +81,6 @@
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>arm64</string>
-	</array>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>location</string>
 	</array>
 	<key>UIRequiresFullScreen</key>
 	<true/>

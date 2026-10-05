@@ -1221,6 +1221,7 @@ struct MainTabView: View {
     let defersHomeCelebrations: Bool
     let onHomePresentationChanged: (Bool) -> Void
     var onReplayNameTap: (() -> Void)? = nil
+    var onReplayUpgradeTap: (() -> Void)? = nil
     var onExitReplay: (() -> Void)? = nil
     var showsTour = false
     var onTourFinished: () -> Void = {}
@@ -1237,6 +1238,7 @@ struct MainTabView: View {
         TabView(selection: $selectedTab) {
             NavigationStack {
                 LabView(onReplayNameTap: onReplayNameTap,
+                        onReplayUpgradeTap: onReplayUpgradeTap,
                         defersCelebrations: defersHomeCelebrations,
                         onPresentationStateChanged: onHomePresentationChanged)
             }

@@ -31,14 +31,18 @@ struct WalkingPlanPageContent: View {
     var benefits: [OnboardingCopy.Benefit] = []
     var evolutionChallenge: WalkingEvolutionChallenge? = nil
     var comparisonDetail: String = ""
+    /// When present, page two shows the long-horizon Dex journey instead of the 30-day comparison.
+    var journey: WalkingJourneyProjection? = nil
+    var emphasizesBody = false
+    var milestoneArtwork: ((Int) -> AnyView?)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             if page == .target {
-                WalkingPlanLead(headline: headline, detail: detail)
-                WalkingPlanTarget(comparison: comparison, tint: tint, elapsed: elapsed, compact: !benefits.isEmpty,
+                WalkingPlanLead(headline: headline, detail: journey == nil ? detail : "")
+                WalkingPlanTarget(comparison: comparison, tint: tint, elapsed: elapsed,
                     evolutionChallenge: evolutionChallenge)
-                if !benefits.isEmpty {
+                if journey == nil, !benefits.isEmpty {
                     VStack(alignment: .leading, spacing: 18) {
                         Text("HOW NANOBEASTS HELPS")
                             .font(.system(size: 10, weight: .semibold)).tracking(1.5)
@@ -61,7 +65,12 @@ struct WalkingPlanPageContent: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
-                WalkingPlanComparisonContent(comparison: comparison, tint: tint, elapsed: elapsed, showsHeadline: false)
+                if let journey, journey.isAvailable {
+                    WalkingJourneyContent(journey: journey, tint: tint, elapsed: elapsed,
+                                          emphasizesBody: emphasizesBody, milestoneArtwork: milestoneArtwork)
+                } else {
+                    WalkingPlanComparisonContent(comparison: comparison, tint: tint, elapsed: elapsed, showsHeadline: false)
+                }
             }
         }
         .foregroundStyle(.white)
@@ -78,11 +87,13 @@ struct WalkingPlanLead: View {
                     .tracking(-0.7)
                     .fixedSize(horizontal: false, vertical: true)
                     .foregroundStyle(.white)
-                Text(detail)
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.65))
-                    .lineSpacing(3)
-                    .fixedSize(horizontal: false, vertical: true)
+                if !detail.isEmpty {
+                    Text(detail)
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.65))
+                        .lineSpacing(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
     }
 }
@@ -114,18 +125,17 @@ struct WalkingPlanTarget: View {
                 }
                 .font(.caption.weight(.medium))
                 .fixedSize(horizontal: false, vertical: true)
+                if comparison.targetSteps < DailyGoalPolicy.manualMinimum {
+                    Text("Rises \(DailyGoalPolicy.rampStep) a week to \(DailyGoalPolicy.manualMinimum.formatted()).")
+                        .font(.caption).foregroundStyle(tint)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 if let challenge = evolutionChallenge {
                     Rectangle().fill(tint.opacity(0.18)).frame(height: 1).padding(.vertical, 3)
                     VStack(alignment: .leading, spacing: 6) {
                         Label { Text("EVOLUTION CHALLENGE") } icon: { SolarImage(.stars, size: 14) }
                             .font(.system(size: 10, weight: .semibold)).tracking(1).foregroundStyle(tint)
                         Text(challenge.cadence).font(.subheadline.weight(.semibold))
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text("\(challenge.evolutionsIn30Days) evolutions to aim for in 30 days")
-                            .font(.caption).foregroundStyle(tint)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text("Estimated from average creature requirements at your daily target. Some creatures take longer.")
-                            .font(.caption2).foregroundStyle(.white.opacity(0.55))
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -194,6 +204,265 @@ struct WalkingPlanComparisonContent: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
+}
+
+/// The user's first month as a timeline where every creature they unlock is paired
+/// with what their body did to earn it, ending on where they'll be by day 30.
+struct WalkingJourneyContent: View {
+    let journey: WalkingJourneyProjection
+    let tint: Color
+    var elapsed: TimeInterval = WalkingPlanReveal.duration
+    var emphasizesBody = false
+    var milestoneArtwork: ((Int) -> AnyView?)? = nil
+    var start = Date()
+
+    /// 0...1 over the shared reveal clock; everything below is choreographed from it.
+    private var reveal: Double { min(1, max(0, (elapsed - 0.25) / (WalkingPlanReveal.duration - 0.35))) }
+    private let ember = Color(red: 1.0, green: 0.62, blue: 0.24)
+    private let ink = Color(red: 0.04, green: 0.065, blue: 0.085)
+
+    // Choreography: the line reaches node i at `arrival(i)`; the card lands last.
+    private static let firstArrival = 0.04
+    private static let spacing = 0.19
+    private func arrival(_ index: Int) -> Double { Self.firstArrival + Double(index) * Self.spacing }
+    private var cardArrival: Double { arrival(journey.checkpoints.count) }
+    private func phase(from start: Double, length: Double) -> Double {
+        min(1, max(0, (reveal - start) / length))
+    }
+    private var revealedNodes: Int {
+        journey.checkpoints.indices.filter { reveal >= arrival($0) }.count + (reveal >= cardArrival ? 1 : 0)
+    }
+    private var horizon: Int { WalkingJourneyProjection.horizonDays }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            timeline
+            futureCard
+                .opacity(Ease.out(phase(from: cardArrival, length: 0.1)))
+                .scaleEffect(0.94 + 0.06 * Ease.back(phase(from: cardArrival, length: 0.14)), anchor: .top)
+                .offset(y: 18 * (1 - Ease.out(phase(from: cardArrival, length: 0.14))))
+                .animation(.linear(duration: 0.034), value: reveal)
+            Text("Estimates at your daily goal. Results vary.")
+                .font(.caption2).foregroundStyle(.white.opacity(0.5))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // MARK: Timeline
+
+    private var timeline: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text("EVERY NANOBEAST IS REAL PROGRESS")
+                .font(.system(size: 10, weight: .semibold)).tracking(1.2)
+                .foregroundStyle(tint)
+                .opacity(Ease.out(phase(from: 0, length: 0.08)))
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(journey.checkpoints.enumerated()), id: \.element.id) { index, checkpoint in
+                    row(checkpoint, index: index, isLast: index == journey.checkpoints.count - 1)
+                }
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 24)
+                .fill(LinearGradient(colors: [.white.opacity(0.055), .white.opacity(0.015)], startPoint: .topLeading, endPoint: .bottomTrailing))
+        }
+        .overlay(RoundedRectangle(cornerRadius: 24).stroke(.white.opacity(0.08), lineWidth: 1))
+        // The shared clock ticks ~30 times a second; interpolate between ticks for 120 Hz motion.
+        .animation(.linear(duration: 0.034), value: reveal)
+        .sensoryFeedback(.impact(weight: .light, intensity: 0.6), trigger: revealedNodes) { old, new in new > old }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func row(_ checkpoint: WalkingJourneyProjection.Checkpoint, index: Int, isLast: Bool) -> some View {
+        let start = arrival(index)
+        let pop = phase(from: start, length: 0.12)           // node springs in
+        let ring = phase(from: start, length: 0.16)          // ring traces closed
+        let text = phase(from: start + 0.03, length: 0.14)   // copy slides in
+        let count = phase(from: start + 0.03, length: 0.2)   // numbers count up
+        let line = phase(from: start + 0.04, length: Self.spacing - 0.04) // line draws to the next node
+        let isStreak = checkpoint.day == WalkingJourneyProjection.streakMilestoneDay
+        let accent = isStreak ? ember : tint
+
+        return HStack(alignment: .top, spacing: 14) {
+            VStack(spacing: 0) {
+                ZStack {
+                    Circle()
+                        .fill(accent.opacity(0.35))
+                        .blur(radius: 10)
+                        .scaleEffect(1 + 0.5 * sin(.pi * pop))
+                        .opacity(sin(.pi * pop))
+                    Circle().fill(ink)
+                    Circle().stroke(.white.opacity(0.1), lineWidth: 1.5)
+                    Circle()
+                        .trim(from: 0, to: Ease.out(ring))
+                        .stroke(accent, style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                    if let art = milestoneArtwork?(max(checkpoint.creatures, 1)) ?? nil {
+                        art.padding(5)
+                    } else {
+                        Text("\(checkpoint.creatures)").font(.system(size: 13, weight: .bold, design: .rounded))
+                            .foregroundStyle(accent)
+                    }
+                }
+                .frame(width: 44, height: 44)
+                .scaleEffect(0.4 + 0.6 * Ease.back(pop))
+                .opacity(Ease.out(min(1, pop * 2)))
+                if !isLast {
+                    ZStack(alignment: .top) {
+                        Capsule().fill(.white.opacity(0.07))
+                        Capsule()
+                            .fill(LinearGradient(colors: [accent, tint.opacity(0.5)], startPoint: .top, endPoint: .bottom))
+                            .scaleEffect(x: 1, y: Ease.inOut(line), anchor: .top)
+                            .shadow(color: tint.opacity(0.6), radius: 4)
+                    }
+                    .frame(width: 2)
+                    .frame(minHeight: 22)
+                    .padding(.vertical, 3)
+                }
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text("DAY \(checkpoint.day)")
+                        .font(.system(size: 10, weight: .bold)).tracking(1)
+                        .foregroundStyle(accent)
+                    if isStreak {
+                        Text("3-WEEK STREAK")
+                            .font(.system(size: 9, weight: .bold)).tracking(0.8)
+                            .foregroundStyle(ember)
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(ember.opacity(0.14), in: Capsule())
+                            .scaleEffect(0.6 + 0.4 * Ease.back(phase(from: start + 0.08, length: 0.12)), anchor: .leading)
+                    }
+                }
+                Text(title(for: checkpoint, progress: Ease.out(count)))
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .fixedSize(horizontal: false, vertical: true)
+                if let detail = detail(for: checkpoint, progress: Ease.out(count)) {
+                    Text(detail)
+                        .font(.footnote).foregroundStyle(.white.opacity(0.7))
+                        .monospacedDigit()
+                }
+            }
+            .padding(.top, 2)
+            .padding(.bottom, isLast ? 0 : 16)
+            .opacity(Ease.out(text))
+            .offset(x: 18 * (1 - Ease.out(text)))
+            Spacer(minLength: 0)
+        }
+    }
+
+    private func title(for checkpoint: WalkingJourneyProjection.Checkpoint, progress: Double) -> String {
+        if checkpoint.day == 1 { return "First Nanobeast hatches" }
+        let shown = max(1, Int((Double(checkpoint.creatures) * progress).rounded()))
+        return "\(shown) Nanobeasts"
+    }
+
+    private func detail(for checkpoint: WalkingJourneyProjection.Checkpoint, progress: Double) -> String? {
+        guard checkpoint.day > 1 else { return nil }
+        let miles = "\(Int((Double(checkpoint.miles) * progress).rounded())) mi"
+        guard checkpoint.calories >= 50 else { return miles }
+        let calories = "\((Int((Double(checkpoint.calories) * progress / 50).rounded()) * 50).formatted()) cal burned"
+        return emphasizesBody ? "\(calories) · \(miles)" : "\(miles) · \(calories)"
+    }
+
+    // MARK: Future you
+
+    private var futureCard: some View {
+        let counted = Ease.out(phase(from: cardArrival + 0.02, length: 0.12))
+        let calories = Int((journey.walkingCalories(byDay: horizon) * counted / 100).rounded()) * 100
+        let pounds = journey.fatEnergyPounds(byDay: horizon)
+        // Half-pound precision for small totals, whole pounds once it's bigger.
+        let poundsText = pounds < 3
+            ? ((pounds * 2).rounded() / 2).formatted(.number.precision(.fractionLength(0...1)))
+            : Int(pounds.rounded()).formatted()
+        let miles = Int((Double(journey.milesWalked(byDay: horizon)) * counted).rounded())
+        let marathons = journey.marathons(byDay: horizon)
+        let creatures = Int((Double(journey.creaturesInHorizon) * counted).rounded())
+        return VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("DAY \(horizon)")
+                    .font(.system(size: 10, weight: .semibold)).tracking(1.4)
+                    .foregroundStyle(tint)
+                Text("By \(journey.date(forDay: horizon, from: start).formatted(.dateTime.month(.wide).day()))")
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .tracking(-0.6)
+            }
+            // The body outcome leads, as pounds they can picture stacking up.
+            if pounds >= 0.75 {
+                VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        // "Like" keeps this an energy equivalence, not a weight-loss promise.
+                        Text("LIKE BURNING")
+                            .font(.system(size: 11, weight: .bold)).tracking(1.4)
+                            .foregroundStyle(ember)
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text("~\(poundsText) lb")
+                                .font(.system(size: 54, weight: .heavy, design: .rounded).monospacedDigit())
+                                .foregroundStyle(LinearGradient(colors: [Color(red: 1, green: 0.8, blue: 0.4), ember],
+                                                                startPoint: .top, endPoint: .bottom))
+                                .shadow(color: ember.opacity(0.35), radius: 14)
+                                .lineLimit(1).minimumScaleFactor(0.7)
+                            Text("of fat")
+                                .font(.system(size: 24, weight: .bold, design: .rounded))
+                                .foregroundStyle(.white.opacity(0.9))
+                        }
+                    }
+                    PoundBlocks(pounds: pounds, progress: counted, color: ember)
+                    Text("\(calories.formatted()) calories burned walking")
+                        .font(.footnote.weight(.medium)).foregroundStyle(.white.opacity(0.6))
+                        .monospacedDigit()
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(calories.formatted())
+                        .font(.system(size: 38, weight: .bold, design: .rounded).monospacedDigit())
+                        .foregroundStyle(tint)
+                    Text("calories burned walking")
+                        .font(.subheadline.weight(.medium)).foregroundStyle(.white.opacity(0.8))
+                        .lineLimit(1).minimumScaleFactor(0.8)
+                }
+            }
+            Rectangle().fill(.white.opacity(0.1)).frame(height: 1)
+            HStack(alignment: .top, spacing: 12) {
+                statView(Stat(value: miles.formatted(),
+                              label: marathons >= 1 ? "miles, about \(marathons) marathon\(marathons == 1 ? "" : "s")" : "miles"),
+                         accent: false)
+                divider
+                statView(Stat(value: "\(creatures)", label: "Nanobeasts"), accent: false)
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: 24)
+                .fill(LinearGradient(colors: [tint.opacity(0.16), ink], startPoint: .topLeading, endPoint: .bottomTrailing))
+        }
+        .overlay(RoundedRectangle(cornerRadius: 24).stroke(tint.opacity(0.3), lineWidth: 1))
+        .accessibilityElement(children: .combine)
+    }
+
+    private struct Stat { let value: String; let label: String }
+
+    private var divider: some View {
+        Rectangle().fill(.white.opacity(0.1)).frame(width: 1, height: 52)
+    }
+
+    private func statView(_ stat: Stat, accent: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(stat.value)
+                .font(.system(size: 24, weight: .bold, design: .rounded).monospacedDigit())
+                .foregroundStyle(accent ? tint : .white)
+                .lineLimit(1).minimumScaleFactor(0.6)
+            Text(stat.label)
+                .font(.caption2).foregroundStyle(.white.opacity(0.65))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
 }
 
 /// An illustrated comparison of additional walking above the user's baseline.
@@ -388,5 +657,54 @@ struct WalkingPlanPreparationContent: View {
             Spacer(minLength: 0)
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// Easing curves for clock-driven choreography.
+private enum Ease {
+    static func out(_ t: Double) -> Double { 1 - pow(1 - t, 3) }
+    static func inOut(_ t: Double) -> Double { t < 0.5 ? 4 * t * t * t : 1 - pow(-2 * t + 2, 3) / 2 }
+    /// Overshoots slightly before settling, for a springy pop.
+    static func back(_ t: Double) -> Double {
+        let c1 = 1.70158, c3 = c1 + 1
+        return 1 + c3 * pow(t - 1, 3) + c1 * pow(t - 1, 2)
+    }
+}
+
+/// One block per pound of fat-equivalent energy, filling in as the card counts up.
+private struct PoundBlocks: View {
+    let pounds: Double
+    let progress: Double
+    let color: Color
+
+    /// Rounded to half pounds and capped so the row always fits one line.
+    private var halves: Int { min(Int((pounds * 2).rounded()), 16) }
+
+    var body: some View {
+        HStack(spacing: 5) {
+            ForEach(0..<Int(ceil(Double(halves) / 2)), id: \.self) { index in
+                let isHalf = index * 2 + 1 == halves
+                let filled = progress * Double(halves) / 2 - Double(index)
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(color.opacity(0.12))
+                        .overlay(RoundedRectangle(cornerRadius: 7, style: .continuous).stroke(color.opacity(0.3), lineWidth: 1))
+                    GeometryReader { geometry in
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
+                            .fill(LinearGradient(colors: [Color(red: 1, green: 0.8, blue: 0.4), color],
+                                                 startPoint: .top, endPoint: .bottom))
+                            .frame(width: geometry.size.width * min(max(filled, 0), isHalf ? 0.5 : 1))
+                    }
+                    Text("1 lb")
+                        .font(.system(size: 9, weight: .heavy, design: .rounded))
+                        .foregroundStyle(.black.opacity(!isHalf && filled >= 0.6 ? 0.55 : 0))
+                        .lineLimit(1).minimumScaleFactor(0.6)
+                        .frame(maxWidth: .infinity)
+                }
+                .frame(maxWidth: 34)
+                .frame(height: 26)
+            }
+        }
+        .accessibilityHidden(true)
     }
 }

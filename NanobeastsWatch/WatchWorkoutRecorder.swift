@@ -143,7 +143,11 @@ final class WatchWorkoutRecorder: NSObject, ObservableObject {
             countdown = nil
             let workoutSession = try HKWorkoutSession(healthStore: store, configuration: configuration)
             let workoutBuilder = workoutSession.associatedWorkoutBuilder()
-            workoutBuilder.dataSource = HKLiveWorkoutDataSource(healthStore: store, workoutConfiguration: configuration)
+            let dataSource = HKLiveWorkoutDataSource(healthStore: store, workoutConfiguration: configuration)
+            // Live step samples arrive between Core Motion's batched pedometer
+            // deliveries; whichever source is ahead drives the live readout.
+            dataSource.enableCollection(for: HKQuantityType(.stepCount), predicate: nil)
+            workoutBuilder.dataSource = dataSource
             let now = Date()
             let type = Self.presentation(activity: activity, indoor: indoor)
             snapshot = WatchWorkoutSnapshot(id: UUID(), workoutID: type.id, name: displayName ?? type.name, indoor: indoor,
@@ -527,7 +531,8 @@ final class WatchWorkoutRecorder: NSObject, ObservableObject {
             guard let data else { return }
             Task { @MainActor in
                 guard let self, self.stepSegment == segment else { return }
-                self.snapshot?.steps = self.baseSteps + max(0, data.numberOfSteps.intValue)
+                self.snapshot?.steps = max(self.snapshot?.steps ?? 0,
+                                           self.baseSteps + max(0, data.numberOfSteps.intValue))
             }
         }
     }
@@ -542,6 +547,9 @@ final class WatchWorkoutRecorder: NSObject, ObservableObject {
         }
         if let energy = builder.statistics(for: HKQuantityType(.activeEnergyBurned))?.sumQuantity() {
             snapshot?.calories = energy.doubleValue(for: .kilocalorie())
+        }
+        if let stepCount = builder.statistics(for: HKQuantityType(.stepCount))?.sumQuantity() {
+            snapshot?.steps = max(snapshot?.steps ?? 0, Int(stepCount.doubleValue(for: .count())))
         }
         let heartStatistics = builder.statistics(for: HKQuantityType(.heartRate))
         if let rate = heartStatistics?.mostRecentQuantity() {

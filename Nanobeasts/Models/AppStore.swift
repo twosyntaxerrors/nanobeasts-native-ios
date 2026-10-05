@@ -128,6 +128,9 @@ final class AppStore {
         var analyticsHistory: [DailyStepRecord]?
         var hourlyAnalyticsHistory: [HourlyStepRecord]?
         var dailyGoalHistory: [DailyGoalRecord]?
+        var scheduledDailyGoal: Int?
+        var scheduledDailyGoalSetOn: Date?
+        var goalRampAnchor: Date?
         var pendingLifecycleEvents: [CreatureDiscoveryEvent]?
         var awardedBadgeIDs: [String]?
         var eggDiscoveryOrder: [String]?
@@ -223,6 +226,12 @@ final class AppStore {
     private(set) var analyticsHistory: [DailyStepRecord] = []
     private(set) var hourlyAnalyticsHistory: [HourlyStepRecord] = []
     private(set) var dailyGoalHistory: [DailyGoalRecord] = []
+    /// A goal change waiting for tomorrow. Today's goal never moves mid-day, so
+    /// lowering it can't rescue a streak or farm goal badges.
+    private(set) var scheduledDailyGoal: Int?
+    private var scheduledDailyGoalSetOn: Date?
+    /// Start of the current week of a below-minimum goal's ramp toward 5,000.
+    private var goalRampAnchor: Date?
     private(set) var isLoading = false
     private(set) var lastHealthSync: Date?
     private(set) var evolutionEventID = UUID()
@@ -241,6 +250,8 @@ final class AppStore {
     private(set) var testingActivityPreviewSteps = 0
     private(set) var testingProgressionPreviewSteps = 0
     private(set) var testingProgressionCreditSteps = 0
+    private(set) var replayEvolutionLocked = false
+    private(set) var replayUncountedSteps = 0
     private var testingPresentedBadgeIDs: Set<String> = []
     @ObservationIgnored private var lastConsumedStepSyncAnimationID: UUID?
     @ObservationIgnored private var persistenceTask: Task<Void, Never>?
@@ -351,6 +362,9 @@ final class AppStore {
             0
         )
         dailyGoalHistory = restored.dailyGoalHistory ?? []
+        scheduledDailyGoal = restored.scheduledDailyGoal
+        scheduledDailyGoalSetOn = restored.scheduledDailyGoalSetOn
+        goalRampAnchor = restored.goalRampAnchor
         discoveryEvents = screenshotFixture?.discoveryEvents
             ?? defaults.data(forKey: discoveryStateKey)
                 .flatMap { try? JSONDecoder().decode([CreatureDiscoveryEvent].self, from: $0) }
@@ -427,8 +441,12 @@ final class AppStore {
                                 familyIndex replayFamilyIndex: Int = 0,
                                 stageIndex replayStageIndex: Int? = nil,
                                 stageSteps: Int? = nil,
-                                tutorialMatured: Bool = false) {
+                                tutorialMatured: Bool = false,
+                                evolutionLocked: Bool = false,
+                                uncountedSteps: Int = 0) {
         guard isOnboardingReplay else { return }
+        replayEvolutionLocked = evolutionLocked
+        replayUncountedSteps = max(uncountedSteps, 0)
         guard catalog.families.indices.contains(replayFamilyIndex) else { return }
         let nextStageIndex = replayStageIndex ?? (revealed ? 1 : 0)
         guard catalog.families[replayFamilyIndex].stages.indices.contains(nextStageIndex) else { return }
@@ -715,21 +733,24 @@ final class AppStore {
         persist()
     }
 
-    static let freeDailyProgressionCap = 2_500
+    /// Free users keep step tracking, streaks, and badges, but their steps don't
+    /// move the creature: evolution progress is a Pro feature. The onboarding
+    /// replay drives this explicitly so its paywall timing stays scripted.
+    var isEvolutionLocked: Bool {
+        isOnboardingReplay ? replayEvolutionLocked : onboardingCompleted && !isPremium
+    }
 
-    var progressionStepsCreditedToday: Int {
+    /// Today's steps walked since evolution locked: everything today minus what
+    /// already counted toward evolution (all of it for a free user, only the
+    /// steps after a mid-day lapse for a former subscriber).
+    var uncountedTodaySteps: Int {
+        guard isEvolutionLocked else { return 0 }
+        if isOnboardingReplay { return replayUncountedSteps }
         let calendar = Calendar.autoupdatingCurrent
-        return progressionCreditHistory.first(where: {
-            calendar.isDateInToday($0.day)
-        })?.steps ?? 0
+        let credited = progressionCreditHistory.first { calendar.isDateInToday($0.day) }?.steps ?? 0
+        return max(displayedTodaySteps - credited, 0)
     }
 
-    var freeProgressionCapReached: Bool {
-        // Replay milestones own their paywall timing, including journeys beyond one day's cap.
-        !isOnboardingReplay && !isPremium
-            && progressionStepsCreditedToday + testingProgressionCreditSteps
-                >= Self.freeDailyProgressionCap
-    }
 
     var todaySteps: Int {
         let calendar = Calendar.autoupdatingCurrent
@@ -971,6 +992,7 @@ final class AppStore {
     func refreshHealthData() async {
         guard !isOnboardingReplay else { return }
         guard onboardingCompleted else { return }
+        applyDailyGoalScheduleIfNeeded()
         ensureJourneyStarted()
         guard let journeyStartedAt else { return }
 
@@ -1082,6 +1104,9 @@ final class AppStore {
         onboardingPrimaryGoal = nil
         onboardingBlockers = []
         dailyGoal = 6_500
+        scheduledDailyGoal = nil
+        scheduledDailyGoalSetOn = nil
+        goalRampAnchor = nil
         onboardingWantsHealth = true
         onboardingWantsReminders = false
         distanceUnit = .miles
@@ -1103,7 +1128,10 @@ final class AppStore {
         onboardingGoals = selectedGoals
         onboardingBlockers = selectedBlockers
         onboardingPrimaryGoal = WalkingGoalSelection(values: selectedGoals, preferred: primaryGoal).primary?.rawValue
-        self.dailyGoal = min(max(dailyGoal, 2_000), 20_000)
+        self.dailyGoal = min(max(dailyGoal, 2_000), DailyGoalPolicy.maximum)
+        scheduledDailyGoal = nil
+        scheduledDailyGoalSetOn = nil
+        goalRampAnchor = nil
         onboardingWantsHealth = wantsHealth
         onboardingWantsReminders = wantsReminders
         persist()
@@ -1678,6 +1706,7 @@ final class AppStore {
 
     private func refreshPedometerData() async {
         guard onboardingCompleted else { return }
+        applyDailyGoalScheduleIfNeeded()
         ensureJourneyStarted()
         guard let journeyStartedAt, pedometerClient.isAvailable else { return }
 
@@ -1882,6 +1911,39 @@ final class AppStore {
             .goal ?? dailyGoal
     }
 
+    /// Saves a goal for tomorrow. Below-minimum goals (assigned by onboarding)
+    /// can be raised but never lowered; everyone else stays at 5,000 or more.
+    func scheduleDailyGoal(_ goal: Int) {
+        let floor = min(dailyGoal, DailyGoalPolicy.manualMinimum)
+        let clamped = min(max(goal, floor), DailyGoalPolicy.maximum)
+        scheduledDailyGoal = clamped == dailyGoal ? nil : clamped
+        scheduledDailyGoalSetOn = scheduledDailyGoal == nil ? nil : Date()
+        persist()
+    }
+
+    /// The goal Settings should show: tomorrow's if one is pending, otherwise today's.
+    var upcomingDailyGoal: Int { scheduledDailyGoal ?? dailyGoal }
+
+    var isDailyGoalRamping: Bool { upcomingDailyGoal < DailyGoalPolicy.manualMinimum }
+
+    /// Runs at each refresh. On a new day it applies a scheduled goal, then
+    /// advances any below-minimum goal by 500 per completed week.
+    func applyDailyGoalScheduleIfNeeded(now: Date = Date()) {
+        guard onboardingCompleted else { return }
+        let current = DailyGoalPolicy.State(goal: dailyGoal, scheduledGoal: scheduledDailyGoal,
+                                            scheduledOn: scheduledDailyGoalSetOn, rampAnchor: goalRampAnchor)
+        let next = DailyGoalPolicy.advance(current, to: now)
+        guard next != current else { return }
+        scheduledDailyGoal = next.scheduledGoal
+        scheduledDailyGoalSetOn = next.scheduledOn
+        goalRampAnchor = next.rampAnchor
+        if next.goal != dailyGoal {
+            dailyGoal = next.goal // Records today's goal and persists.
+        } else {
+            persist()
+        }
+    }
+
     private func recordCurrentDailyGoal() {
         guard journeyStartedAt != nil else { return }
         let calendar = Calendar.autoupdatingCurrent
@@ -1951,6 +2013,9 @@ final class AppStore {
             analyticsHistory: analyticsHistory,
             hourlyAnalyticsHistory: hourlyAnalyticsHistory,
             dailyGoalHistory: dailyGoalHistory,
+            scheduledDailyGoal: scheduledDailyGoal,
+            scheduledDailyGoalSetOn: scheduledDailyGoalSetOn,
+            goalRampAnchor: goalRampAnchor,
             pendingLifecycleEvents: pendingLifecycleEvents,
             awardedBadgeIDs: Array(awardedBadgeIDs),
             eggDiscoveryOrder: eggDiscoveryOrder,

@@ -1,6 +1,7 @@
 import ActivityKit
 import Combine
 import Foundation
+import ImageIO
 import UserNotifications
 import UIKit
 import OSLog
@@ -262,6 +263,9 @@ final class WorkoutLiveActivityController: ObservableObject {
         goalKind: String,
         goalTarget: Double?,
         companionID: String,
+        companionName: String? = nil,
+        companionStage: Int? = nil,
+        companionImageKey: String? = nil,
         sessionID: String = UUID().uuidString,
         workoutSource: String = "phone",
         state: WorkoutActivityAttributes.ContentState
@@ -283,8 +287,14 @@ final class WorkoutLiveActivityController: ObservableObject {
             goalKind: goalKind,
             goalTarget: goalTarget,
             companionID: companionID,
-            workoutSource: workoutSource
+            workoutSource: workoutSource,
+            companionName: companionName,
+            companionStage: companionStage,
+            companionArtwork: companionImageKey.map(WorkoutLiveActivityArtwork.filename(imageKey:))
         )
+        // The activity is requested before artwork is ready; it renders the
+        // creature on the next state update once the thumbnail lands.
+        if let companionImageKey { WorkoutLiveActivityArtwork.prepare(imageKey: companionImageKey) }
         pendingAttributes = attributes
         latestState = state
         requestPendingActivity()
@@ -329,7 +339,35 @@ final class WorkoutLiveActivityController: ObservableObject {
         // Do not recreate an activity that the user dismissed. Only retry a
         // request that has never succeeded (for example a background start).
         if activity == nil { requestPendingActivity() }
+        guard resolvedActivity != nil else { return }
+        // Phone workouts call this several times a second (timer, pedometer,
+        // GPS). Sending each one invites system throttling and queues stale
+        // frames, so send the newest state at most once per interval.
+        let wait = Self.minimumUpdateInterval - Date().timeIntervalSince(lastUpdateAt)
+        let isTransition = state.isPaused != lastSentState?.isPaused || state.isComplete
+        if wait <= 0 || isTransition {
+            trailingUpdate?.cancel()
+            trailingUpdate = nil
+            await send(state)
+        } else if trailingUpdate == nil {
+            trailingUpdate = Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(wait))
+                guard let self, !Task.isCancelled, let latest = self.latestState else { return }
+                self.trailingUpdate = nil
+                await self.send(latest)
+            }
+        }
+    }
+
+    private static let minimumUpdateInterval: TimeInterval = 1
+    private var lastUpdateAt = Date.distantPast
+    private var lastSentState: WorkoutActivityAttributes.ContentState?
+    private var trailingUpdate: Task<Void, Never>?
+
+    private func send(_ state: WorkoutActivityAttributes.ContentState) async {
         guard let activity = resolvedActivity else { return }
+        lastUpdateAt = Date()
+        lastSentState = state
         await activity.update(
             ActivityContent(
                 state: state,
@@ -369,6 +407,10 @@ final class WorkoutLiveActivityController: ObservableObject {
         pendingAttributes = nil
         latestState = nil
         startFailure = nil
+        trailingUpdate?.cancel()
+        trailingUpdate = nil
+        lastSentState = nil
+        lastUpdateAt = .distantPast
     }
 
     func restore(
@@ -396,5 +438,40 @@ final class WorkoutLiveActivityController: ObservableObject {
         return Activity<WorkoutActivityAttributes>.activities.first {
             $0.attributes.sessionID == sessionID && ($0.activityState == .active || $0.activityState == .stale)
         }
+    }
+}
+
+/// Writes a Lock Screen–sized creature thumbnail into the App Group so the
+/// widget extension can draw the current companion inside the Live Activity.
+enum WorkoutLiveActivityArtwork {
+    /// Live Activities refuse oversized images; 168 px covers a 56 pt badge at 3×.
+    private static let maxPixelSize = 168
+
+    static func filename(imageKey: String) -> String {
+        "live-companion-" + String(imageKey.map { $0.isLetter || $0.isNumber ? $0 : "-" }) + ".png"
+    }
+
+    static func prepare(imageKey: String) {
+        let filename = filename(imageKey: imageKey)
+        guard !WidgetSnapshotStore.hasInlineArtworkData(filename: filename) else { return }
+        let url = R2AssetManifest.url(for: imageKey)
+        Task.detached(priority: .userInitiated) {
+            guard
+                let data = try? await R2ArtworkCache.shared.data(for: url),
+                let thumbnail = thumbnail(from: data)
+            else { return }
+            WidgetSnapshotStore.saveArtworkData(thumbnail, filename: filename)
+        }
+    }
+
+    private static func thumbnail(from data: Data) -> Data? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize
+        ]
+        guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+        return UIImage(cgImage: image).pngData()
     }
 }

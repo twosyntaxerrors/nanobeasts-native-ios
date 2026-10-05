@@ -6,7 +6,11 @@ enum WalkingMotivation: String, CaseIterable, Identifiable {
     case weight = "Lose Weight"
     case fitness = "Get Fit"
     case collection = "Collect Creatures"
-    case fun = "Have Fun"
+
+    /// "Have Fun" was folded into collecting; answers saved under it map here.
+    private static let retired = ["Have Fun": Self.collection]
+
+    static func canonical(_ value: String) -> String { retired[value]?.rawValue ?? value }
 
     var id: String { rawValue }
 
@@ -16,7 +20,6 @@ enum WalkingMotivation: String, CaseIterable, Identifiable {
         case .weight: "Lose weight"
         case .fitness: "Lose body fat, keep muscle"
         case .collection: "Collect Nanobeasts"
-        case .fun: "Have more fun"
         }
     }
 
@@ -25,13 +28,13 @@ enum WalkingMotivation: String, CaseIterable, Identifiable {
         case .habit: "Make movement part of my everyday routine"
         case .weight: "Support my weight-loss goal with more movement"
         case .fitness: "Add walking alongside my strength training"
-        case .collection: "Discover, hatch, and evolve new creatures"
-        case .fun: "Turn everyday walks into an adventure"
+        case .collection: "Turn every walk into an adventure of new creatures"
         }
     }
 
     static func selected(in values: Set<String>) -> [Self] {
-        allCases.filter { values.contains($0.rawValue) }
+        let current = Set(values.map(canonical))
+        return allCases.filter { current.contains($0.rawValue) }
     }
 }
 
@@ -41,10 +44,65 @@ struct WalkingGoalSelection {
     var choices: [WalkingMotivation] { WalkingMotivation.selected(in: values) }
     var needsChoice: Bool { choices.count > 1 }
     var primary: WalkingMotivation? {
-        if let preferred, values.contains(preferred), let goal = WalkingMotivation(rawValue: preferred) { return goal }
+        if let preferred, let goal = WalkingMotivation(rawValue: WalkingMotivation.canonical(preferred)),
+           choices.contains(goal) { return goal }
         return choices.count == 1 ? choices.first : nil
     }
     var secondary: [WalkingMotivation] { choices.filter { $0 != primary } }
+}
+
+/// Daily goal rules that keep goal-based streaks and badges meaningful.
+enum DailyGoalPolicy {
+    /// The lowest goal anyone can set by hand. Lower starting goals from
+    /// onboarding are allowed but ramp up to this automatically.
+    static let manualMinimum = 5_000
+    static let maximum = 20_000
+    static let rampStep = 500
+    static let rampIntervalDays = 7
+
+    /// Weeks until a below-minimum goal reaches the minimum by ramping.
+    static func rampWeeks(from goal: Int) -> Int {
+        guard goal < manualMinimum else { return 0 }
+        return Int(ceil(Double(manualMinimum - goal) / Double(rampStep)))
+    }
+
+    struct State: Equatable {
+        var goal: Int
+        var scheduledGoal: Int?
+        var scheduledOn: Date?
+        var rampAnchor: Date?
+    }
+
+    /// Advances goal state to `now`: a goal scheduled on an earlier day takes
+    /// effect, then a below-minimum goal rises one step per completed week.
+    static func advance(_ state: State, to now: Date, calendar: Calendar = .autoupdatingCurrent) -> State {
+        var next = state
+        let today = calendar.startOfDay(for: now)
+        if let scheduled = next.scheduledGoal, let setOn = next.scheduledOn,
+           calendar.startOfDay(for: setOn) < today {
+            next.goal = scheduled
+            next.scheduledGoal = nil
+            next.scheduledOn = nil
+            next.rampAnchor = scheduled < manualMinimum ? today : nil
+        }
+        guard next.goal < manualMinimum else {
+            next.rampAnchor = nil
+            return next
+        }
+        guard let anchor = next.rampAnchor else {
+            next.rampAnchor = today
+            return next
+        }
+        let start = calendar.startOfDay(for: anchor)
+        let weeks = (calendar.dateComponents([.day], from: start, to: today).day ?? 0) / rampIntervalDays
+        if weeks > 0 {
+            next.goal = min(manualMinimum, next.goal + weeks * rampStep)
+            next.rampAnchor = next.goal < manualMinimum
+                ? calendar.date(byAdding: .day, value: weeks * rampIntervalDays, to: start)
+                : nil
+        }
+        return next
+    }
 }
 
 struct WalkingPlanComparison {
@@ -106,6 +164,102 @@ struct WalkingEvolutionChallenge {
     var evolutionsIn30Days: Int { WalkingPlanComparison.days / daysPerEvolution }
     var cadence: String {
         daysPerEvolution == 2 ? "Aim for an evolution every other day" : "Aim for an evolution every \(daysPerEvolution) days"
+    }
+}
+
+/// The user's first month at their daily target: Field Dex discoveries, miles,
+/// and the energy their extra walking adds up to. Pure arithmetic, verifiable offline.
+struct WalkingJourneyProjection {
+    /// A month is easy to picture, and results show up inside it.
+    static let horizonDays = 30
+    /// A factual milestone (three straight weeks at target), not a habit-science claim.
+    static let streakMilestoneDay = 21
+    static let stepsPerMile = 2_000.0
+    /// Net calories per walking step for lighter to heavier adults, so the
+    /// estimate needs no body weight. 3,500 kcal approximates 1 lb of body fat.
+    static let kcalPerStepLow = 0.03
+    static let kcalPerStepHigh = 0.05
+    static let kcalPerPoundOfFat = 3_500.0
+
+    let comparison: WalkingPlanComparison
+    /// Cumulative steps needed to discover each creature, in Dex order.
+    let discoverySteps: [Int]
+
+    var isAvailable: Bool { !discoverySteps.isEmpty && comparison.targetSteps > 0 }
+
+    /// The goal in effect on a given day (1-based). Goals under the manual minimum
+    /// rise one step after each completed week, exactly as `DailyGoalPolicy` ramps them.
+    func dailyGoal(onDay day: Int) -> Int {
+        let target = comparison.targetSteps
+        guard target < DailyGoalPolicy.manualMinimum else { return target }
+        let weeks = max(day - 1, 0) / DailyGoalPolicy.rampIntervalDays
+        return min(DailyGoalPolicy.manualMinimum, target + weeks * DailyGoalPolicy.rampStep)
+    }
+
+    /// Total steps by the end of a day when every day's goal is met.
+    func stepsWalked(byDay day: Int) -> Int {
+        guard day > 0 else { return 0 }
+        return (1...day).reduce(0) { $0 + dailyGoal(onDay: $1) }
+    }
+
+    func creaturesDiscovered(byDay day: Int) -> Int {
+        let walked = stepsWalked(byDay: day)
+        return discoverySteps.prefix { $0 <= walked }.count
+    }
+
+    var creaturesInHorizon: Int { creaturesDiscovered(byDay: Self.horizonDays) }
+
+    func day(forCreature creature: Int) -> Int {
+        guard creature > 0, creature <= discoverySteps.count, comparison.targetSteps > 0 else { return 0 }
+        let cost = discoverySteps[creature - 1]
+        var day = 1
+        while stepsWalked(byDay: day) < cost { day += 1 }
+        return day
+    }
+
+    /// One row of the month timeline: what the game shows and what the body did.
+    struct Checkpoint: Identifiable, Equatable {
+        let day: Int
+        let creatures: Int
+        let miles: Int
+        /// Calories burned walking at the daily target, rounded for display.
+        let calories: Int
+        var id: Int { day }
+    }
+
+    static let checkpointDays = [1, 7, 14, 21]
+
+    var checkpoints: [Checkpoint] {
+        guard isAvailable else { return [] }
+        return Self.checkpointDays.map { day in
+            Checkpoint(day: day, creatures: creaturesDiscovered(byDay: day),
+                       miles: milesWalked(byDay: day),
+                       calories: Int((walkingCalories(byDay: day) / 50).rounded()) * 50)
+        }
+    }
+
+    func milesWalked(byDay day: Int) -> Int {
+        Int((Double(stepsWalked(byDay: day)) / Self.stepsPerMile).rounded())
+    }
+
+    /// Calories burned by all the walking at the daily target (midpoint estimate).
+    func walkingCalories(byDay day: Int) -> Double {
+        Double(stepsWalked(byDay: day)) * (Self.kcalPerStepLow + Self.kcalPerStepHigh) / 2
+    }
+
+    /// The energy those calories represent in body fat. An equivalence, not a weight-loss promise.
+    func fatEnergyPounds(byDay day: Int) -> Double {
+        walkingCalories(byDay: day) / Self.kcalPerPoundOfFat
+    }
+
+    static let marathonMiles = 26.2
+
+    func marathons(byDay day: Int) -> Int {
+        Int((Double(milesWalked(byDay: day)) / Self.marathonMiles).rounded(.down))
+    }
+
+    func date(forDay day: Int, from start: Date, calendar: Calendar = .autoupdatingCurrent) -> Date {
+        calendar.date(byAdding: .day, value: day, to: calendar.startOfDay(for: start)) ?? start
     }
 }
 
@@ -299,6 +453,8 @@ struct OnboardingDraft: Codable, Equatable {
         // Old analysis/building screens resume at the single result, before checkout.
         draft.phase = draft.reachedPaywall ? .plan : draft.phase.current
         if draft.currentSteps == "8,000+" { draft.currentSteps = "8,000 – 10,000" }
+        draft.selectedGoals = Set(draft.selectedGoals.map(WalkingMotivation.canonical))
+        draft.primaryGoal = draft.primaryGoal.map(WalkingMotivation.canonical)
         // Health now belongs to the first Home visit. Retain existing choices,
         // but never resume an old permissions question inside setup.
         if draft.phase == .connections {

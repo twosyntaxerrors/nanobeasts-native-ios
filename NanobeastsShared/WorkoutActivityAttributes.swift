@@ -13,6 +13,9 @@ struct WorkoutActivityAttributes: ActivityAttributes {
         var isPaused: Bool
         var goalReached: Bool
         var isComplete: Bool
+        /// Companion evolution, so the Lock Screen shows the creature growing as you walk.
+        var evolutionFraction: Double? = nil
+        var evolutionCaption: String? = nil
     }
 
     let sessionID: String
@@ -25,6 +28,10 @@ struct WorkoutActivityAttributes: ActivityAttributes {
     let goalTarget: Double?
     let companionID: String?
     var workoutSource: String? = nil
+    var companionName: String? = nil
+    var companionStage: Int? = nil
+    /// App Group artwork filename written by `WorkoutLiveActivityArtwork`.
+    var companionArtwork: String? = nil
 }
 
 struct WorkoutActivityCommand: Codable, Hashable {

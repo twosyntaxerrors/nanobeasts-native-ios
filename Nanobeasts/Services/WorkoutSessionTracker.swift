@@ -22,6 +22,10 @@ final class WorkoutSessionTracker: ObservableObject {
     private var workoutStart: Date? { ledger?.startedAt }
     private var events: [HKWorkoutEvent] = []
     private var lifecycleObservers: [NSObjectProtocol] = []
+    /// iOS 26 workout session used only for background runtime, so step
+    /// callbacks and the Live Activity keep flowing while the phone is locked.
+    /// It never saves samples; `stopAndSave` still owns the Health export.
+    private var runtimeSession: AnyObject?
     private static let recoveryKey = "nanobeasts.phone-workout.motion.v1"
 
     init() {
@@ -31,6 +35,7 @@ final class WorkoutSessionTracker: ObservableObject {
             latestSessionID = saved.id
             publishMotion()
             if let segment = saved.segments.last, segment.end == nil { startLiveUpdates(segment: segment) }
+            startRuntimeSession()
         }
         lifecycleObservers.append(NotificationCenter.default.addObserver(
             forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main
@@ -80,6 +85,7 @@ final class WorkoutSessionTracker: ObservableObject {
         saveError = nil
         publishMotion()
         if let segment = ledger?.segments.last { startLiveUpdates(segment: segment) }
+        startRuntimeSession()
     }
 
     func restore(startedAt: Date, steps: Int, distanceMiles: Double,
@@ -89,6 +95,7 @@ final class WorkoutSessionTracker: ObservableObject {
         if let ledger, abs(ledger.startedAt.timeIntervalSince(startedAt)) < 10 {
             if isPaused { pause() }
             else if ledger.segments.isEmpty || ledger.segments.last?.end != nil { resume() }
+            startRuntimeSession()
             publishMotion()
             Task { await reconcileMotion() }
             return
@@ -104,6 +111,7 @@ final class WorkoutSessionTracker: ObservableObject {
         saveError = nil
         publishMotion()
         if let segment = ledger?.segments.last, segment.end == nil { startLiveUpdates(segment: segment) }
+        startRuntimeSession()
     }
 
     func pause() {
@@ -169,6 +177,7 @@ final class WorkoutSessionTracker: ObservableObject {
     func detachCompletedSession() -> WorkoutMotionLedger? {
         let completed = ledger
         pedometer.stopUpdates()
+        endRuntimeSession()
         ledger = nil
         UserDefaults.standard.removeObject(forKey: Self.recoveryKey)
         return completed
@@ -311,6 +320,22 @@ final class WorkoutSessionTracker: ObservableObject {
         if let data = try? JSONEncoder().encode(ledger) {
             UserDefaults.standard.set(data, forKey: Self.recoveryKey)
         }
+    }
+
+    private func startRuntimeSession() {
+        guard #available(iOS 26.0, *), runtimeSession == nil, HKHealthStore.isHealthDataAvailable() else { return }
+        let configuration = HKWorkoutConfiguration()
+        configuration.activityType = .walking
+        configuration.locationType = .unknown
+        guard let session = try? HKWorkoutSession(healthStore: healthStore, configuration: configuration) else { return }
+        session.startActivity(with: Date())
+        runtimeSession = session
+    }
+
+    private func endRuntimeSession() {
+        guard #available(iOS 26.0, *), let session = runtimeSession as? HKWorkoutSession else { return }
+        session.end()
+        runtimeSession = nil
     }
 
     private func add(_ samples: [HKSample], to builder: HKWorkoutBuilder) async throws {

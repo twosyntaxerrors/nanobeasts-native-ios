@@ -256,3 +256,28 @@ enum HealthConnectionState: Equatable, Sendable {
         }
     }
 }
+
+extension CreatureCatalog {
+    /// Hatched and evolved forms in Field Dex order. Eggs are how you get a
+    /// creature, so they cost steps but are not counted as discoveries.
+    var discoveredCreatures: [CreatureStage] {
+        families.flatMap { family in
+            family.stages.sorted { $0.stage < $1.stage }.dropFirst()
+        }
+    }
+
+    /// Cumulative steps needed to discover each creature in `discoveredCreatures`,
+    /// using the same thresholds as live progression.
+    var discoveryStepCosts: [Int] {
+        var total = 0
+        var costs: [Int] = []
+        for (index, family) in families.enumerated() {
+            let stages = family.stages.sorted { $0.stage < $1.stage }
+            for (position, stage) in stages.enumerated() {
+                total += CreatureProgressionRules.steps(familyIndex: index, stage: stage.stage)
+                if position + 1 < stages.count { costs.append(total) }
+            }
+        }
+        return costs
+    }
+}
