@@ -11,7 +11,6 @@ struct SettingsView: View {
     @State private var confirmsReset = false
     @State private var showsPaywall = false
     @State private var showsOnboardingPreview = false
-    @State private var paywallPreview: PaywallDesign?
     @State private var goalDraft = 10_000
     @State private var showsManageSubscriptions = false
     @StateObject private var notifications = NanoNotifications.shared
@@ -213,11 +212,6 @@ struct SettingsView: View {
         .fullScreenCover(isPresented: $showsOnboardingPreview) {
             OnboardingReplayView()
         }
-        .fullScreenCover(item: $paywallPreview) { design in
-            RevenueCatPaywallScreen(playerName: store.playerName,
-                selectedGoals: store.onboardingGoals, primaryGoal: store.onboardingPrimaryGoal,
-                selectedBlockers: store.onboardingBlockers, isPreview: true, design: design)
-        }
     }
 
     private var healthValue: String {
@@ -289,14 +283,6 @@ struct SettingsView: View {
                     SettingsRowLabel(symbol: "play.rectangle.fill", title: "Test Onboarding & Paywall", accessory: .chevron)
                 }
                 .buttonStyle(SettingsRowPressStyle())
-                ForEach(PaywallDesign.allCases) { design in
-                    SettingsDivider()
-                    Button { paywallPreview = design } label: {
-                        SettingsRowLabel(symbol: design == .original ? "rectangle" : "sparkles",
-                                         title: design.title, accessory: .chevron)
-                    }
-                    .buttonStyle(SettingsRowPressStyle())
-                }
             }
             .settingsGroup()
             SettingsFootnote("Steps and purchases are simulated. Your real paywall and progress stay the same.")
