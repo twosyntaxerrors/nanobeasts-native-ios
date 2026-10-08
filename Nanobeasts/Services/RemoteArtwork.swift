@@ -1,6 +1,7 @@
 import CryptoKit
 import Foundation
 import SDWebImage
+import ImageIO
 import SwiftUI
 import UIKit
 
@@ -145,6 +146,10 @@ enum R2BadgeManifest {
 
     static func url(for badgeID: String) -> URL? {
         guard approvedBadgeIDs.contains(badgeID) else { return nil }
+        // Corrected artwork ships in the app and wins over the R2 copy.
+        if let bundled = Bundle.main.url(forResource: "badge-\(badgeID)", withExtension: "png") {
+            return bundled
+        }
         return R2AssetManifest.baseURL.appending(
             path: "images/badges/\(badgeID).png"
         )
@@ -498,12 +503,97 @@ actor R2TransitionVideoCache {
     }
 }
 
+/// Decoded artwork kept in memory, so a view that has shown an image before
+/// draws it on its very first frame instead of re-reading and re-decoding it.
+final class NanoImageMemoryCache: @unchecked Sendable {
+    static let shared = NanoImageMemoryCache()
+    private let cache = NSCache<NSString, UIImage>()
+
+    private init() { cache.totalCostLimit = 96 * 1_024 * 1_024 }
+
+    func image(for key: String) -> UIImage? { cache.object(forKey: key as NSString) }
+
+    func insert(_ image: UIImage, for key: String) {
+        let pixels = image.size.width * image.size.height * image.scale * image.scale
+        cache.setObject(image, forKey: key as NSString, cost: Int(pixels * 4))
+    }
+
+    /// Decodes off the main thread and caches the display-ready image.
+    func decode(_ data: Data, for key: String) async -> UIImage? {
+        if let cached = image(for: key) { return cached }
+        let image = await Task.detached(priority: .userInitiated) {
+            UIImage(data: data)?.preparingForDisplay() ?? UIImage(data: data)
+        }.value
+        if let image { insert(image, for: key) }
+        return image
+    }
+
+    static func creatureKey(_ stage: CreatureStage, maxPixel: Int? = nil) -> String {
+        maxPixel.map { "creature:\(stage.imageKey)@\($0)" } ?? "creature:\(stage.imageKey)"
+    }
+
+    /// Downsamples while decoding, so a grid of small tiles never holds or
+    /// re-decodes full 1024px artwork. A 360px tile costs ~0.5 MB, not 4 MB.
+    func thumbnail(_ data: Data, maxPixel: Int, for key: String) async -> UIImage? {
+        if let cached = image(for: key) { return cached }
+        let image = await Task.detached(priority: .userInitiated) { () -> UIImage? in
+            guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+                  let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                      kCGImageSourceCreateThumbnailFromImageAlways: true,
+                      kCGImageSourceCreateThumbnailWithTransform: true,
+                      kCGImageSourceShouldCacheImmediately: true,
+                      kCGImageSourceThumbnailMaxPixelSize: maxPixel
+                  ] as CFDictionary)
+            else { return nil }
+            return UIImage(cgImage: cgImage)
+        }.value
+        if let image { insert(image, for: key) }
+        return image
+    }
+
+    /// Warms small grid artwork, e.g. every Dex tile before the gallery scrolls.
+    func prewarmThumbnails(_ stages: [CreatureStage], maxPixel: Int) async {
+        await withTaskGroup(of: Void.self) { group in
+            for stage in stages where image(for: Self.creatureKey(stage, maxPixel: maxPixel)) == nil {
+                group.addTask {
+                    guard let data = try? await R2ArtworkCache.shared.data(for: R2AssetManifest.url(for: stage.imageKey))
+                    else { return }
+                    _ = await self.thumbnail(data, maxPixel: maxPixel, for: Self.creatureKey(stage, maxPixel: maxPixel))
+                }
+            }
+        }
+    }
+
+    /// Warms creature art ahead of the screens that show it.
+    func prewarm(_ stages: [CreatureStage]) async {
+        await withTaskGroup(of: Void.self) { group in
+            for stage in stages where image(for: Self.creatureKey(stage)) == nil {
+                group.addTask {
+                    guard let data = try? await R2ArtworkCache.shared.data(for: R2AssetManifest.url(for: stage.imageKey))
+                    else { return }
+                    _ = await self.decode(data, for: Self.creatureKey(stage))
+                }
+            }
+        }
+    }
+}
+
 struct CreatureArtworkView: View {
     let stage: CreatureStage
     var isLocked = false
+    /// Grid tiles pass a pixel size to get a small, pre-decoded thumbnail.
+    var maxPixel: Int? = nil
 
     @State private var image: UIImage?
     @State private var failed = false
+
+    init(stage: CreatureStage, isLocked: Bool = false, maxPixel: Int? = nil) {
+        self.stage = stage
+        self.isLocked = isLocked
+        self.maxPixel = maxPixel
+        _image = State(initialValue: NanoImageMemoryCache.shared.image(
+            for: NanoImageMemoryCache.creatureKey(stage, maxPixel: maxPixel)))
+    }
 
     var body: some View {
         Group {
@@ -513,6 +603,9 @@ struct CreatureArtworkView: View {
                     .scaledToFit()
             } else if failed {
                 placeholder
+            } else if maxPixel != nil {
+                // Tiles stay quiet while art arrives; dozens of spinners cost frames.
+                Color.clear
             } else {
                 ProgressView()
                     .tint(NanoTheme.teal)
@@ -521,11 +614,20 @@ struct CreatureArtworkView: View {
         .saturation(isLocked ? 0 : 1)
         .opacity(isLocked ? 0.18 : 1)
         .task(id: stage.imageKey) {
+            let key = NanoImageMemoryCache.creatureKey(stage, maxPixel: maxPixel)
+            if let cached = NanoImageMemoryCache.shared.image(for: key) {
+                image = cached
+                return
+            }
             image = nil
             failed = false
             do {
                 let data = try await R2ArtworkCache.shared.data(for: R2AssetManifest.url(for: stage.imageKey))
-                image = UIImage(data: data)
+                if let maxPixel {
+                    image = await NanoImageMemoryCache.shared.thumbnail(data, maxPixel: maxPixel, for: key)
+                } else {
+                    image = await NanoImageMemoryCache.shared.decode(data, for: key)
+                }
                 failed = image == nil
             } catch {
                 failed = true

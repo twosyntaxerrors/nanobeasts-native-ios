@@ -24,3 +24,8 @@ Apple-verified sandbox purchase after its accelerated test expiration. This
 access is explicitly marked development-only and rejected by Release builds.
 Use Release for distribution or when the user explicitly asks to test real
 subscription expiry. Never move the sandbox testing allowance into Release.
+
+For these Debug device builds, pass `GCC_OPTIMIZATION_LEVEL=s` to `xcodebuild`.
+It optimizes only the C/Objective-C package dependencies (libwebp, SDWebImage);
+the app's Swift stays `-Onone` with the `DEBUG` condition. Unoptimized libwebp
+decodes the animated creature WebPs about 5x slower, which makes them stutter.

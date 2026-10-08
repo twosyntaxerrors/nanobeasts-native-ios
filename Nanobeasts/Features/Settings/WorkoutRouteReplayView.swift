@@ -56,7 +56,7 @@ struct WorkoutRouteReplayView: View {
                             }
                             .animation(.easeOut(duration: reduceMotion ? 0.1 : 0.25), value: progress >= 1)
                             .accessibilityElement(children: .ignore)
-                            .accessibilityLabel("Recorded route with pink fog clearing behind your path")
+                            .accessibilityLabel("Recorded route painting tiles in your accent color")
                             .accessibilityValue("\(Int(progress * 100)) percent revealed")
                         controls
                         shareVideoButton
@@ -71,7 +71,7 @@ struct WorkoutRouteReplayView: View {
             .scrollIndicators(.hidden)
         }
         .background(NanoTheme.background.ignoresSafeArea())
-        .preferredColorScheme(.dark)
+
         .onAppear { isPlaying = track.canReplay && !reduceMotion }
         .onDisappear {
             isPlaying = false
@@ -129,7 +129,7 @@ struct WorkoutRouteReplayView: View {
                 Text("ROUTE REPLAY")
                     .font(NanoFont.aldrich(11)).tracking(1).foregroundStyle(NanoTheme.teal)
                 Text(payload.workoutName)
-                    .font(.title3.weight(.semibold)).foregroundStyle(.white)
+                    .font(.title3.weight(.semibold)).foregroundStyle(NanoTheme.text)
             }
             Spacer(minLength: 4)
             Button { dismiss() } label: {
@@ -137,7 +137,7 @@ struct WorkoutRouteReplayView: View {
                     .frame(width: 44, height: 44)
                     .background(Circle().fill(NanoTheme.surface))
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(NanoTheme.text)
             .buttonStyle(WorkoutReplayPressStyle())
             .disabled(isExporting)
             .accessibilityLabel("Close route replay")
@@ -165,7 +165,7 @@ struct WorkoutRouteReplayView: View {
         VStack(alignment: .leading, spacing: 3) {
             Text(title).font(.system(.caption2, design: .rounded)).foregroundStyle(NanoTheme.secondaryText)
             Text(value).font(.system(.subheadline, design: .monospaced).weight(.semibold))
-                .foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.75)
+                .foregroundStyle(NanoTheme.text).lineLimit(1).minimumScaleFactor(0.75)
         }
         .accessibilityElement(children: .combine)
     }
@@ -322,6 +322,7 @@ private struct WorkoutReplayPressStyle: ButtonStyle {
 }
 
 private struct WorkoutReplayMap: UIViewRepresentable {
+    @Environment(\.colorScheme) private var colorScheme
     let track: WorkoutRouteReplayTrack
     let progress: Double
     let companion: CreatureStage
@@ -332,7 +333,7 @@ private struct WorkoutReplayMap: UIViewRepresentable {
     func makeUIView(context: Context) -> MKMapView {
         let map = MKMapView(frame: .zero)
         map.delegate = context.coordinator
-        map.overrideUserInterfaceStyle = .dark
+        map.overrideUserInterfaceStyle = colorScheme == .dark ? .dark : .light
         map.showsCompass = false
         map.showsScale = true
         map.isPitchEnabled = false
@@ -346,6 +347,9 @@ private struct WorkoutReplayMap: UIViewRepresentable {
     }
 
     func updateUIView(_ map: MKMapView, context: Context) {
+        map.overrideUserInterfaceStyle = colorScheme == .dark ? .dark : .light
+        context.coordinator.updateAppearance(isDark: colorScheme == .dark,
+            accent: UIColor(NanoTheme.teal).resolvedColor(with: map.traitCollection), on: map)
         context.coordinator.updateCompanion(companion, artwork: artwork, on: map)
         context.coordinator.update(progress: progress, on: map)
     }
@@ -366,7 +370,7 @@ private struct WorkoutReplayMap: UIViewRepresentable {
             fog.showsFog = true
             // Deliberately isolated from the permanently explored map: show
             // what this one recorded route uncovered, even on repeat visits.
-            map.addOverlay(fog, level: .aboveLabels)
+            map.addOverlay(fog, level: .aboveRoads)
             marker.title = "Your route"
             if let first = track.coordinates.first { marker.coordinate = first }
             map.addAnnotation(marker)
@@ -374,13 +378,22 @@ private struct WorkoutReplayMap: UIViewRepresentable {
             map.setVisibleMapRect(bounds, edgePadding: UIEdgeInsets(top: 38, left: 30, bottom: 38, right: 30), animated: false)
         }
 
+        func updateAppearance(isDark: Bool, accent: UIColor, on map: MKMapView) {
+            let previous = fog.snapshot
+            guard previous.isDark != isDark || !previous.accent.isEqual(accent) else { return }
+            fog.setAppearance(isDark: isDark, accent: accent, district: nil)
+            renderer?.setNeedsDisplay(map.visibleMapRect)
+        }
+
         func update(progress: Double, on map: MKMapView) {
             guard progress != lastProgress else { return }
             lastProgress = progress
             let frame = track.frame(at: progress)
-            fog.updateRoute(frame.coordinates, breakIndices: frame.breakIndices)
+            let changed = fog.updateRoute(frame.coordinates, breakIndices: frame.breakIndices)
             if let coordinate = frame.marker { marker.coordinate = coordinate }
-            renderer?.setNeedsDisplay(map.visibleMapRect)
+            // Repaint just the advancing tail; scrubbing back redraws everything.
+            let dirty = changed.map { $0.intersection(map.visibleMapRect) }
+            renderer?.setNeedsDisplay(dirty.flatMap { $0.isNull ? nil : $0 } ?? map.visibleMapRect)
         }
 
         func updateCompanion(_ companion: CreatureStage, artwork: UIImage?, on map: MKMapView) {
@@ -432,6 +445,6 @@ struct WorkoutRouteReplayButton: View {
                 .background(RoundedRectangle(cornerRadius: 16).fill(NanoTheme.teal.opacity(0.12)))
         }
         .buttonStyle(WorkoutReplayPressStyle())
-        .accessibilityHint("Replay your recorded path as it clears the pink fog")
+        .accessibilityHint("Replay your recorded path as it paints the map")
     }
 }

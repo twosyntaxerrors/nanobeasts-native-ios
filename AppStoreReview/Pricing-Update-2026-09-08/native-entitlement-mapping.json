@@ -1,0 +1,16 @@
+{
+  "product_entitlement_mapping": {
+    "nanobeasts_native_premium_monthly": {
+      "entitlements": [
+        "premium"
+      ],
+      "product_identifier": "nanobeasts_native_premium_monthly"
+    },
+    "nanobeasts_native_premium_yearly": {
+      "entitlements": [
+        "premium"
+      ],
+      "product_identifier": "nanobeasts_native_premium_yearly"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://hyperframes.heygen.com/schema/hyperframes.json",
+  "registry": "https://raw.githubusercontent.com/heygen-com/hyperframes/main/registry",
+  "paths": {
+    "blocks": "compositions",
+    "components": "compositions/components",
+    "assets": "assets"
+  },
+  "media": {
+    "autoProxy": true
+  },
+  "authoringSkill": "motion-graphics",
+  "registryItems": [
+    {
+      "name": "logo-sting",
+      "type": "hyperframes:component",
+      "target": "compositions/components/logo-sting.html"
+    },
+    {
+      "name": "beat-pulse-background",
+      "type": "hyperframes:component",
+      "target": "compositions/components/beat-pulse-background.html"
+    },
+    {
+      "name": "camera-shake",
+      "type": "hyperframes:component",
+      "target": "compositions/components/camera-shake.html"
+    }
+  ]
+}

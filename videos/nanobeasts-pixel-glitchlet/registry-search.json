@@ -1,0 +1,1154 @@
+{
+  "query": "pixel sprite running animation frame cycle",
+  "tier": "words",
+  "tier_detail": "local word match",
+  "dropped": 0,
+  "unindexed": 0,
+  "shown": 68,
+  "total": 386,
+  "report_gap": "npx hyperframes feedback --search-miss \"pixel sprite running animation frame cycle\" --wanted \"<the move you needed>\" --tier words",
+  "results": [
+    {
+      "name": "freeze-frame-dressing",
+      "type": "block",
+      "title": "Freeze-Frame Dressing",
+      "description": "Timeline-driven paper, tape, and flash dressing for a freeze-frame or background-removed subject",
+      "tags": [
+        "freeze-frame",
+        "cutout",
+        "scrapbook",
+        "paper",
+        "social",
+        "overlay",
+        "media-treatment-overlay"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 4,
+      "preview": {
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/freeze-frame-dressing.png",
+        "video": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/freeze-frame-dressing.mp4"
+      }
+    },
+    {
+      "name": "hw-frame",
+      "type": "block",
+      "title": "Sketched Frame",
+      "description": "Media in a hand-drawn border with corner doodles and a handwritten caption; the unit tilts slightly and boils (images inside the block; keep live footage in the host)",
+      "tags": [
+        "handwritten",
+        "frame",
+        "media"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 8
+    },
+    {
+      "name": "device-frame-stage",
+      "type": "component",
+      "title": "Device Frame Stage",
+      "description": "A phone or tablet mockup staged as a physical scene prop with a screen slot for arbitrary reconstructed UI, rising onto the stage, settling, and holding an idle float",
+      "tags": [
+        "prop",
+        "device",
+        "mobile",
+        "tablet",
+        "ui-props",
+        "holdable"
+      ]
+    },
+    {
+      "name": "morph-text",
+      "type": "component",
+      "title": "Morph Text",
+      "description": "Gooey text morph — cycles through an editable word list using SVG threshold + GSAP-driven blur for a fluid, satisfying transition effect",
+      "tags": [
+        "text",
+        "text-effect",
+        "typography",
+        "morph",
+        "gooey",
+        "kinetic",
+        "animation"
+      ],
+      "preview": {
+        "video": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/morph-text.mp4"
+      }
+    },
+    {
+      "name": "lottie-character-walk",
+      "type": "block",
+      "title": "Lottie Character Walk",
+      "description": "A jointed flat character walks in on planted feet, stops and points at a card; the body acting is a Lottie file and the stage is GSAP.",
+      "tags": [
+        "character",
+        "character-animation",
+        "mascot",
+        "walk-cycle",
+        "gesture",
+        "pointing",
+        "puppet",
+        "lottie",
+        "explainer"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 7.5
+    },
+    {
+      "name": "code-particle-assemble",
+      "type": "block",
+      "title": "Code Particle Assemble",
+      "description": "Thousands of GPU points scatter through space and fly to the exact glyph pixels of the code, resolving into readable syntax-highlighted text — a particle system, not a token tween.",
+      "tags": [
+        "code",
+        "code-animation",
+        "particles",
+        "gpu",
+        "webgl",
+        "developer"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 8,
+      "preview": {
+        "video": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/code-particle-assemble.mp4",
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/code-particle-assemble.png"
+      }
+    },
+    {
+      "name": "ui-3d-reveal",
+      "type": "block",
+      "title": "3D UI Reveal",
+      "description": "Perspective 3D reveal animation for UI elements",
+      "tags": [
+        "showcase",
+        "3d",
+        "reveal"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 13,
+      "preview": {
+        "video": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/ui-3d-reveal.mp4",
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/ui-3d-reveal.png"
+      }
+    },
+    {
+      "name": "spiral-galaxy",
+      "type": "block",
+      "title": "Spiral Galaxy",
+      "description": "A spiral galaxy seen from outside, turning with real differential rotation: inner stars orbit faster than outer ones, so the arms wind up over the shot instead of spinning rigidly. 20,000 additive GPU sprites, seeded once and solved directly from time, so any frame can be rendered on its own.",
+      "tags": [
+        "hero",
+        "space",
+        "particles",
+        "webgl",
+        "background"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 10
+    },
+    {
+      "name": "separator",
+      "type": "component",
+      "title": "Separator",
+      "description": "A one-pixel structural separator with horizontal and vertical variants plus a seek-safe progress reveal",
+      "tags": [
+        "video-primitive",
+        "separator",
+        "layout"
+      ],
+      "preview": {
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/separator.png"
+      }
+    },
+    {
+      "name": "terminal-simulator",
+      "type": "component",
+      "title": "Terminal Simulator",
+      "description": "A terminal window types commands and streams log output.",
+      "tags": [
+        "code-animation"
+      ],
+      "preview": {
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/terminal-simulator.png"
+      }
+    },
+    {
+      "name": "caption-neon-accent",
+      "type": "component",
+      "title": "Neon Accent",
+      "description": "Multi-color neon glow accents with wiggle drift animation",
+      "tags": [
+        "captions",
+        "caption-style",
+        "neon",
+        "glow",
+        "accent"
+      ],
+      "preview": {
+        "video": "https://static.heygen.ai/hyperframes-oss/registry/components/caption-neon-accent/preview.mp4?v=1779051416",
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/caption-neon-accent.png"
+      }
+    },
+    {
+      "name": "caption-matrix-decode",
+      "type": "component",
+      "title": "Matrix Decode",
+      "description": "Character scramble animation before text reveal",
+      "tags": [
+        "captions",
+        "caption-style",
+        "matrix",
+        "scramble",
+        "decode"
+      ],
+      "preview": {
+        "video": "https://static.heygen.ai/hyperframes-oss/registry/components/caption-matrix-decode/preview-v2.mp4",
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/caption-matrix-decode.png"
+      }
+    },
+    {
+      "name": "scramble-reveal",
+      "type": "component",
+      "title": "Scramble Reveal",
+      "description": "A deterministic hacker-style text reveal that cycles fixed glyph rows and locks the target string from left to right.",
+      "tags": [
+        "motion-primitive",
+        "text-effects",
+        "scramble",
+        "reveal",
+        "deterministic"
+      ]
+    },
+    {
+      "name": "motion-blur",
+      "type": "component",
+      "title": "Motion Blur",
+      "description": "After Effects-style motion blur — integrates each element over a shutter window (shutter angle, phase, samples per frame) by sampling the GSAP timeline at sub-frame times and averaging equal-weight additive copies of the element along its real trajectory, so translation, scale, rotation, 3D rotation and skew all drive the smear",
+      "tags": [
+        "effect",
+        "motion-blur",
+        "shutter",
+        "after-effects",
+        "velocity",
+        "animation"
+      ],
+      "preview": {
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/motion-blur.png"
+      }
+    },
+    {
+      "name": "caption-blend-difference",
+      "type": "component",
+      "title": "Blend Difference",
+      "description": "Auto-inverting text using mix-blend-mode: difference — flips between white and black per-pixel against the background",
+      "tags": [
+        "text",
+        "text-effect",
+        "effect",
+        "blend-mode",
+        "contrast",
+        "inversion"
+      ]
+    },
+    {
+      "name": "code-typing",
+      "type": "block",
+      "title": "Code Typing",
+      "description": "Token-streamed typing reveal with a caret that tracks the frontier — deterministic, no CSS animation.",
+      "tags": [
+        "code",
+        "code-animation",
+        "typing",
+        "developer"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 5,
+      "preview": {
+        "video": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/code-typing.mp4",
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/code-typing.png"
+      }
+    },
+    {
+      "name": "yt-lcd-background",
+      "type": "block",
+      "title": "Scanline Board Background",
+      "description": "Textured paper board: scanlines with slow drift, optional pixel grid, static grain, and display text with a blur-focus entrance and chromatic-fringe title",
+      "tags": [
+        "background",
+        "texture",
+        "creator"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 10
+    },
+    {
+      "name": "code-highlight",
+      "type": "block",
+      "title": "Code Highlight Sweep",
+      "description": "A highlight band sweeps across a target line while the surrounding context dims — draws the eye to one line.",
+      "tags": [
+        "code",
+        "code-animation",
+        "highlight",
+        "developer"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 5,
+      "preview": {
+        "video": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/code-highlight.mp4",
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/code-highlight.png"
+      }
+    },
+    {
+      "name": "share-sheet-carousel",
+      "type": "block",
+      "title": "Share-Sheet Carousel",
+      "description": "A share sheet springs up from the bottom of the phone and cycles previews inside its card on a fast cut rhythm while the blurred ground swaps behind it, ending on an accept tap",
+      "tags": [
+        "showcase",
+        "mock-ui",
+        "share-sheet",
+        "vertical",
+        "ad-template"
+      ],
+      "dimensions": {
+        "width": 1080,
+        "height": 1920
+      },
+      "duration": 7.2333,
+      "preview": {
+        "video": "https://static.heygen.ai/hyperframes/templates/promoted/254fe4bd8a3f00c1e70ac5e38a1bce25060f7590/share-sheet-carousel/preview.mp4",
+        "poster": "https://static.heygen.ai/hyperframes/templates/promoted/254fe4bd8a3f00c1e70ac5e38a1bce25060f7590/share-sheet-carousel/poster.jpg"
+      }
+    },
+    {
+      "name": "code-diff",
+      "type": "block",
+      "title": "Code Diff",
+      "description": "An edit shown as a colored diff — removed lines collapse in red, added lines expand in green.",
+      "tags": [
+        "code",
+        "code-animation",
+        "diff",
+        "developer"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 6,
+      "preview": {
+        "video": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/code-diff.mp4",
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/code-diff.png"
+      }
+    },
+    {
+      "name": "code-scroll",
+      "type": "block",
+      "title": "Code Scroll To Line",
+      "description": "The camera scrolls a long file to bring a target line to center and spotlights it — for walking through real modules.",
+      "tags": [
+        "code",
+        "code-animation",
+        "scroll",
+        "developer"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 6,
+      "preview": {
+        "video": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/code-scroll.mp4",
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/code-scroll.png"
+      }
+    },
+    {
+      "name": "code-terminal-run",
+      "type": "component",
+      "title": "Code Terminal Run",
+      "description": "A token-chrome terminal panel runs one command: the prompt line types deterministically behind an integer-cycle caret, executes after a beat, and output lines print one per cue before a fresh prompt appears.",
+      "tags": [
+        "motion-primitive",
+        "product-demo",
+        "terminal",
+        "typing",
+        "deterministic"
+      ]
+    },
+    {
+      "name": "chromatic-aberration-wipe",
+      "type": "component",
+      "title": "Chromatic Aberration Wipe",
+      "description": "A fast slide wipe with RGB channel split on peak frames.",
+      "tags": [
+        "video-primitive",
+        "transition-primitive"
+      ],
+      "preview": {
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/chromatic-aberration-wipe.png"
+      }
+    },
+    {
+      "name": "code-shader-dissolve",
+      "type": "block",
+      "title": "Code Shader Dissolve",
+      "description": "The code compiles into existence: a GPU fragment shader resolves it out of seeded noise with a chromatic dissolve front and edge glow, then holds crisp.",
+      "tags": [
+        "code",
+        "code-animation",
+        "shader",
+        "webgl",
+        "developer"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 7,
+      "preview": {
+        "video": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/code-shader-dissolve.mp4",
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/code-shader-dissolve.png"
+      }
+    },
+    {
+      "name": "code-snippet-dark-2026",
+      "type": "block",
+      "title": "Code Snippet - Dark 2026",
+      "description": "VS Code workbench with per-character typing animation in the Dark 2026 theme. Full editor chrome with activity bar, sidebar, tabs, terminal, and status bar.",
+      "tags": [
+        "code",
+        "developer",
+        "showcase",
+        "vscode"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 11
+    },
+    {
+      "name": "code-snippet-apple-terminal-pro",
+      "type": "block",
+      "title": "Code Snippet - Apple Terminal Pro",
+      "description": "Apple Terminal Pro profile: black background with grey text and lime green cursor, per-character typing animation of a shell session.",
+      "tags": [
+        "code",
+        "developer",
+        "showcase",
+        "terminal",
+        "apple",
+        "apple-terminal"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 12,
+      "preview": {
+        "video": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/code-snippet-apple-terminal-pro.mp4",
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/code-snippet-apple-terminal-pro.png"
+      }
+    },
+    {
+      "name": "code-3d-extrude",
+      "type": "block",
+      "title": "Code 3D Extrude",
+      "description": "Syntax-highlighted code on a lit, beveled 3D slab that rotates through real space and settles to a readable rest — true WebGL depth and lighting, not a 2D transform.",
+      "tags": [
+        "code",
+        "code-animation",
+        "3d",
+        "webgl",
+        "developer"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 8,
+      "preview": {
+        "video": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/code-3d-extrude.mp4",
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/code-3d-extrude.png"
+      }
+    },
+    {
+      "name": "canopy-part-title",
+      "type": "block",
+      "title": "Canopy Part Title",
+      "description": "Leaves sweep through the frame and part to reveal the headline.",
+      "tags": [
+        "3d-motion",
+        "title-card",
+        "leaves",
+        "organic",
+        "depth-of-field",
+        "two-headlines",
+        "sweep"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 12,
+      "preview": {
+        "video": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/canopy-part-title.mp4",
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/canopy-part-title.png"
+      }
+    },
+    {
+      "name": "nyc-paris-flight",
+      "type": "block",
+      "title": "NYC Paris Flight",
+      "description": "Apple-style realistic map animation with a plane flying from New York to Paris, marker circle, landing pop, and sound effects.",
+      "tags": [
+        "showcase",
+        "travel",
+        "map",
+        "youtube",
+        "sfx"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 6,
+      "preview": {
+        "video": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/nyc-paris-flight.mp4",
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/nyc-paris-flight.png"
+      }
+    },
+    {
+      "name": "code-snippet-dark-modern",
+      "type": "block",
+      "title": "Code Snippet - Dark Modern",
+      "description": "VS Code workbench with per-character typing animation in the Dark Modern theme. Full editor chrome with activity bar, sidebar, tabs, terminal, and status bar.",
+      "tags": [
+        "code",
+        "developer",
+        "showcase",
+        "vscode"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 11
+    },
+    {
+      "name": "code-morph",
+      "type": "block",
+      "title": "Code Morph",
+      "description": "One snippet transforms into another — tokens glide between positions, leavers fade out, enterers fade in. Shiki Magic Move re-driven as a paused GSAP timeline.",
+      "tags": [
+        "code",
+        "code-animation",
+        "morph",
+        "refactor",
+        "developer"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 7,
+      "preview": {
+        "video": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/code-morph.mp4",
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/code-morph.png"
+      }
+    },
+    {
+      "name": "parallax-zoom",
+      "type": "component",
+      "title": "Parallax Zoom",
+      "description": "Center card scales up to fill the frame while siblings parallax outward — inspired by the eBay Playbook hero transition",
+      "tags": [
+        "transition",
+        "zoom",
+        "parallax",
+        "grid",
+        "hero"
+      ],
+      "preview": {
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/parallax-zoom.png"
+      }
+    },
+    {
+      "name": "hw-scribble-transition",
+      "type": "block",
+      "title": "Scribble Transition",
+      "description": "Overlay transition: scribble bands accumulate to cover the frame with a solid backstop, the host cuts beneath, and the scribble clears",
+      "tags": [
+        "handwritten",
+        "transition",
+        "wipe"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 2.2
+    },
+    {
+      "name": "beat-freeze-cut",
+      "type": "block",
+      "title": "Beat Freeze Cut",
+      "description": "A beat-driven speed ramp, freeze-frame hit, and hard-cut sequence for music-led promos and montages.",
+      "tags": [
+        "transition",
+        "music",
+        "beat-driven",
+        "freeze-frame"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 6
+    },
+    {
+      "name": "parallax-unzoom",
+      "type": "component",
+      "title": "Parallax Unzoom",
+      "description": "Reveal transition — focus card scales down from full frame as siblings parallax in to form a grid (reverse of parallax-zoom)",
+      "tags": [
+        "transition",
+        "reveal",
+        "unzoom",
+        "parallax",
+        "grid",
+        "hero"
+      ],
+      "preview": {
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/parallax-unzoom.png"
+      }
+    },
+    {
+      "name": "shutter-slam",
+      "type": "component",
+      "title": "Shutter Slam",
+      "description": "One word thrown through six single-property beats under integrated shutter blur — two translate slams, a scale punch, then a full turn about each axis — on the measured easing of the After Effects export the shutter model was fitted to",
+      "tags": [
+        "effect",
+        "motion-blur",
+        "shutter",
+        "after-effects",
+        "slam",
+        "animation"
+      ],
+      "preview": {
+        "poster": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/shutter-slam.png"
+      }
+    },
+    {
+      "name": "yt-feather-highlight",
+      "type": "component",
+      "title": "Feathered Spotlight",
+      "description": "Dims the frame except a feathered ellipse; the hole's position and size are CSS variables, so helpers glide the spotlight between targets",
+      "tags": [
+        "highlight",
+        "spotlight",
+        "effect",
+        "overlay"
+      ]
+    },
+    {
+      "name": "match-cut",
+      "type": "component",
+      "title": "Match Cut",
+      "description": "A circle accelerates into a hard single-frame scene swap, matches the incoming circle exactly, and continues into a smaller resting pose.",
+      "tags": [
+        "motion-primitive",
+        "transition",
+        "match-cut",
+        "hard-cut",
+        "continuity"
+      ]
+    },
+    {
+      "name": "logo-sting",
+      "type": "component",
+      "title": "Logo Sting",
+      "description": "A wordmark slams into its final scale, fires one accent ring and one white impact frame, then holds completely still.",
+      "tags": [
+        "motion-primitive",
+        "brand",
+        "logo",
+        "sting",
+        "impact",
+        "reveal"
+      ]
+    },
+    {
+      "name": "parallax-device-dive",
+      "type": "component",
+      "title": "Parallax Device Dive",
+      "description": "A canonical phone rises into view before the camera pushes through its screen and layered app UI expands to fill the frame.",
+      "tags": [
+        "motion-primitive",
+        "camera",
+        "device",
+        "phone",
+        "parallax",
+        "transition"
+      ]
+    },
+    {
+      "name": "headline-slam",
+      "type": "component",
+      "title": "Headline Slam",
+      "description": "A heavyweight headline scales down into frame, lands with a deterministic three-frame shake, holds with subtle drift, and whips upward on exit.",
+      "tags": [
+        "motion-primitive",
+        "typography",
+        "headline",
+        "slam",
+        "impact",
+        "exit"
+      ]
+    },
+    {
+      "name": "char-slam-explode",
+      "type": "component",
+      "title": "Char Slam Explode",
+      "description": "Headline glyphs hold in a deterministic scatter, then reassemble with an overshooting slam and a three-frame landing shake.",
+      "tags": [
+        "motion-primitive",
+        "typography",
+        "text-treatment",
+        "scatter",
+        "slam",
+        "impact"
+      ]
+    },
+    {
+      "name": "ticker-takeover",
+      "type": "component",
+      "title": "Ticker Takeover",
+      "description": "A mono ticker rolls through options, locks on a final word with an accent flash, and promotes it into a full-frame headline.",
+      "tags": [
+        "motion-primitive",
+        "typography",
+        "ticker",
+        "slot-machine",
+        "headline",
+        "reveal"
+      ]
+    },
+    {
+      "name": "mk-clone-wall-transition",
+      "type": "block",
+      "title": "Text Clone Wall Transition",
+      "description": "Overlay transition: a tiled word wall covers the frame, inverts via difference blending, and clears — hard-cut the content beneath while covered",
+      "tags": [
+        "transition",
+        "typography",
+        "wipe"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 2.4
+    },
+    {
+      "name": "sheet-spring-up",
+      "type": "component",
+      "title": "Sheet Spring-Up",
+      "description": "A bottom sheet rushes up from below the frame on a real spring sampled frame by frame from reference footage, overshooting its resting place and settling back without an approximated ease",
+      "tags": [
+        "video-primitive",
+        "sheet",
+        "spring",
+        "mock-ui",
+        "overlay"
+      ]
+    },
+    {
+      "name": "touch-indicator",
+      "type": "component",
+      "title": "Touch Indicator",
+      "description": "A translucent contact-circle gesture actor for mobile UI scenes: it touches the glass on the frame the host target responds, then lifts. Tap or swipe, picked by variable.",
+      "tags": [
+        "cursor",
+        "motion-primitive",
+        "mobile",
+        "gesture",
+        "touch",
+        "pointer"
+      ]
+    },
+    {
+      "name": "vector-editor-rig",
+      "type": "component",
+      "title": "Vector Editor Rig",
+      "description": "A dark design-tool app chrome with a live vector pen path, sequential anchor points, bezier handles, a selection frame, and theme-driven blue accents.",
+      "tags": [
+        "prop",
+        "ui-props",
+        "demonstrate",
+        "vector",
+        "design-tool",
+        "pen-tool",
+        "bezier",
+        "app-chrome"
+      ]
+    },
+    {
+      "name": "type-match-cut",
+      "type": "component",
+      "title": "Type Match Cut",
+      "description": "A headline splits vertically around an incoming panel, which grows from the negative space and takes the frame as the words exit through opposite edges.",
+      "tags": [
+        "motion-primitive",
+        "transition",
+        "typography",
+        "match-cut",
+        "continuity"
+      ]
+    },
+    {
+      "name": "carousel-text-circle-5",
+      "type": "block",
+      "title": "Text + Circle Carousel 5",
+      "description": "A headline mask-reveals word by word while a circle carousel converges from off-frame and threads the line, collapses to centre, hard-cuts to a second line that arrives at 1.4× (Circle style 5).",
+      "tags": [
+        "carousel",
+        "title-card",
+        "kinetic-text",
+        "images",
+        "showcase",
+        "circle"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 5
+    },
+    {
+      "name": "carousel-text-circle-4",
+      "type": "block",
+      "title": "Text + Circle Carousel 4",
+      "description": "A headline mask-reveals word by word while a circle carousel converges from off-frame and threads the line, collapses to centre, hard-cuts to a second line that arrives at 1.4× (Circle style 4).",
+      "tags": [
+        "carousel",
+        "title-card",
+        "kinetic-text",
+        "images",
+        "showcase",
+        "circle"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 5
+    },
+    {
+      "name": "carousel-text-circle-3",
+      "type": "block",
+      "title": "Text + Circle Carousel 3",
+      "description": "A headline mask-reveals word by word while a circle carousel converges from off-frame and threads the line, collapses to centre, hard-cuts to a second line that arrives at 1.4× (Circle style 3).",
+      "tags": [
+        "carousel",
+        "title-card",
+        "kinetic-text",
+        "images",
+        "showcase",
+        "circle"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 5
+    },
+    {
+      "name": "carousel-text-circle-2",
+      "type": "block",
+      "title": "Text + Circle Carousel 2",
+      "description": "A headline mask-reveals word by word while a circle carousel converges from off-frame and threads the line, collapses to centre, hard-cuts to a second line that arrives at 1.4× (Circle style 2).",
+      "tags": [
+        "carousel",
+        "title-card",
+        "kinetic-text",
+        "images",
+        "showcase",
+        "circle"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 5
+    },
+    {
+      "name": "carousel-text-circle-1",
+      "type": "block",
+      "title": "Text + Circle Carousel 1",
+      "description": "A headline mask-reveals word by word while a circle carousel converges from off-frame and threads the line, collapses to centre, hard-cuts to a second line that arrives at 1.4× (Circle style 1).",
+      "tags": [
+        "carousel",
+        "title-card",
+        "kinetic-text",
+        "images",
+        "showcase",
+        "circle"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 5
+    },
+    {
+      "name": "yt-vertical-fill",
+      "type": "block",
+      "title": "Vertical Media Filler",
+      "description": "Portrait media filling a widescreen frame via blurred-scale, mirror, or copy side fills; grid texture and foreground contrast lift (images inside the block; keep live footage in the host)",
+      "tags": [
+        "placeholder",
+        "vertical",
+        "media"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 8
+    },
+    {
+      "name": "telemetry-hud",
+      "type": "component",
+      "title": "Telemetry HUD",
+      "description": "Quiet mono debug-HUD readouts frame a slotted subject: corner brackets draw on, label:value lines tick their values on cues, one readout emphasized in accent. The subject never moves; the HUD breathes zero.",
+      "tags": [
+        "motion-primitive",
+        "product-demo",
+        "hud",
+        "telemetry",
+        "deterministic"
+      ]
+    },
+    {
+      "name": "cta-close",
+      "type": "component",
+      "title": "CTA Close",
+      "description": "A display-scale action line lands per word and fills the frame with air, one generous CTA capsule pops beneath it with a single overshoot, and the finished close holds completely still.",
+      "tags": [
+        "motion-primitive",
+        "ui-props",
+        "cta",
+        "end-card",
+        "close",
+        "ask"
+      ]
+    },
+    {
+      "name": "ordered-dither-pass",
+      "type": "component",
+      "title": "Ordered Dither Pass",
+      "description": "Bayer-matrix ordered dithering quantizes a slotted scene (rasterized once at mount): the image emerges from pure 2-tone noise to clean, or dissolves the reverse. Stateless per frame, never error diffusion.",
+      "tags": [
+        "motion-primitive",
+        "experiment",
+        "texture",
+        "dither",
+        "transition",
+        "quantize"
+      ]
+    },
+    {
+      "name": "slit-scan-reveal",
+      "type": "component",
+      "title": "Slit Scan Reveal",
+      "description": "The frame's rows sample an authored subject at offset times: a canvas painter draws row slices of one pure position function evaluated at t minus offset(row), smearing arrival through time until the offsets collapse to zero and the mark holds coherent.",
+      "tags": [
+        "motion-primitive",
+        "time",
+        "slit-scan",
+        "canvas",
+        "deterministic",
+        "experiment"
+      ]
+    },
+    {
+      "name": "halftone-field",
+      "type": "block",
+      "title": "Halftone Field",
+      "description": "A full-bleed halftone light field: a grid of dots whose size and colour track a slow flowing simplex-noise field, so broad bands of light sweep across a mostly-black frame like a giant LED wall showing a plasma. Built to run under type.",
+      "tags": [
+        "webgl",
+        "shader",
+        "background",
+        "texture",
+        "halftone"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 10
+    },
+    {
+      "name": "stop-motion-cadence",
+      "type": "component",
+      "title": "Stop Motion Cadence",
+      "description": "The stepped-time law as a demo primitive: one driver quantizes timeline time to floor(t * fps) / fps and feeds ALL motion; four token paper-cut shapes throw-and-land with squash on hits, 2-frame boil jitter seeded per step, and sparkle accents living exactly 2 to 3 frames.",
+      "tags": [
+        "motion-primitive",
+        "time-law",
+        "stop-motion",
+        "stepped",
+        "boil",
+        "deterministic",
+        "experiment"
+      ]
+    },
+    {
+      "name": "segmentation-flood",
+      "type": "component",
+      "title": "Segmentation Flood",
+      "description": "Machine-vision read of a slotted subject: translucent accent segmentation masks flood on in quantized scanline steps, each region gets a thin bracket and mono label chip, a deterministic 2-frame HUD flicker rides the pass, then the labeled read settles clean.",
+      "tags": [
+        "motion-primitive",
+        "product-demo",
+        "ai",
+        "hud",
+        "canvas",
+        "deterministic",
+        "experiment"
+      ]
+    },
+    {
+      "name": "grade-split-reveal",
+      "type": "component",
+      "title": "Grade Split Reveal",
+      "description": "The same picture twice, one flat and one finished, with a hard edge sweeping between them. It stops in the middle long enough to compare, then commits and the graded look takes the frame. Both looks are real HyperFrames color grading run through the WebGL shader, so the preview and the render match.",
+      "tags": [
+        "color-grading",
+        "media",
+        "compare",
+        "reveal",
+        "motion-primitive",
+        "grade"
+      ]
+    },
+    {
+      "name": "caption-camera-follow",
+      "type": "component",
+      "title": "Camera Follow Captions",
+      "description": "One sentence written across a world far larger than the frame. Each word is sized against everything already written, so the block grows geometrically and the camera pulls back at a steady rate to keep landing the new word at the same size. Old words stay lit and simply become small.",
+      "tags": [
+        "captions",
+        "caption-style",
+        "camera",
+        "typography",
+        "motion-primitive",
+        "portrait"
+      ]
+    },
+    {
+      "name": "extended-keyframe",
+      "type": "component",
+      "title": "Extended Keyframe",
+      "description": "The never-fully-lands arrival: an element covers most of its move in the first fifth of the duration and creeps the rest to the last frame, exits along its arrival vector, and carries shutter motion blur — from any side or by scale, one call per element, plus the ease on its own for any tween",
+      "tags": [
+        "motion",
+        "ease",
+        "arrival",
+        "kinetic-type",
+        "text",
+        "motion-blur",
+        "after-effects",
+        "slide-in",
+        "scale-in"
+      ]
+    },
+    {
+      "name": "whip-pan-cut",
+      "type": "component",
+      "title": "Whip Pan Cut",
+      "description": "A full-frame whip pan: scene A whips off laterally with capped directional motion blur while scene B enters in the same direction at matched velocity, on a speed-ramp profile with a decelerating catch. Both scenes ride one strip, so seam velocity is exact by construction. Callers fill the named before/after slot panels; token-styled defaults render when a slot is left empty.",
+      "tags": [
+        "transition",
+        "whip-pan",
+        "motion-blur",
+        "velocity-match",
+        "speed-ramp",
+        "bridge",
+        "slots"
+      ]
+    },
+    {
+      "name": "light-sweep-pass",
+      "type": "component",
+      "title": "Light Sweep Pass",
+      "description": "A traveling key light re-shades a slotted scene: a soft diagonal gradient band crosses the frame once while every per-element highlight and shadow shifts in lockstep (all driven by one --light-x property), then the light settles into a resting key. Quiet, expensive-feeling; the scene itself never moves. Callers fill the named scene slot; a token hero-and-cards default renders when it is left empty.",
+      "tags": [
+        "motion-primitive",
+        "overlay",
+        "light",
+        "sweep",
+        "slots",
+        "deterministic"
+      ]
+    },
+    {
+      "name": "camera-dolly-zoom",
+      "type": "block",
+      "title": "Dolly Zoom (Vertigo Shot)",
+      "description": "Camera tracks toward or away from the subject while the field of view changes the opposite way, so the subject holds its frame size while the background collapses behind it or rushes in. Focal length is solved from dolly distance every frame against d * tan(FOV/2) = const, not keyframed beside it. Requires depth: the subject sits on the z = 0 plane and the content behind it must be layered or genuinely 3D (translateZ at two or more distinct depths) -- a flat element gains nothing from this move.",
+      "tags": [
+        "camera",
+        "depth",
+        "3d",
+        "cinematic"
+      ],
+      "dimensions": {
+        "width": 1920,
+        "height": 1080
+      },
+      "duration": 4
+    },
+    {
+      "name": "hw-boil",
+      "type": "component",
+      "title": "Hand-Drawn Boil",
+      "description": "Hand-drawn jitter that re-poses every N frames, as seek-safe helpers: pose derives from quantized timeline time through a seeded hash; includes the shared onUpdate dispatcher, a wobbled-ellipse path generator, the boil pose control (off/calm/lively over the family-locked frameDrop), a curvature-adaptive pen-velocity ease, and the completed stroke matrix (plain/soft/sharp/spray — spray is index-seeded deterministic dots, no turbulence) with texture-safe draw-on",
+      "tags": [
+        "handwritten",
+        "effect",
+        "annotation"
+      ]
+    }
+  ]
+}

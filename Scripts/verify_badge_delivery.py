@@ -66,14 +66,19 @@ with tempfile.TemporaryDirectory(prefix='nano-badge-checks-') as directory:
 
 # Compile the production catalog and Recent Achievements selection on macOS.
 insights = (root / 'Nanobeasts/Features/Stats/StatsInsightComponents.swift').read_text()
-badge_models = insights[insights.index('struct StatsBadge:'):insights.index('private actor BadgeArtworkImageCache')]
-catalog = insights[insights.index('enum StatsBadgeCatalog {'):insights.index('struct StatsInsightsCard:')]
+badge_models = insights[insights.index('struct StatsBadge:'):insights.index('actor BadgeArtworkImageCache')]
+catalog = insights[insights.index('enum StatsBadgeCatalog {'):insights.index('struct RecentAchievementsRow:')]
 store = (root / 'Nanobeasts/Models/AppStore.swift').read_text()
 units = store[store.index('enum DistanceUnitPreference:'):store.index('@MainActor\n@Observable')]
 assert 'StatsBadge.recentUnlocked(in: sections)' in insights
 stats_view = (root / 'Nanobeasts/Features/Stats/StatsView.swift').read_text()
 assert 'evolutionEventID: store.evolutionEventID' in stats_view
 assert 'discoveryEvents: input.discoveryEvents' in stats_view
+# Real awards persist even during the hidden step preview, and never repeat in a session.
+assert 'if hasTestingActivityPreview, !earnedWithoutPreview {' in store
+root_view = (root / 'Nanobeasts/App/AppRootView.swift').read_text()
+assert 'earnedWithoutPreview: isEarnedWithoutPreview(badge.id)' in root_view
+assert 'badgesShownThisSession.contains($0.id)' in root_view
 support = '''
 import Foundation
 import SwiftUI

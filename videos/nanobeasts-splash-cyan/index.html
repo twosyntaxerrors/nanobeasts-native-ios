@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=720, height=1280">
+  <title>Nanobeasts Cyan Hatch — Splash Preview</title>
+  <script src="assets/gsap.min.js"></script>
+  <style>
+    :root { --bg: #000000; --accent: #00D5F4; --ice: #81EDFF; --deep: #163A65; --white: #F1F8FC; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); }
+    #stage { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--bg); }
+    .clip { position: absolute; inset: 0; }
+    .scene-content { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; padding: 48px; }
+    .hero { position: relative; width: 600px; height: 400px; flex: none; isolation: isolate; }
+    .logo-pieces, .logo-final { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .logo-pieces { overflow: visible; opacity: 0; z-index: 1; }
+    .logo-final { object-fit: contain; opacity: 0; z-index: 1; }
+    .ls-ring { position: absolute; left: 222.875px; top: 93.96875px; width: 148px; height: 148px; border: 1.6px solid var(--accent); border-radius: 50%; opacity: 0; z-index: 0; }
+    .bpb-pulse { position: absolute; left: 116.875px; top: -12.03125px; width: 360px; height: 360px; border-radius: 50%; opacity: 0; z-index: 0; background: radial-gradient(circle, color-mix(in srgb, var(--ice) 72%, transparent) 0%, color-mix(in srgb, var(--accent) 30%, transparent) 22%, transparent 66%); }
+  </style>
+</head>
+<body>
+  <div data-hf-id="hf-g9cd" id="stage" data-composition-id="nanobeasts-splash-cyan" data-start="0" data-duration="1.2" data-fps="30" data-width="720" data-height="1280">
+    <div data-hf-id="hf-31g3" id="splash-clip" class="clip" data-start="0" data-duration="1.2" data-track-index="0">
+      <div data-hf-id="hf-cn5c" class="scene-content">
+        <div data-hf-id="hf-03q0" class="hero" id="logo-hero">
+          <!-- Inline adaptations of installed Logo Sting / Beat Pulse Background.
+               Source-specific masks bind the Camera Shake recipe to visible shell pixels. -->
+          <div data-hf-id="hf-xpe1" id="crack-pulse" class="bpb-pulse" aria-hidden="true"></div>
+          <div data-hf-id="hf-qkym" id="crack-ring" class="ls-ring" aria-hidden="true"></div>
+          <svg data-hf-id="hf-r2v7" id="logo-pieces" class="logo-pieces" viewBox="0 0 1536 1024" role="img" aria-label="Nanobeasts Evolve cyan crystal egg logo">
+            <defs data-hf-id="hf-mh0t">
+              <path data-hf-id="hf-gkxo" id="shell-shape" d="M530 350 L554 290 L598 220 L666 146 L747 88 L817 61 L872 65 L932 96 L982 155 L1017 233 L1034 314 L1036 388 L1009 346 L978 373 L941 336 L930 298 L889 348 L861 368 L832 299 L818 247 L775 284 L725 237 L693 210 L666 238 L657 281 L631 330 L597 297 L580 340 Z" />
+              <path data-hf-id="hf-7d7l" id="shard-a-shape" d="M978 79 L1023 34 L1033 88 L984 142 Z" />
+              <path data-hf-id="hf-7fdc" id="shard-b-shape" d="M1017 155 L1067 110 L1068 171 L1016 235 Z" />
+              <path data-hf-id="hf-ly5g" id="shard-c-shape" d="M410 875 L457 840 L461 897 L402 953 Z" />
+              <clippath data-hf-id="hf-k8fm" id="shell-mask"><use data-hf-id="hf-vjk2" href="#shell-shape" /></clippath>
+              <clippath data-hf-id="hf-4a0e" id="shard-a-mask"><use data-hf-id="hf-pdgy" href="#shard-a-shape" /></clippath>
+              <clippath data-hf-id="hf-mi3b" id="shard-b-mask"><use data-hf-id="hf-8pvt" href="#shard-b-shape" /></clippath>
+              <clippath data-hf-id="hf-uwlg" id="shard-c-mask"><use data-hf-id="hf-yxe4" href="#shard-c-shape" /></clippath>
+              <mask data-hf-id="hf-9eg8" id="stationary-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="1536" height="1024">
+                <rect data-hf-id="hf-20v7" x="0" y="0" width="1536" height="1024" fill="white" />
+                <g data-hf-id="hf-2cnw" fill="black"><use data-hf-id="hf-9w6e" href="#shell-shape" /><use data-hf-id="hf-86ye" href="#shard-a-shape" /><use data-hf-id="hf-vgfx" href="#shard-b-shape" /><use data-hf-id="hf-4m1w" href="#shard-c-shape" /></g>
+              </mask>
+            </defs>
+            <image data-hf-id="hf-2qsf" href="assets/logo-cyan.png" width="1536" height="1024" mask="url(#stationary-mask)" />
+            <g data-hf-id="hf-4nmd" id="upper-egg"><image data-hf-id="hf-dk77" href="assets/logo-cyan.png" width="1536" height="1024" clip-path="url(#shell-mask)" /></g>
+            <g data-hf-id="hf-8pxn" id="shard-a"><image data-hf-id="hf-fnpf" href="assets/logo-cyan.png" width="1536" height="1024" clip-path="url(#shard-a-mask)" /></g>
+            <g data-hf-id="hf-xug0" id="shard-b"><image data-hf-id="hf-1ifm" href="assets/logo-cyan.png" width="1536" height="1024" clip-path="url(#shard-b-mask)" /></g>
+            <g data-hf-id="hf-ym3t" id="shard-c"><image data-hf-id="hf-eq7t" href="assets/logo-cyan.png" width="1536" height="1024" clip-path="url(#shard-c-mask)" /></g>
+          </svg>
+          <img data-hf-id="hf-pal8" id="logo-final" class="logo-final" src="assets/logo-cyan.png" alt="Nanobeasts Evolve">
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Registry provenance: logo-sting (ring + static hold), beat-pulse-background
+    // (one fast attack / slower decay), camera-shake (finite deterministic sampling).
+    const tl = gsap.timeline({ paused: true });
+    tl.addLabel('charge', 0.033333);
+    tl.addLabel('tremor', 0.3);
+    tl.addLabel('cyan-pulse', 0.5);
+    tl.addLabel('settled-hold', 0.833333);
+    tl.addLabel('end', 1.2);
+    tl.fromTo('#logo-pieces', { opacity: 0 }, { opacity: 0.65, duration: 0.266667, ease: 'power3.out' }, 0.033333);
+    tl.fromTo('#logo-pieces', { opacity: 0.65 }, { opacity: 1, duration: 0.333333, ease: 'sine.out', immediateRender: false }, 0.5);
+    // Short, localized finite glow; no pixel grading, fullscreen flash, or repeated beat.
+    tl.fromTo('#crack-pulse', { opacity: 0, scale: 0.7 }, { opacity: 0.24, scale: 0.95, duration: 0.386667, ease: 'sine.inOut' }, 0.033333);
+    tl.fromTo('#crack-pulse', { opacity: 0.24, scale: 0.95 }, { opacity: 0.58, scale: 1, duration: 0.08, ease: 'expo.out', immediateRender: false }, 0.42);
+    tl.fromTo('#crack-pulse', { opacity: 0.58, scale: 1 }, { opacity: 0, scale: 1.16, duration: 0.3, ease: 'power2.in', immediateRender: false }, 0.5);
+    tl.fromTo('#crack-ring', { scale: 0.34, opacity: 0 }, { scale: 0.58, opacity: 0.3, duration: 0.066667, ease: 'circ.out' }, 0.5);
+    tl.fromTo('#crack-ring', { scale: 0.58, opacity: 0.3 }, { scale: 2.1, opacity: 0, duration: 0.233333, ease: 'power4.out', immediateRender: false }, 0.566667);
+    // Source pixels (1536x1024): amplitude stays below2 canvas pixels.
+    tl.fromTo('#upper-egg', { x: 0, y: 0, rotation: 0, svgOrigin: '785 325' }, {
+      keyframes: [
+        { x: -3.5, y: -1, rotation: -0.35, duration: 0.066667, ease: 'sine.inOut' },
+        { x: 4, y: -2, rotation: 0.4, duration: 0.066666, ease: 'sine.inOut' },
+        { x: -2, y: -0.5, rotation: -0.2, duration: 0.066667, ease: 'sine.inOut' },
+        { x: 0, y: 0, rotation: 0, duration: 0.233333, ease: 'power1.out' }
+      ], ease: 'none'
+    }, 0.3);
+    const shards = [
+      { id: '#shard-a', x: 7, y: -17, rotation: 1.5, origin: '1005 86', start: 0.3 },
+      { id: '#shard-b', x: 13, y: -10, rotation: 2, origin: '1040 173', start: 0.333333 },
+      { id: '#shard-c', x: -10, y: 12, rotation: -1.5, origin: '432 897', start: 0.366667 }
+    ];
+    shards.forEach(p => {
+      tl.fromTo(p.id, { x: 0, y: 0, rotation: 0, svgOrigin: p.origin }, { x: p.x, y: p.y, rotation: p.rotation, duration: 0.166667, ease: 'power2.out' }, p.start);
+      tl.fromTo(p.id, { x: p.x, y: p.y, rotation: p.rotation }, { x: 0, y: 0, rotation: 0, duration: 0.266666, ease: 'power3.inOut', immediateRender: false }, p.start + 0.166667);
+    });
+    // After all source pieces return, resolve to the intact image for a seam-free hold.
+    tl.set('#logo-final', { opacity: 1 }, 0.833333);
+    tl.set('#logo-pieces', { opacity: 0 }, 0.833333);
+    tl.to('#logo-final', { opacity: 1, duration: 0.366667, ease: 'none' }, 0.833333);
+    window.__timelines = window.__timelines || {};
+    window.__timelines['nanobeasts-splash-cyan'] = tl;
+    tl.seek(0);
+  </script>
+</body>
+</html>

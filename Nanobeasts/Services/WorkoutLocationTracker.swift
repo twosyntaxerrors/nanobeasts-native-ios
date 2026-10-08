@@ -197,6 +197,20 @@ final class WorkoutLocationTracker: NSObject, ObservableObject {
     }
 
 #if targetEnvironment(simulator)
+    /// App Store screenshot fixture: a finished walk plus earlier walks in the same zone.
+    func seedSummaryDemo(route: [CLLocationCoordinate2D], earlierWalks: [[CLLocationCoordinate2D]]) {
+        self.route = route
+        routeBreakIndices = []
+        exploredRoutes = earlierWalks
+        distanceMiles = zip(route, route.dropFirst()).reduce(0) { total, pair in
+            total + CLLocation(latitude: pair.0.latitude, longitude: pair.0.longitude)
+                .distance(from: CLLocation(latitude: pair.1.latitude, longitude: pair.1.longitude)) / 1_609.344
+        }
+        currentLocation = route.last.map { CLLocation(latitude: $0.latitude, longitude: $0.longitude) }
+        isTracking = false
+        locationError = nil
+    }
+
     func seedTerritoryDemo() {
         let coordinates = [
             CLLocationCoordinate2D(latitude: 40.6990, longitude: -73.9255),
@@ -680,6 +694,8 @@ extension WorkoutLocationTracker: CLLocationManagerDelegate {
         }
         Self.persist(exploredRoutes: legacyExploredRoutes,
                      watchSessionIDs: importedWatchSessionIDs, historyRoutes: savedHistoryRoutes)
+        let routes = exploredRoutes
+        Task { @MainActor in WorkoutZoneCelebrations.shared.territoryChanged(routes) }
     }
 
     private static func simplified(

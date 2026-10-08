@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "build": "4",
+  "displayName": "Nanobeasts",
+  "watchBundleIdentifier": "com.twosyntaxerrors.nanobeasts.native.watchkitapp",
+  "watchInstall": "succeeded",
+  "watchLaunch": "succeeded",
+  "iphoneInstall": "succeeded",
+  "iphoneLaunch": "succeeded",
+  "recovery": "Watch restarted and unlocked after Mac CoreDeviceService refresh; apps installed in place without data reset",
+  "workoutHeader": "Nanobeasts",
+  "finalVerifiedLaunchTime": "2026-09-07 21:16 EDT",
+  "finalSignatureVerification": "passed for iPhone and Watch"
+}

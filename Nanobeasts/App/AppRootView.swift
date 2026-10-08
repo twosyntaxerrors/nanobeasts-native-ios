@@ -1,5 +1,6 @@
 import Combine
 import ActivityKit
+import UIKit
 import SwiftUI
 import StoreKit
 
@@ -47,6 +48,7 @@ struct AppRootView: View {
     @State private var selectedTab: AppTab = .lab
     @State private var activeSheet: AppSheet?
     @State private var workoutPresentation: AppWorkoutPresentation?
+    @StateObject private var zoneCelebrations = WorkoutZoneCelebrations.shared
     @State private var completesOnboardingAfterPaywall = false
     @State private var showsOnboardingPaywall = false
     @State private var onboardingResumeID = UUID()
@@ -62,6 +64,9 @@ struct AppRootView: View {
     @State private var presentedLifecycleEventKind: CreatureDiscoveryKind?
     @State private var activeBadgeAward: StatsBadge?
     @State private var requestedBadgeID: String?
+    /// Celebrations already shown this launch. A celebration closed by anything
+    /// other than its own buttons (e.g. a subscription refresh) must not reappear.
+    @State private var badgesShownThisSession: Set<String> = []
     @State private var homePresentationIsBusy = false
     @State private var showsAppTour = false
     @State private var appTourPendingAfterHealth = false
@@ -148,6 +153,17 @@ struct AppRootView: View {
             await WorkoutHistoryStore().refreshHealthTotals()
         }
         .task { await store.observeSubscriptionUpdates() }
+        .task(id: store.discoveryEvents.count) {
+            // Decode Stats/Dex artwork in the background shortly after launch, so
+            // badges and creatures are already on screen when those tabs open.
+            try? await Task.sleep(for: .seconds(1.5))
+            guard !Task.isCancelled else { return }
+            let badgeURLs = StatsBadge.recentUnlocked(in: currentBadgeSections).prefix(6).compactMap(\.artworkURL)
+            let stages = store.catalog.families.flatMap(\.stages).filter { store.isDiscovered($0) || store.isCurrent($0) }
+            await StatsView.prewarm(store)
+            await BadgeArtworkImageCache.shared.prefetch(urls: badgeURLs)
+            await NanoImageMemoryCache.shared.prewarm(stages)
+        }
         .task(id: rewardPresentationState) {
             guard rewardPresentationState.isReady else { return }
             // Native dismissals finish before another presentation is requested.
@@ -202,6 +218,7 @@ struct AppRootView: View {
             presentedLifecycleEventKind = nil
             activeBadgeAward = nil
             requestedBadgeID = nil
+            badgesShownThisSession = []
             reviewRequestPending = false
             didCompleteAppTour = false
             showsLaunchSplash = true
@@ -267,6 +284,14 @@ struct AppRootView: View {
         .fullScreenCover(isPresented: $showsOnboardingPaywall, onDismiss: handlePaywallDismissed) {
             RevenueCatPaywallScreen(playerName: store.playerName, selectedGoals: store.onboardingGoals, primaryGoal: store.onboardingPrimaryGoal, selectedBlockers: store.onboardingBlockers)
         }
+        // Watch walks synced while no workout screen is open still get their celebration.
+        .background {
+            Color.clear.fullScreenCover(item: zoneCelebrations.binding(
+                when: workoutPresentation == nil && activeEvolutionEvent == nil && activeBadgeAward == nil
+                    && !showsOnboardingPaywall && store.onboardingCompleted)) { completion in
+                WorkoutZoneCelebrationView(completion: completion)
+            }
+        }
         .fullScreenCover(item: $workoutPresentation) { presentation in
             WorkoutView(resumingSessionID: presentation.sessionID)
                 .environment(store)
@@ -290,7 +315,8 @@ struct AppRootView: View {
             BadgeAwardCelebrationView(
                 badge: badge,
                 onAcknowledged: {
-                    store.markBadgeAwardPresented(badge.id)
+                    store.markBadgeAwardPresented(badge.id,
+                                                  earnedWithoutPreview: isEarnedWithoutPreview(badge.id))
                     // Dismiss through the binding as well as the environment
                     // dismiss action so the parent cannot immediately present
                     // the same award again while the cover is winding down.
@@ -464,6 +490,22 @@ struct AppRootView: View {
         )
     }
 
+    /// Whether the real journey (without the hidden step preview) earned this badge.
+    private func isEarnedWithoutPreview(_ badgeID: String) -> Bool {
+        guard store.hasTestingActivityPreview else { return true }
+        let discoveredStages = store.catalog.creatureStages.filter {
+            store.isDiscovered($0) || store.isCurrent($0)
+        }
+        return StatsBadgeCatalog.make(
+            records: store.dailyHistory,
+            dailyGoal: store.dailyGoal,
+            dailyGoalHistory: store.dailyGoalHistory,
+            discoveredStages: discoveredStages,
+            distanceUnit: store.distanceUnit,
+            discoveryEvents: store.discoveryEvents
+        ).flatMap(\.badges).contains { $0.id == badgeID && $0.unlocked }
+    }
+
     private var screenshotBadgeSections: [StatsBadgeSection] {
         guard
             AppScreenshotScenario.active == .collectionBadges
@@ -611,16 +653,18 @@ struct AppRootView: View {
         if let requestedBadgeID {
             self.requestedBadgeID = nil
             if let badge = badges.first(where: { $0.id == requestedBadgeID && $0.unlocked }) {
+                badgesShownThisSession.insert(badge.id)
                 activeBadgeAward = badge
                 return
             }
         }
         let pendingIDs = BadgeAwardDelivery.pendingIDs(badges.map {
             .init(id: $0.id, completedAt: $0.completedAt, unlocked: $0.unlocked,
-                  acknowledged: store.hasPresentedBadgeAward($0.id))
+                  acknowledged: store.hasPresentedBadgeAward($0.id) || badgesShownThisSession.contains($0.id))
         })
         if AppScreenshotScenario.active == nil, let nextID = pendingIDs.first,
            let badge = badges.first(where: { $0.id == nextID }) {
+            badgesShownThisSession.insert(badge.id)
             activeBadgeAward = badge
             return
         }
@@ -787,18 +831,18 @@ struct AppTourOverlay: View {
         .init(tab: .lab, targets: [.workout], label: "WORKOUT TRACKER",
               title: "Take your Nanobeast outside.",
               copy: "Use this walking button to start a workout. Your steps power growth while outdoor sessions uncover your map."),
-        .init(tab: .stats, targets: [.stats], label: "STATS & INSIGHTS",
-              title: "Explore your movement history.",
-              copy: "This calendar shows your daily activity. Open a date for its field report and compare your progress over time."),
-        .init(tab: .stats, targets: [.badges], label: "BADGES & ACHIEVEMENTS",
-              title: "Find your next achievement.",
-              copy: "Earn badges for walking milestones, streaks, and creature discoveries. Tap View All here to browse every badge and see how to earn it, even before your first unlock."),
+        .init(tab: .stats, targets: [.stats], label: "ACTIVITY LOG",
+              title: "Every day you walked, at a glance.",
+              copy: "Days you hit your goal light up, with your current and best streak above. Tap any day for its field report. Trends, your walking rhythm, and personal records are just below."),
+        .init(tab: .stats, targets: [.badges], label: "ACHIEVEMENTS",
+              title: "Find your next badge.",
+              copy: "Earn badges for walking milestones, streaks, and discoveries. Tap View All to see every badge and how to earn it. Your monthly recap appears at the end of each month."),
         .init(tab: .dex, targets: [.dex], label: "FIELD DEX",
-              title: "Meet your discoveries here.",
-              copy: "Open a discovered specimen to view it again. Locked specimens stay hidden until you hatch or evolve them."),
+              title: "Collect every Nanobeast.",
+              copy: "Discovered creatures appear in color, and the next form you can unlock shows as a silhouette. Tap any entry for its profile, or switch to Families to see each creature’s evolutions."),
         .init(tab: .settings, targets: [.settingsGoal], label: "YOUR DAILY GOAL",
               title: "Choose a goal that fits you.",
-              copy: "Adjust your daily step target here. You can also change units, Apple Health, and reminders in Settings.")
+              copy: "Set your daily step goal here. Changes start tomorrow. Appearance, notifications, Apple Health, and units are just below.")
     ]
 
     var body: some View {
@@ -935,281 +979,168 @@ private struct NanobeastsLaunchSplash: View {
     let onFinished: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
-    @State private var illuminatedLetters = 0
-    @State private var coreScale = 0.96
-    @State private var coreOpacity = 0.0
-    @State private var moleculeProgress: CGFloat = 0
-    @State private var orbitRotation = -8.0
-
-    private let letters = Array("NANOBEASTS")
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var hasFinished = false
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color.black
             LabGridBackground()
-                .opacity(0.28)
-                .ignoresSafeArea()
-
-            RadialGradient(
-                colors: [NanoTheme.teal.opacity(0.16), .clear],
-                center: .center,
-                startRadius: 4,
-                endRadius: 260
-            )
-            .ignoresSafeArea()
-
-            VStack(spacing: 28) {
-                ZStack {
-                    SplashOrbitRing()
-                        .fill(NanoTheme.teal.opacity(0.52))
-                        .rotationEffect(.degrees(orbitRotation))
-
-                    EvolutionMoleculeMark(progress: moleculeProgress)
-                }
-                .frame(width: 144, height: 144)
-                .scaleEffect(coreScale)
-                .opacity(coreOpacity)
-
-                HStack(spacing: 2) {
-                    ForEach(Array(letters.enumerated()), id: \.offset) { index, letter in
-                        Text(String(letter))
-                            .font(NanoFont.aldrich(24))
-                            .foregroundStyle(
-                                index < illuminatedLetters
-                                    ? Color.white
-                                    : Color.white.opacity(0.13)
-                            )
-                            .shadow(
-                                color: index < illuminatedLetters
-                                    ? NanoTheme.teal.opacity(0.45)
-                                    : .clear,
-                                radius: 5
-                            )
-                    }
-                }
-
-                Text("MOVEMENT POWERS EVOLUTION")
-                    .font(NanoFont.aldrich(9))
-                    .tracking(2)
-                    .foregroundStyle(NanoTheme.teal)
-                    .opacity(illuminatedLetters == letters.count ? 1 : 0)
+            VStack(spacing: 24) {
+                LaunchGlitchletWalker(isPlaying: scenePhase == .active && !accessibilityReduceMotion)
+                LaunchNanobeastsWordmark(isPlaying: scenePhase == .active)
             }
+            .padding(.horizontal, 24)
         }
-        .task { await playIntroduction() }
-    }
-
-    @MainActor
-    private func playIntroduction() async {
-        do {
-            if accessibilityReduceMotion {
-                illuminatedLetters = letters.count
-                coreScale = 1
-                coreOpacity = 1
-                moleculeProgress = EvolutionMoleculeMark.finalPhase
-                orbitRotation = 0
-                try await Task.sleep(for: .milliseconds(350))
-            } else {
-                withAnimation(.timingCurve(0.23, 1, 0.32, 1, duration: 0.24)) {
-                    coreScale = 1
-                    coreOpacity = 1
-                }
-                // The circular ring moves at constant speed, independently of the morphs.
-                withAnimation(.linear(duration: 1.5)) { orbitRotation = 28 }
-                try await Task.sleep(for: .milliseconds(180))
-                async let wordmark: Void = illuminateWordmark()
-                // All four stages finish; the sequence is not coupled to the letter count.
-                for phase in 1...Int(EvolutionMoleculeMark.finalPhase) {
-                    try Task.checkCancellation()
-                    withAnimation(.timingCurve(0.77, 0, 0.175, 1, duration: 0.24)) {
-                        moleculeProgress = CGFloat(phase)
-                    }
-                    try await Task.sleep(for: .milliseconds(300))
-                }
-                try await wordmark
-                try await Task.sleep(for: .milliseconds(120))
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Nanobeasts")
+        .accessibilityAddTraits(.isImage)
+        .accessibilityIdentifier("launch-splash")
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { return }
+            do {
+                // Three walk cycles; reduced motion shows a still pose.
+                let duration: Duration = accessibilityReduceMotion
+                    ? .milliseconds(350)
+                    : .milliseconds(Int(LaunchGlitchletWalker.cycleDuration * 3 * 1000))
+                try await Task.sleep(for: duration)
+                try Task.checkCancellation()
+                finish()
+            } catch {
+                // Leaving the active scene cancels the splash completion timer.
             }
-            try Task.checkCancellation()
-            onFinished()
-        } catch {
-            // A dismissed splash must not fire a delayed completion into a newer screen.
         }
     }
 
-    @MainActor
-    private func illuminateWordmark() async throws {
-        for index in letters.indices {
-            try Task.checkCancellation()
-            withAnimation(.timingCurve(0.23, 1, 0.32, 1, duration: 0.18)) {
-                illuminatedLetters = index + 1
-            }
-            try await Task.sleep(for: .milliseconds(70))
-        }
+    private func finish() {
+        guard !hasFinished else { return }
+        hasFinished = true
+        #if DEBUG
+        print("[LaunchSplash] pixel Glitchlet completed")
+        #endif
+        onFinished()
     }
 }
 
-/// Separate, closed dots avoid arc-joining chords and a mismatched dash seam.
-/// Every dot center shares one radius, including under non-square proposals.
-private struct SplashOrbitRing: Shape {
-    func path(in rect: CGRect) -> Path {
-        let side = min(rect.width, rect.height)
-        let radius = side * 0.43
-        let dotRadius = side * 0.009
-        let center = CGPoint(x: rect.midX, y: rect.midY)
-        var path = Path()
-        for index in 0..<48 {
-            let angle = Double(index) * 2 * .pi / 48
-            let point = CGPoint(x: center.x + radius * cos(angle),
-                                y: center.y + radius * sin(angle))
-            path.addEllipse(in: CGRect(x: point.x - dotRadius, y: point.y - dotRadius,
-                                       width: dotRadius * 2, height: dotRadius * 2))
-        }
-        return path
-    }
-}
+private struct LaunchNanobeastsWordmark: View {
+    let isPlaying: Bool
 
-/// A tiny procedural evolution story: atom → chain → egg → paw → energized organism.
-/// It is vector-only, so it remains crisp and starts immediately without decoding media.
-private struct EvolutionMoleculeMark: View, Animatable {
-    static let finalPhase: CGFloat = 4
-
-    var progress: CGFloat
-
-    var animatableData: CGFloat {
-        get { progress }
-        set { progress = newValue }
-    }
-
-    private static let frames: [[CGPoint]] = [
-        // Atom
-        [
-            .init(x: 0, y: 0),
-            .init(x: -0.62, y: -0.32),
-            .init(x: 0.64, y: -0.24),
-            .init(x: -0.48, y: 0.48),
-            .init(x: 0.50, y: 0.52),
-            .init(x: -0.82, y: 0.08),
-            .init(x: 0.84, y: 0.12)
-        ],
-        // Mutating molecular chain
-        [
-            .init(x: 0, y: 0),
-            .init(x: -0.54, y: -0.68),
-            .init(x: 0.50, y: -0.44),
-            .init(x: -0.44, y: -0.08),
-            .init(x: 0.46, y: 0.18),
-            .init(x: -0.48, y: 0.52),
-            .init(x: 0.54, y: 0.70)
-        ],
-        // Egg / incubating form
-        [
-            .init(x: 0, y: 0.10),
-            .init(x: -0.40, y: -0.62),
-            .init(x: 0.40, y: -0.62),
-            .init(x: -0.64, y: 0.02),
-            .init(x: 0.64, y: 0.02),
-            .init(x: -0.34, y: 0.66),
-            .init(x: 0.34, y: 0.66)
-        ],
-        // First creature signal / paw
-        [
-            .init(x: 0, y: 0.34),
-            .init(x: -0.62, y: -0.22),
-            .init(x: -0.22, y: -0.64),
-            .init(x: 0.22, y: -0.64),
-            .init(x: 0.62, y: -0.22),
-            .init(x: -0.24, y: 0.24),
-            .init(x: 0.24, y: 0.24)
-        ],
-        // Fully energized organism
-        [
-            .init(x: 0, y: 0),
-            .init(x: 0, y: -0.78),
-            .init(x: 0.68, y: -0.38),
-            .init(x: 0.68, y: 0.38),
-            .init(x: 0, y: 0.78),
-            .init(x: -0.68, y: 0.38),
-            .init(x: -0.68, y: -0.38)
-        ]
-    ]
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
+    @State private var revealedCount = 0
+    private let letters = Array("NANOBEASTS")
 
     var body: some View {
-        Canvas { context, size in
-            let points = interpolatedPoints(in: size)
-            // Smooth at stage boundaries; fractional progress previously snapped to zero.
-            let energy = CGFloat(pow(sin(Double(progress) * .pi), 2))
-
-            context.drawLayer { layer in
-                layer.addFilter(
-                    .shadow(
-                        color: NanoTheme.teal.opacity(0.46),
-                        radius: 6
-                    )
-                )
-
-                var bonds = Path()
-                for index in 1..<points.count {
-                    bonds.move(to: points[0])
-                    bonds.addLine(to: points[index])
-                }
-                layer.stroke(
-                    bonds,
-                    with: .color(NanoTheme.teal.opacity(0.62)),
-                    style: StrokeStyle(lineWidth: 1.6, lineCap: .round)
-                )
-
-                for (index, point) in points.enumerated() {
-                    let baseRadius: CGFloat = index == 0 ? 10 : 6
-                    let pulse = energy * (index == 0 ? 0.8 : 0.35)
-                    let radius = baseRadius + pulse
-                    let nodeRect = CGRect(
-                        x: point.x - radius,
-                        y: point.y - radius,
-                        width: radius * 2,
-                        height: radius * 2
-                    )
-                    let color = index == 0
-                        ? Color.white
-                        : (index.isMultiple(of: 2) ? NanoTheme.teal : Color.cyan)
-
-                    layer.fill(
-                        Path(ellipseIn: nodeRect),
-                        with: .radialGradient(
-                            Gradient(colors: [.white, color, color.opacity(0.72)]),
-                            center: CGPoint(
-                                x: point.x - (radius * 0.24),
-                                y: point.y - (radius * 0.28)
-                            ),
-                            startRadius: 0,
-                            endRadius: radius
-                        )
-                    )
-                }
+        HStack(spacing: 3) {
+            ForEach(letters.indices, id: \.self) { index in
+                let isVisible = accessibilityReduceMotion || index < revealedCount
+                Text(String(letters[index]))
+                    .opacity(isVisible ? 1 : 0)
+                    .offset(y: isVisible ? 0 : 4)
             }
+        }
+        .font(NanoFont.aldrich(24))
+        .foregroundStyle(.white)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Nanobeasts")
+        .task(id: isPlaying && !accessibilityReduceMotion) {
+            guard isPlaying, !accessibilityReduceMotion else { return }
+            do {
+                if revealedCount == 0 { try await Task.sleep(for: .milliseconds(120)) }
+                // Keep every letter's space reserved so the word stays centered.
+                while revealedCount < letters.count {
+                    try Task.checkCancellation()
+                    withAnimation(.easeOut(duration: 0.18)) { revealedCount += 1 }
+                    if revealedCount < letters.count { try await Task.sleep(for: .milliseconds(85)) }
+                }
+                #if DEBUG
+                print("[LaunchSplash] wordmark revealed \(revealedCount) letters")
+                #endif
+            } catch {
+                // Pause the reveal when the app becomes inactive or the splash leaves.
+            }
+        }
+    }
+}
 
+/// Pixel-art Glitchlet rigged from one body and one foot sprite. Each foot follows the same
+/// 8-frame stride half a cycle apart, so the feet genuinely pass each other.
+private struct LaunchGlitchletWalker: View {
+    let isPlaying: Bool
+    var pixel: CGFloat = 2
+
+    static let frameDuration = 0.1
+    static let cycleDuration = frameDuration * Double(stride.count)
+
+    // Layout in sprite pixels.
+    private static let stage = CGSize(width: 56, height: 62)
+    private static let bodyOrigin = CGPoint(x: 10, y: 2)
+    private static let bodySize = CGSize(width: 37, height: 50)
+    private static let bodyCenterX: CGFloat = 26.5
+    private static let footSize = CGSize(width: 9, height: 6)
+    private static let footTop: CGFloat = 51
+    private static let ground: CGFloat = 57
+    private static let hips: (far: CGFloat, near: CGFloat) = (24, 29)
+    // Four planted frames sliding back at 3px/frame, then four airborne frames arcing forward.
+    private static let stride: [(x: CGFloat, y: CGFloat)] = [
+        (5, 0), (2, 0), (-1, 0), (-4, 0), (-3, -2), (0, -3), (3, -3), (5, -1)
+    ]
+    // The body rises a pixel while the feet pass each other.
+    private static let bob: [CGFloat] = [0, -1, -1, 0, 0, -1, -1, 0]
+
+    @State private var startDate = Date.now
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: Self.frameDuration, paused: !isPlaying)) { timeline in
+            let elapsed = max(0, timeline.date.timeIntervalSince(startDate))
+            let frame = isPlaying ? Int(elapsed / Self.frameDuration) % Self.stride.count : 0
+            ZStack(alignment: .topLeading) {
+                groundLayer(frame: frame)
+                foot(phase: (frame + Self.stride.count / 2) % Self.stride.count, hip: Self.hips.far)
+                    .colorMultiply(Color(red: 0.68, green: 0.68, blue: 0.72))
+                foot(phase: frame, hip: Self.hips.near)
+                sprite("LaunchGlitchletWalkBody", size: Self.bodySize,
+                       at: CGPoint(x: Self.bodyOrigin.x, y: Self.bodyOrigin.y + Self.bob[frame]))
+            }
+            .frame(width: Self.stage.width * pixel, height: Self.stage.height * pixel, alignment: .topLeading)
         }
         .accessibilityHidden(true)
     }
 
-    private func interpolatedPoints(in size: CGSize) -> [CGPoint] {
-        let clamped = min(max(progress, 0), Self.finalPhase)
-        let lowerIndex = Int(floor(clamped))
-        let upperIndex = min(lowerIndex + 1, Self.frames.count - 1)
-        let rawT = clamped - CGFloat(lowerIndex)
-        let t = rawT
-        let radius = min(size.width, size.height) * 0.40
-        let center = CGPoint(x: size.width / 2, y: size.height / 2)
-        let angle = Double(progress) * .pi / 18
-        let cosine = cos(angle)
-        let sine = sin(angle)
+    private func foot(phase: Int, hip: CGFloat) -> some View {
+        let step = Self.stride[phase]
+        return sprite("LaunchGlitchletWalkFoot", size: Self.footSize,
+                      at: CGPoint(x: hip - 4 + step.x, y: Self.footTop + step.y))
+    }
 
-        return zip(Self.frames[lowerIndex], Self.frames[upperIndex]).map { start, end in
-            let x = (start.x + ((end.x - start.x) * t)) * radius
-            let y = (start.y + ((end.y - start.y) * t)) * radius
-            return CGPoint(
-                x: center.x + (x * cosine) - (y * sine),
-                y: center.y + (x * sine) + (y * cosine)
-            )
+    private func sprite(_ name: String, size: CGSize, at origin: CGPoint) -> some View {
+        Image(name).interpolation(.none).resizable()
+            .frame(width: size.width * pixel, height: size.height * pixel)
+            .offset(x: origin.x * pixel, y: origin.y * pixel)
+    }
+
+    /// Pixel shadow plus a dashed track that scrolls at the planted foot's speed, so the feet never slide.
+    private func groundLayer(frame: Int) -> some View {
+        Canvas { context, _ in
+            let pixel = self.pixel
+            func fill(_ x: Int, _ y: CGFloat, _ color: Color) {
+                context.fill(Path(CGRect(x: CGFloat(x) * pixel, y: y * pixel, width: pixel, height: pixel)),
+                             with: .color(color))
+            }
+            let radius: CGFloat = Self.bob[frame] == 0 ? 12 : 11
+            let width = Int(Self.stage.width)
+            for x in 0..<width {
+                let distance = abs(CGFloat(x) + 0.5 - Self.bodyCenterX) / radius
+                if distance <= 1 { fill(x, Self.ground - 1, .black.opacity(0.35)) }
+                if distance <= 0.8 { fill(x, Self.ground, .black.opacity(0.35)) }
+                if x > 4, x < width - 4, (x + 3 * frame) % 8 < 3 {
+                    let edgeFade = min(1, CGFloat(min(x - 4, width - 4 - x)) / 10)
+                    fill(x, Self.ground + 2, .white.opacity(0.16 * edgeFade))
+                }
+            }
         }
+        .frame(width: Self.stage.width * pixel, height: Self.stage.height * pixel)
     }
 }
 

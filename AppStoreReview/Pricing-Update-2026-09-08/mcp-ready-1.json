@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "state: active\nobject: entitlement\nproject_id: proj83b947c7\nid: entlf0ee1d6d28\nlookup_key: premium\ndisplay_name: Premium\ncreated_at: \"2026-01-31T04:13:22.452Z\""
+    }
+  ],
+  "isError": false
+}

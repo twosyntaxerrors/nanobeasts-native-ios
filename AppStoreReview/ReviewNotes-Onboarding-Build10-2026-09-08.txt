@@ -1,0 +1,15 @@
+Nanobeasts turns walking into a creature-collection journey. No email, account, or sign-in is required. The name field is optional and comes after the user's walking goals and barriers.
+
+An active Nanobeasts Pro subscription or trial is required to enter the main app. US plans are $4.99/month with no trial, or $29.99/year with a seven-day free trial for eligible yearly subscribers. Localized prices and eligibility come from the store. Restore Purchases is available on the paywall and the returning-subscriber screen. Monthly and yearly plans grant the same Premium entitlement. The release build uses nanobeasts_native_premium_monthly and nanobeasts_native_premium_yearly.
+
+Users may close pricing to return to their saved evolution-plan recap, two steps before checkout. This does not unlock the app. Onboarding answers are saved locally, so termination does not restart the questionnaire. When a subscription expires, the user's progress and workout history remain saved, and a renewal screen provides restoration, subscription management, notification preferences, privacy, terms, and support.
+
+Notifications are optional. The onboarding permission explanation expressly includes up to five setup reminders, two days apart, for users who leave before subscribing. These use local notifications, without a remote push service or name upload. They stop after the fifth message, purchase/trial activation, onboarding completion, or opt-out. Users can opt out during onboarding, on the paywall, or in Settings. No discount or trial eligibility is promised in reminder copy.
+
+Onboarding step charts show an illustrative path from an estimated baseline to a suggested, editable goal; they are not measured or guaranteed results.
+
+After onboarding, grant optional Apple Health access for supported background activity. The workout button opens the iPhone workout hub, with a first-use tour of the map, activity picker, goals, start control, and History. The tour can be skipped and reopened using the question-mark button. It does not interrupt an active/resumed workout. With location enabled, outdoor workouts can record a route and permanently clear explored map areas. Completed workouts with routes offer replay and video sharing with a creature/egg marker and stats.
+
+The Apple Watch companion receives the iPhone's subscription access state, current creature/egg, step goal, and accent. Start or restore a subscription on iPhone and open both apps to synchronize. An in-progress workout remains available to finish/save if access expires; new workouts require active access. Please use physical devices and actual movement to evaluate HealthKit, GPS, and paired connectivity; missing Health samples are not fabricated.
+
+The native bundle is com.twosyntaxerrors.nanobeasts.native. The separate, unreleased Expo app record is retained independently.

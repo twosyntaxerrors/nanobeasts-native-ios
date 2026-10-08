@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CC8113E9E473B2171723B111 /* Nanobeasts-Launch-Reveal-Poster.png in Resources */ = {isa = PBXBuildFile; fileRef = C1F2D84526004553A7D14312 /* Nanobeasts-Launch-Reveal-Poster.png */; };
+		CC8113E9E473B2171723B110 /* Nanobeasts-Launch-Reveal.mov in Resources */ = {isa = PBXBuildFile; fileRef = C1F2D84526004553A7D14311 /* Nanobeasts-Launch-Reveal.mov */; };
+		2C45EF77AF3E469AD9844C40 /* RefinedPaywallPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE076AAE591A40FE552ECE1F /* RefinedPaywallPage.swift */; };
 		01C47D560F0C24476824E806 /* WalkingPlanChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC830BAC33D43213184964C7 /* WalkingPlanChart.swift */; };
 		023C03CC11DCE8F38DC55261 /* NanoTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04B07D2491F65D95341247FF /* NanoTheme.swift */; };
 		027CB681557F4E5D12FE8DBD /* WorkoutHealthRouteWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18DC96C5FEF96FA06C6DB6AB /* WorkoutHealthRouteWriter.swift */; };
@@ -29,6 +32,9 @@
 		49C0D1DAF25B6CBA2C092594 /* WidgetSnapshotWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99567E0E6223E9E0C9AE7567 /* WidgetSnapshotWriter.swift */; };
 		49DA32568507BF3F9EAB5BA7 /* WatchWorkoutFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14BC40C3450CF6AB40DAF05D /* WatchWorkoutFeedback.swift */; };
 		4C82280224E759E6D874C179 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7120E22E464324EDAAC61846 /* StatsView.swift */; };
+		91FB727AFB26B59D68A7016B /* StatsRecapStory.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED470C632C28B3E05926312C /* StatsRecapStory.swift */; };
+		792C40A381311FF3C944C0AA /* StatsInsightViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F35C45C3F85C113DF6A523FC /* StatsInsightViews.swift */; };
+		87799AE7F0490A2830B62643 /* StatsInsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A06112A6B225C56F570C675 /* StatsInsightEngine.swift */; };
 		4D8F8662E2A119B7C1540968 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 4D93B51DCD9F409C19D54E9C /* PrivacyInfo.xcprivacy */; };
 		4F774C62827DD84A2BF3B7FE /* WatchDailyActivityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 421DCA931CCF112C068CFC67 /* WatchDailyActivityStore.swift */; };
 		51790D041718BD210E5EDF1B /* RemoteArtwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43651F962B35823A78896183 /* RemoteArtwork.swift */; };
@@ -42,8 +48,10 @@
 		71931E842F2E67168822B144 /* StreakSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AF408365E11E945871D59BD /* StreakSummaryView.swift */; };
 		7229B00545C80BE38F2D8AF6 /* SpaceMono_700Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5490E15EB04B5013B5FD57B2 /* SpaceMono_700Bold.ttf */; };
 		72F00C8BCC955A46CA180FB8 /* NanobeastsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 073C0BE16B3122F2D1A8F119 /* NanobeastsApp.swift */; };
+		D1E2F3A4B5C60718293A4B6D /* GoldieWalkFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A5B60718293A4B6C /* GoldieWalkFixture.swift */; };
 		76F39F9A97CB2A31C0A2D6B4 /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 402C641B5AEFF0D8633F834D /* CoreMotion.framework */; };
 		79BD98FF4043C4D3D89489C4 /* WatchWorkoutPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB4B1E454056CC1981D88C3 /* WatchWorkoutPanel.swift */; };
+		B1C2D3E4F5A60718293A4B5D /* WorkoutZones.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* WorkoutZones.swift */; };
 		7A41BD9A03FAF66FB122D9B4 /* CreatureModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD58ED5FCF9FC74E056AEA86 /* CreatureModels.swift */; };
 		7C2D3BF5B8AB255259FB3694 /* WatchWorkoutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = D94CEEB9D9B5F6AC4FCD5E8C /* WatchWorkoutRecorder.swift */; };
 		7CB2009589F63D893EF4965A /* Aldrich_400Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F71666E6FDE7E18BD0CED383 /* Aldrich_400Regular.ttf */; };
@@ -94,6 +102,8 @@
 		D47A213BD745CDB996862A45 /* NanoSubscriptionAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3390327C6AB36EBDB4A42549 /* NanoSubscriptionAccess.swift */; };
 		D67EA7691EA72573C9E13E5B /* StatsSummaryComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B03C217D21273932F6ADF2 /* StatsSummaryComponents.swift */; };
 		D867626DB379B579293A32BA /* creatures-by-family.json in Resources */ = {isa = PBXBuildFile; fileRef = BCDC79962D319D23C13AC516 /* creatures-by-family.json */; };
+		E56DE1FB99D1F6FAE87B4617 /* badge-streak-5.png in Resources */ = {isa = PBXBuildFile; fileRef = 2A9585E7E35B46E4E67A9C89 /* badge-streak-5.png */; };
+		570932FAE0552CEAE6CE4F47 /* badge-streak-14.png in Resources */ = {isa = PBXBuildFile; fileRef = B7E6F135D1DF3DFC347C3D87 /* badge-streak-14.png */; };
 		DB6265D75A1D233E7A7EE4CA /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = 279E1759D6DA15EAA194BF92 /* RevenueCat */; };
 		DBDD2A632B77D6EC9C0B3BD7 /* WorkoutCreatureProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB695A88E325A711FE619E4C /* WorkoutCreatureProgressView.swift */; };
 		DDCA7F24390EDB86A81E82DB /* StreakHistorySummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57BBFBDC499C95D90E9E4426 /* StreakHistorySummary.swift */; };
@@ -108,7 +118,6 @@
 		F7937757DD301BFAC6C8167A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BECD0D5E349149B98AA66C87 /* Assets.xcassets */; };
 		F8002A3C2D6C60F670FC1659 /* DexView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64DB4B0240991B8B08848C71 /* DexView.swift */; };
 		FF78DD8C934DEA82590E03E8 /* WorkoutRouteReplayTrack.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC308DB4575B2ED7CDF4EBF0 /* WorkoutRouteReplayTrack.swift */; };
-		FFE21CD29D3A7B957CAFC32D /* ActionableInsights.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9278263DA26903D084749EC /* ActionableInsights.swift */; };
 		FFF1E8E17606F935DDA1222E /* WatchWorkoutSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FE97E45D69C9E6125862517 /* WatchWorkoutSettingsView.swift */; };
 /* End PBXBuildFile section */
 
@@ -155,8 +164,12 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		C1F2D84526004553A7D14312 /* Nanobeasts-Launch-Reveal-Poster.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Nanobeasts-Launch-Reveal-Poster.png; sourceTree = "<group>"; };
+		C1F2D84526004553A7D14311 /* Nanobeasts-Launch-Reveal.mov */ = {isa = PBXFileReference; lastKnownFileType = video.quicktime; path = Nanobeasts-Launch-Reveal.mov; sourceTree = "<group>"; };
+		AE076AAE591A40FE552ECE1F /* RefinedPaywallPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefinedPaywallPage.swift; sourceTree = "<group>"; };
 		04B07D2491F65D95341247FF /* NanoTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NanoTheme.swift; sourceTree = "<group>"; };
 		073C0BE16B3122F2D1A8F119 /* NanobeastsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NanobeastsApp.swift; sourceTree = "<group>"; };
+		C1D2E3F4A5B60718293A4B6C /* GoldieWalkFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoldieWalkFixture.swift; sourceTree = "<group>"; };
 		081645D42D7D5B244A7CCD54 /* AppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRootView.swift; sourceTree = "<group>"; };
 		0AA40A76D1C67991B1F529FA /* WorkoutActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutActivityAttributes.swift; sourceTree = "<group>"; };
 		0B1280D1F67B5643C5DA44EE /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
@@ -192,6 +205,9 @@
 		64DB4B0240991B8B08848C71 /* DexView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DexView.swift; sourceTree = "<group>"; };
 		66CE83593841637E9CFCBF0F /* OnboardingLocationPermission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingLocationPermission.swift; sourceTree = "<group>"; };
 		7120E22E464324EDAAC61846 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
+		ED470C632C28B3E05926312C /* StatsRecapStory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsRecapStory.swift; sourceTree = "<group>"; };
+		F35C45C3F85C113DF6A523FC /* StatsInsightViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsInsightViews.swift; sourceTree = "<group>"; };
+		2A06112A6B225C56F570C675 /* StatsInsightEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsInsightEngine.swift; sourceTree = "<group>"; };
 		7B1D08B3F26DDDC2D9E05E89 /* Nanobeasts.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Nanobeasts.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B4A7063452E42E856603CD4 /* PaywallIntroduction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallIntroduction.swift; sourceTree = "<group>"; };
 		7C4EF918849303E16B68980F /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
@@ -210,8 +226,8 @@
 		A1EBB128E27074B7FFF2BF6F /* BattleArenaScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BattleArenaScene.swift; sourceTree = "<group>"; };
 		A6E5EBCDF208D99EFF10DB6E /* WatchWorkoutMetricsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWorkoutMetricsView.swift; sourceTree = "<group>"; };
 		A8B03C217D21273932F6ADF2 /* StatsSummaryComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsSummaryComponents.swift; sourceTree = "<group>"; };
-		A9278263DA26903D084749EC /* ActionableInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionableInsights.swift; sourceTree = "<group>"; };
 		AFB4B1E454056CC1981D88C3 /* WatchWorkoutPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWorkoutPanel.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5C /* WorkoutZones.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutZones.swift; sourceTree = "<group>"; };
 		B0D08876B243279E3B90F2A8 /* NanobeastsWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = NanobeastsWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B3032BCCEF0B4BA67E83B57D /* NanobeastsWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NanobeastsWidgets.swift; sourceTree = "<group>"; };
 		B5A00EF4D1E1D0A56280F240 /* StatsCalendarCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsCalendarCard.swift; sourceTree = "<group>"; };
@@ -219,6 +235,8 @@
 		B69AFA3700E5D5D3F995C829 /* WorkoutHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHistoryView.swift; sourceTree = "<group>"; };
 		BB695A88E325A711FE619E4C /* WorkoutCreatureProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCreatureProgressView.swift; sourceTree = "<group>"; };
 		BCDC79962D319D23C13AC516 /* creatures-by-family.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "creatures-by-family.json"; sourceTree = "<group>"; };
+		2A9585E7E35B46E4E67A9C89 /* badge-streak-5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "badge-streak-5.png"; sourceTree = "<group>"; };
+		B7E6F135D1DF3DFC347C3D87 /* badge-streak-14.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "badge-streak-14.png"; sourceTree = "<group>"; };
 		BEA3B03F76017C31AB05CC35 /* BadgeAwardDelivery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BadgeAwardDelivery.swift; sourceTree = "<group>"; };
 		BECD0D5E349149B98AA66C87 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C31C3C4A391F94189BC90B64 /* Charts.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Charts.framework; path = System/Library/Frameworks/Charts.framework; sourceTree = SDKROOT; };
@@ -332,6 +350,7 @@
 			children = (
 				081645D42D7D5B244A7CCD54 /* AppRootView.swift */,
 				073C0BE16B3122F2D1A8F119 /* NanobeastsApp.swift */,
+				C1D2E3F4A5B60718293A4B6C /* GoldieWalkFixture.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -354,7 +373,11 @@
 			children = (
 				8E15620BA40F8F4EDC0AF537 /* Assets.xcassets */,
 				BCDC79962D319D23C13AC516 /* creatures-by-family.json */,
+				2A9585E7E35B46E4E67A9C89 /* badge-streak-5.png */,
+				B7E6F135D1DF3DFC347C3D87 /* badge-streak-14.png */,
 				E6B8E16AC5A7C3D9F4012B77 /* Nanobeasts-Core-Loop-Streaming.mp4 */,
+				C1F2D84526004553A7D14312 /* Nanobeasts-Launch-Reveal-Poster.png */,
+				C1F2D84526004553A7D14311 /* Nanobeasts-Launch-Reveal.mov */,
 				F3142605B27AF9D6201B61A8 /* Fonts */,
 			);
 			path = Resources;
@@ -367,6 +390,7 @@
 				841A11299998CA57A30223C3 /* BattlePreviewView.swift */,
 				4C0517627428A45D78D71858 /* SettingsView.swift */,
 				AFB4B1E454056CC1981D88C3 /* WatchWorkoutPanel.swift */,
+				A1B2C3D4E5F60718293A4B5C /* WorkoutZones.swift */,
 				1C289D723AFE486193714A3E /* WorkoutCameraPicker.swift */,
 				BB695A88E325A711FE619E4C /* WorkoutCreatureProgressView.swift */,
 				B69AFA3700E5D5D3F995C829 /* WorkoutHistoryView.swift */,
@@ -384,11 +408,13 @@
 		806871B835D93A23CADB1E88 /* Stats */ = {
 			isa = PBXGroup;
 			children = (
-				A9278263DA26903D084749EC /* ActionableInsights.swift */,
 				B5A00EF4D1E1D0A56280F240 /* StatsCalendarCard.swift */,
 				B60C5F42DFA7A71078D55E05 /* StatsInsightComponents.swift */,
 				A8B03C217D21273932F6ADF2 /* StatsSummaryComponents.swift */,
 				7120E22E464324EDAAC61846 /* StatsView.swift */,
+				ED470C632C28B3E05926312C /* StatsRecapStory.swift */,
+				F35C45C3F85C113DF6A523FC /* StatsInsightViews.swift */,
+				2A06112A6B225C56F570C675 /* StatsInsightEngine.swift */,
 			);
 			path = Stats;
 			sourceTree = "<group>";
@@ -396,6 +422,7 @@
 		8E58A5EBACC1BF358B376940 /* Paywall */ = {
 			isa = PBXGroup;
 			children = (
+				AE076AAE591A40FE552ECE1F /* RefinedPaywallPage.swift */,
 				7B4A7063452E42E856603CD4 /* PaywallIntroduction.swift */,
 				3044D2396255497E1C495C9C /* PaywallPreviewOffering.swift */,
 				D62B34E916C1A5520A6F4CEC /* RevenueCatPaywallScreen.swift */,
@@ -660,7 +687,11 @@
 				152B0DD9A3207F7C40DBBB3E /* SpaceMono_400Regular.ttf in Resources */,
 				7229B00545C80BE38F2D8AF6 /* SpaceMono_700Bold.ttf in Resources */,
 				D867626DB379B579293A32BA /* creatures-by-family.json in Resources */,
+				E56DE1FB99D1F6FAE87B4617 /* badge-streak-5.png in Resources */,
+				570932FAE0552CEAE6CE4F47 /* badge-streak-14.png in Resources */,
 				C5A0E4D9BC1A3F7E5D6208A4 /* Nanobeasts-Core-Loop-Streaming.mp4 in Resources */,
+				CC8113E9E473B2171723B111 /* Nanobeasts-Launch-Reveal-Poster.png in Resources */,
+				CC8113E9E473B2171723B110 /* Nanobeasts-Launch-Reveal.mov in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -715,7 +746,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FFE21CD29D3A7B957CAFC32D /* ActionableInsights.swift in Sources */,
 				E103EF701D77CB27B4EA1180 /* AppRootView.swift in Sources */,
 				83CF2382E8D5C3686E46D2B0 /* AppStore.swift in Sources */,
 				B6B186FBEF7631731CA85293 /* BadgeAwardDelivery.swift in Sources */,
@@ -731,6 +761,7 @@
 				D47A213BD745CDB996862A45 /* NanoSubscriptionAccess.swift in Sources */,
 				023C03CC11DCE8F38DC55261 /* NanoTheme.swift in Sources */,
 				72F00C8BCC955A46CA180FB8 /* NanobeastsApp.swift in Sources */,
+				D1E2F3A4B5C60718293A4B6D /* GoldieWalkFixture.swift in Sources */,
 				51A365EE89818AC61AB33151 /* OnboardingCopy.swift in Sources */,
 				B4C9FCBB0D193DED3ED65337 /* OnboardingFlowView.swift in Sources */,
 				8A00691E4F41B446CB53461A /* OnboardingJourney.swift in Sources */,
@@ -742,18 +773,23 @@
 				9A695056D77A3638972D57CF /* ProfessorNanoArtwork.swift in Sources */,
 				51790D041718BD210E5EDF1B /* RemoteArtwork.swift in Sources */,
 				EF6E520259DD8B20C1D09D1C /* RevenueCatPaywallScreen.swift in Sources */,
+				2C45EF77AF3E469AD9844C40 /* RefinedPaywallPage.swift in Sources */,
 				BB3CE763B49814B729F64CEF /* SettingsView.swift in Sources */,
 				CA53F78E3377B5325425BC78 /* SolarIcon.swift in Sources */,
 				32E81C82DC1723082710F49C /* StatsCalendarCard.swift in Sources */,
 				C08D2B609449C70D5310F3CD /* StatsInsightComponents.swift in Sources */,
 				D67EA7691EA72573C9E13E5B /* StatsSummaryComponents.swift in Sources */,
 				4C82280224E759E6D874C179 /* StatsView.swift in Sources */,
+				91FB727AFB26B59D68A7016B /* StatsRecapStory.swift in Sources */,
+				792C40A381311FF3C944C0AA /* StatsInsightViews.swift in Sources */,
+				87799AE7F0490A2830B62643 /* StatsInsightEngine.swift in Sources */,
 				DDCA7F24390EDB86A81E82DB /* StreakHistorySummary.swift in Sources */,
 				71931E842F2E67168822B144 /* StreakSummaryView.swift in Sources */,
 				7CD5A769D01B41C3B9705CCB /* SubscriptionReturnView.swift in Sources */,
 				01C47D560F0C24476824E806 /* WalkingPlanChart.swift in Sources */,
 				D39B603182555AE061D538D5 /* WatchWorkoutMessage.swift in Sources */,
 				79BD98FF4043C4D3D89489C4 /* WatchWorkoutPanel.swift in Sources */,
+				B1C2D3E4F5A60718293A4B5D /* WorkoutZones.swift in Sources */,
 				0FB006B216CAD3D02D41CA72 /* WidgetSnapshot.swift in Sources */,
 				49C0D1DAF25B6CBA2C092594 /* WidgetSnapshotWriter.swift in Sources */,
 				901C8B2F967C9A5AEEA6E19C /* WorkoutActivityAttributes.swift in Sources */,

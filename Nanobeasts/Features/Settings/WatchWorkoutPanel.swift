@@ -1,3 +1,4 @@
+import MapKit
 import SwiftUI
 
 struct WatchWorkoutPanel: View {
@@ -5,42 +6,77 @@ struct WatchWorkoutPanel: View {
     @Environment(AppStore.self) private var store
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var bridge = WorkoutWatchBridge.shared
-    @State private var confirmsFinish = false
+    @StateObject private var locationTracker = WorkoutLocationTracker.shared
+    @StateObject private var exploration = WorkoutExplorationProgress()
+    @State private var expanded = false
+    @State private var isBrowsing = false
+    @StateObject private var zoneCelebrations = WorkoutZoneCelebrations.shared
+    @State private var recenterID = 0
     @State private var savedWorkout: WorkoutHistoryRecord?
     var onSaved: (() -> Void)? = nil
     @State private var fallbackEvolutionAnchor: WorkoutEvolutionAnchor?
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    if let state = bridge.displaySnapshot {
-                        session(state)
-                    } else {
-                        waitingState
+            ZStack(alignment: .topLeading) {
+                if let state = bridge.displaySnapshot, state.isActive {
+                    if !state.indoor {
+                        WorkoutTerritoryMap(route: bridge.liveRoute.locations.map { $0.location.coordinate },
+                            routeBreakIndices: bridge.liveRoute.breakIndices, exploredRoutes: locationTracker.exploredRoutes,
+                            currentLocation: bridge.liveRoute.locations.last?.location ?? locationTracker.currentLocation,
+                            showsFog: true, followsUser: true, reduceMotion: reduceMotion,
+                            recenterID: recenterID,
+                            companionImageKey: store.workoutCompanionStage.imageKey,
+                            onBrowsingChange: { isBrowsing = $0 })
+                            .ignoresSafeArea()
+                            .overlay(alignment: .topTrailing) {
+                                if isBrowsing { WorkoutRecenterPill { recenterID += 1 }.padding(20) }
+                            }
+                            .animation(.snappy, value: isBrowsing)
+                            .overlay { if state.phase == .paused { Color.black.opacity(0.25).ignoresSafeArea().allowsHitTesting(false) } }
+                        WorkoutNeighborhoodBadge(exploration: exploration).padding(20)
+                    } else { NanoTheme.backgroundGradient.ignoresSafeArea() }
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 24) {
+                            if let state = bridge.displaySnapshot { session(state) }
+                            else { waitingState }
+                            connectionStatus
+                        }.padding(22)
                     }
-                    if let message = bridge.finishError {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text(message).font(.callout)
-                                .foregroundStyle(NanoTheme.orange)
-                            Button("Retry finish") { bridge.finish() }
-                                .buttonStyle(.borderedProminent).tint(NanoTheme.teal)
-                                .disabled(!bridge.canFinish)
-                        }
-                    } else if let message = bridge.connectionMessage {
-                        Label(message, systemImage: "applewatch.slash")
-                            .font(NanoFont.aldrich(12))
-                            .foregroundStyle(NanoTheme.orange)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                    .scrollIndicators(.hidden)
+                    .background(NanoTheme.backgroundGradient.ignoresSafeArea())
                 }
-                .padding(22)
             }
-            .scrollIndicators(.hidden)
-            .background(NanoTheme.backgroundGradient.ignoresSafeArea())
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if let state = bridge.displaySnapshot, state.phase == .running || state.phase == .paused {
-                    controls(state)
+                if let state = bridge.displaySnapshot, state.isActive {
+                    VStack(spacing: 12) {
+                        if !state.indoor { WorkoutTileChip(recap: exploration.recap) }
+                        ScrollView {
+                            VStack(spacing: 10) {
+                                TimelineView(.periodic(from: .now, by: 1)) { timeline in
+                                    WorkoutFloatingStats(title: state.name,
+                                        creature: store.workoutCompanionStage,
+                                        evolution: store.workoutCompanionProgress.duringWorkout(steps: state.steps,
+                                            anchor: state.evolutionAnchor ?? fallbackEvolutionAnchor),
+                                        elapsedSeconds: state.elapsed(at: timeline.date), distance: distance(state.distanceMiles),
+                                        steps: state.steps,
+                                        heartRate: state.currentHeartRate(at: timeline.date).map { "\(Int($0)) bpm" } ?? "—",
+                                        paused: state.phase != .running, expanded: expanded || state.indoor,
+                                        expand: state.indoor ? nil : { expanded.toggle() })
+                                }
+                                WorkoutMilestoneAction(source: .watch).disabled(bridge.isFinishing)
+                                Text(statusMessage(state)).font(.caption).foregroundStyle(NanoTheme.secondaryText)
+                                if let error = state.error { Text(error).font(.caption).foregroundStyle(NanoTheme.orange) }
+                                if state.phase == .saving { ProgressView("Saving on Apple Watch") }
+                                connectionStatus
+                            }
+                        }
+                        .scrollIndicators(.hidden).frame(maxHeight: expanded || state.indoor ? 400 : 300)
+                        .fixedSize(horizontal: false, vertical: true)
+                        if state.phase == .running || state.phase == .paused { controls(state) }
+                    }
+                    .padding(.horizontal, 16).padding(.bottom, 12)
                 }
             }
             .navigationTitle("Apple Watch")
@@ -53,17 +89,28 @@ struct WatchWorkoutPanel: View {
                     }.font(NanoFont.aldrich(13)).tint(NanoTheme.teal)
                 }
             }
+            // A Watch walk that masters a zone celebrates here once the walk has ended.
+            .fullScreenCover(item: zoneCelebrations.binding(when: bridge.displaySnapshot?.isActive != true)) { completion in
+                WorkoutZoneCelebrationView(completion: completion)
+            }
             .navigationDestination(item: $savedWorkout) { workout in
                 WorkoutHistoryDetailView(workout: workout, distanceUnit: store.distanceUnit)
             }
-            .confirmationDialog("Finish this Watch workout?", isPresented: $confirmsFinish) {
-                Button("Finish and Save") { bridge.finish() }
-                Button("Keep Going", role: .cancel) {}
-            } message: {
-                Text("Your workout will be saved and synced to History.")
-            }
+
         }
-        .preferredColorScheme(.dark)
+
+        .task {
+            locationTracker.restoreSavedTerritory(await WorkoutHistoryStore().loadSavedTerritoryRoutes())
+            refreshExploration()
+        }
+        .onReceive(bridge.$liveRoute) { live in
+            exploration.update(route: live.locations.map { $0.location.coordinate }, breaks: live.breakIndices,
+                explored: locationTracker.exploredRoutes, location: live.locations.last?.location ?? locationTracker.currentLocation)
+        }
+        .onReceive(locationTracker.$exploredRoutes) { routes in
+            exploration.update(route: bridge.liveRoute.locations.map { $0.location.coordinate }, breaks: bridge.liveRoute.breakIndices,
+                explored: routes, location: bridge.liveRoute.locations.last?.location ?? locationTracker.currentLocation)
+        }
         .task(id: bridge.snapshot?.id) {
             fallbackEvolutionAnchor = WorkoutEvolutionAnchor(
                 totalCreditedSteps: store.workoutEvolutionProgress.totalCreditedSteps,
@@ -90,7 +137,7 @@ struct WatchWorkoutPanel: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(state.name)
                         .font(NanoFont.aldrich(27))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(NanoTheme.text)
                         .fixedSize(horizontal: false, vertical: true)
                     Text(store.workoutCompanionStage.name)
                         .font(NanoFont.aldrich(12))
@@ -175,7 +222,7 @@ struct WatchWorkoutPanel: View {
                 .frame(maxWidth: .infinity)
                 .accessibilityHidden(true)
             Text(bridge.isStarting ? "Your adventure is almost ready." : "Take Nano along.")
-                .font(NanoFont.aldrich(28)).foregroundStyle(.white)
+                .font(NanoFont.aldrich(28)).foregroundStyle(NanoTheme.text)
             if bridge.isStarting {
                 ProgressView("Starting on Apple Watch").tint(NanoTheme.teal)
             }
@@ -187,34 +234,43 @@ struct WatchWorkoutPanel: View {
         }
     }
 
+    private var connectionStatus: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let message = bridge.finishError {
+                Text(message).font(.caption).foregroundStyle(NanoTheme.orange)
+                Button("Retry finish") { bridge.finish() }
+                    .buttonStyle(.borderedProminent).tint(NanoTheme.teal).disabled(!bridge.canFinish)
+            } else if let message = bridge.connectionMessage {
+                Label(message, systemImage: "applewatch.slash").font(.caption).foregroundStyle(NanoTheme.orange)
+            }
+        }
+    }
+
+    private func refreshExploration() {
+        exploration.update(route: bridge.liveRoute.locations.map { $0.location.coordinate }, breaks: bridge.liveRoute.breakIndices,
+            explored: locationTracker.exploredRoutes, location: bridge.liveRoute.locations.last?.location ?? locationTracker.currentLocation)
+    }
+
     private func controls(_ state: WatchWorkoutSnapshot) -> some View {
-        HStack(spacing: 12) {
+        VStack(spacing: 10) {
             Button { bridge.pauseOrResume() } label: {
                 Label(state.phase == .paused ? "Resume" : "Pause", systemImage: state.phase == .paused ? "play.fill" : "pause.fill")
-                    .font(NanoFont.aldrich(15))
-                    .foregroundStyle(NanoTheme.background)
-                    .frame(maxWidth: .infinity).frame(height: 54)
-                    .background(Capsule().fill(NanoTheme.teal))
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundStyle(NanoTheme.onAccent)
+                    .frame(maxWidth: .infinity, minHeight: 58)
+                    .background(NanoTheme.teal, in: RoundedRectangle(cornerRadius: 20))
             }
             .disabled(!bridge.canControl)
-            Button { confirmsFinish = true } label: {
-                Label("Finish", systemImage: "stop.fill")
-                    .font(NanoFont.aldrich(15))
-                    .foregroundStyle(NanoTheme.danger)
-                    .frame(maxWidth: .infinity).frame(height: 54)
-                    .background(Capsule().fill(NanoTheme.danger.opacity(0.12)))
+            if state.phase == .paused {
+                WorkoutHoldToFinishButton { bridge.finish() }.disabled(!bridge.canFinish)
             }
         }
         .buttonStyle(WatchPanelPressStyle())
-        .disabled(!bridge.canFinish && !bridge.canControl)
-        .opacity(bridge.canFinish || bridge.canControl ? 1 : 0.45)
-        .padding(.horizontal, 22).padding(.top, 12).padding(.bottom, 10)
-        .background(NanoTheme.background.opacity(0.97))
     }
 
     private func metric(_ value: String, _ label: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(value).font(NanoFont.spaceMono(18, bold: true)).foregroundStyle(.white)
+            Text(value).font(NanoFont.spaceMono(18, bold: true)).foregroundStyle(NanoTheme.text)
                 .monospacedDigit().lineLimit(1).minimumScaleFactor(0.65)
             Text(label).font(NanoFont.aldrich(9)).tracking(0.5).foregroundStyle(NanoTheme.secondaryText)
         }

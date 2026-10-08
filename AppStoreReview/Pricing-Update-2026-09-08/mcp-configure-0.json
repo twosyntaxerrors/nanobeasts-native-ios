@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\n  \"operation_id\": \"4d1f6a86-e73d-45ab-9fdf-1fad44bd9916\",\n  \"status\": \"pending\",\n  \"polling_url\": \"/v2/projects/proj83b947c7/products/prod7c2b2aad28/store_state/4d1f6a86-e73d-45ab-9fdf-1fad44bd9916\"\n}"
+    }
+  ],
+  "isError": false
+}

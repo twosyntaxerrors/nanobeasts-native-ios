@@ -20,7 +20,7 @@ struct SubscriptionReturnView: View {
                         .frame(width: 180, height: 180)
                     Text("Your journey is saved.")
                         .font(.system(size: 32, weight: .bold, design: .rounded))
-                    Text("Your creatures, stats, and recorded routes are still here. An active Nanobeasts Pro subscription lets you keep exploring.")
+                    Text("Your creatures, stats, and recorded routes are still here. Nanobeasts Pro lets you keep exploring.")
                         .foregroundStyle(NanoTheme.secondaryText)
                     Button(action: reviewPlans) {
                         Text("Explore my options").frame(maxWidth: .infinity, minHeight: 48)
@@ -61,13 +61,13 @@ struct SubscriptionReturnView: View {
     }
 
     private func restore() async {
-        guard !isPreview else { message = "No subscription to restore for this fresh replay profile."; return }
+        guard !isPreview else { message = "No purchase to restore for this fresh replay profile."; return }
         guard Purchases.isConfigured else { message = "Please reconnect and try again."; return }
         restoring = true
         defer { restoring = false }
         do {
             await store.applyRevenueCatCustomerInfo(try await Purchases.shared.restorePurchases())
-            if !store.isPremium { message = "No active subscription was found for this Apple Account." }
+            if !store.isPremium { message = "No Nanobeasts Pro purchase was found for this Apple Account." }
         } catch { message = "Couldn’t restore right now. Check your connection and try again." }
     }
 }

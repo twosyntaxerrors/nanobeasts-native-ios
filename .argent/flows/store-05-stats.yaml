@@ -1,0 +1,7 @@
+steps:
+  - launch: com.twosyntaxerrors.nanobeasts.native
+  - tool: open-url
+    args:
+      url: nanobeasts://goldie/scenario/stats
+  - wait: 7000
+  - await: { idle: true }

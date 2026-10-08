@@ -29,6 +29,7 @@ enum Verification<T> { case verified(T), unverified(T) }
 enum RenewalState { case subscribed, inGracePeriod, expired }
 struct Renewal { var gracePeriodExpirationDate: Date? }
 struct Status { var state: RenewalState; var renewalInfo: Verification<Renewal> }
+enum ProductType { case autoRenewable, nonConsumable, consumable }
 enum StoreKit {
     enum Environment { case production, sandbox }
     @MainActor struct Transaction {
@@ -42,6 +43,7 @@ enum StoreKit {
             }
         }
         var environment: Environment = .production
+        var productType = ProductType.autoRenewable
         var productID = "monthly"
         var revocationDate: Date? = nil
         var isUpgraded = false
@@ -87,7 +89,8 @@ enum StoreKit {
     }
 }
 @MainActor final class StoreFixture {
-    static let premiumProductIDs: Set<String> = ["monthly", "yearly"]
+    static let premiumProductIDs: Set<String> = ["monthly", "yearly", "lifetime", "winback"]
+    static let lifetimeProductIDs: Set<String> = ["lifetime", "winback"]
     static let isUsingRevenueCatTestStore = false
     static let testStorePremiumUnlockKey = "test-unlock"
     var isOnboardingReplay = false
@@ -164,8 +167,34 @@ checks = r'''
             expect(store.isPremium, "Signed Apple entitlement must restore access")
             expect(!store.changes.contains(false), "Server lag must not revoke an Apple renewal")
         }
+        // Verified lifetime purchases recover permanent access even while RevenueCat is stale/offline.
+        for productID in ["lifetime", "winback"] {
+            for offline in [false, true] {
+                store = fresh()
+                client.offline = offline
+                StoreKit.Transaction.results = [.verified(.init(productType: .nonConsumable,
+                    productID: productID, expirationDate: nil))]
+                await store.refreshSubscriptionStatus()
+                let data = defaults.data(forKey: NanoSubscriptionAccess.cacheKey)!
+                let access = try JSONDecoder().decode(NanoSubscriptionAccess.self, from: data)
+                expect(store.isPremium && access.expiresAt == nil && access.isDevelopmentOnly != true,
+                    "Lifetime Apple access is permanent in both Release and Debug")
+            }
+        }
+        store = fresh()
+        client.result = .active(until: future)
+        StoreKit.Transaction.results = [.verified(.init(productType: .nonConsumable,
+            productID: "lifetime", expirationDate: nil))]
+        await store.refreshSubscriptionStatus()
+        let lifetime = try JSONDecoder().decode(NanoSubscriptionAccess.self,
+            from: defaults.data(forKey: NanoSubscriptionAccess.cacheKey)!)
+        expect(lifetime.expiresAt == nil, "A stale yearly entitlement cannot shorten verified lifetime access")
         // Rejected or ended transactions never bypass the paywall.
         let rejected: [Verification<StoreKit.Transaction>] = [
+            .unverified(.init(productType: .nonConsumable, productID: "lifetime", expirationDate: nil)),
+            .verified(.init(productType: .nonConsumable, productID: "lifetime", revocationDate: Date(), expirationDate: nil)),
+            .verified(.init(productType: .consumable, productID: "lifetime", expirationDate: nil)),
+            .verified(.init(productType: .nonConsumable, productID: "unrelated", expirationDate: nil)),
             .unverified(.init(expirationDate: future)),
             .verified(.init(productID: "unrelated", expirationDate: future)),
             .verified(.init(revocationDate: Date(), expirationDate: future)),

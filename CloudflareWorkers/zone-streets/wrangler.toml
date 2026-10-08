@@ -1,0 +1,15 @@
+# Caches OpenStreetMap street geometry per Nanobeasts zone.
+# The app asks https://assets.nanobeasts.app/zone-streets/v2/<band>_<q>_<r>.json;
+# the first request for a zone queries OpenStreetMap once, stores the result in R2,
+# and every later request (from any player) is served from the edge.
+name = "nanobeasts-zone-streets"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+routes = [
+  { pattern = "assets.nanobeasts.app/zone-streets/*", zone_name = "nanobeasts.app" }
+]
+
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "nanobeasts-assets"

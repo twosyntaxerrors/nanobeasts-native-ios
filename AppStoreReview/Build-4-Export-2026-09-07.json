@@ -1,0 +1,7 @@
+{
+  "archive_path": "build/Archives/Nanobeasts-1.0-4.xcarchive",
+  "ipa_path": "build/Exports/Nanobeasts-1.0-4.ipa",
+  "bundle_id": "com.twosyntaxerrors.nanobeasts.native",
+  "version": "1.0",
+  "build_number": "4"
+}

@@ -27,8 +27,10 @@ struct StatsBadgeSection: Identifiable {
     let badges: [StatsBadge]
 }
 
-private actor BadgeArtworkImageCache {
+actor BadgeArtworkImageCache {
     static let shared = BadgeArtworkImageCache()
+
+    nonisolated static func key(_ url: URL) -> String { "badge:\(url.absoluteString)" }
 
     private var processedData: [URL: Data] = [:]
     private var activeLoads: [URL: Task<Data, Error>] = [:]
@@ -91,7 +93,9 @@ private actor BadgeArtworkImageCache {
         await withTaskGroup(of: Void.self) { group in
             for url in uniqueURLs {
                 group.addTask {
-                    _ = try? await self.data(for: url)
+                    // Decode ahead too, so the badge draws on its first frame.
+                    guard let data = try? await self.data(for: url) else { return }
+                    _ = await NanoImageMemoryCache.shared.decode(data, for: Self.key(url))
                 }
             }
         }
@@ -480,297 +484,11 @@ enum StatsBadgeCatalog {
     }
 }
 
-struct StatsInsightsCard: View {
-    let records: [DailyStepRecord]
-    let dailyGoal: Int
-
-    @State private var mode: StatsInsightsMode = .carousel
-    @State private var page = 0
-
-    private var snapshot: StatsInsightSnapshot {
-        StatsInsightSnapshot(records: records)
-    }
-
-    private var panels: [StatsInsightPanelModel] {
-        [
-            StatsInsightPanelModel(
-                id: "average",
-                symbol: "chart.bar.fill",
-                label: "AVG / ACTIVE DAY",
-                value: snapshot.average.formatted(),
-                unit: "STEPS",
-                caption: "\(snapshot.activeDays) DAYS TRACKED",
-                tint: NanoTheme.teal,
-                signals: Array(records.suffix(14)).map(\.steps)
-            ),
-            StatsInsightPanelModel(
-                id: "best",
-                symbol: "trophy.fill",
-                label: "BEST DAY",
-                value: snapshot.bestDay?.steps.formatted() ?? "0",
-                unit: "STEPS",
-                caption: snapshot.bestDay?.day.formatted(.dateTime.month(.abbreviated).day()) ?? "NO DATA",
-                tint: Color(red: 0.22, green: 0.74, blue: 0.97),
-                signals: Array(records.suffix(14)).map(\.steps)
-            ),
-            StatsInsightPanelModel(
-                id: "streak",
-                symbol: "flame.fill",
-                label: "LONGEST STREAK",
-                value: snapshot.longestStreak.formatted(),
-                unit: "ACTIVE DAYS",
-                caption: "STREAK RECORD",
-                tint: Color(red: 1, green: 0.67, blue: 0.09),
-                signals: Array(repeating: 1, count: min(snapshot.longestStreak, 14))
-            ),
-            StatsInsightPanelModel(
-                id: "month",
-                symbol: "calendar",
-                label: "ACTIVE THIS MONTH",
-                value: snapshot.currentMonthActiveDays.formatted(),
-                unit: "DAYS",
-                caption: Date().formatted(.dateTime.month(.wide)).uppercased(),
-                tint: Color(red: 0.21, green: 0.90, blue: 0.44),
-                signals: snapshot.currentMonthSignals
-            )
-        ]
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            insightsHeader
-
-            Group {
-                if mode == .carousel {
-                    carousel
-                } else {
-                    grid
-                }
-            }
-            .transition(.opacity.combined(with: .scale(scale: 0.98)))
-        }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 22)
-                .fill(NanoTheme.teal.opacity(0.025))
-                .stroke(NanoTheme.teal.opacity(0.34), lineWidth: 1)
-        )
-        .animation(.snappy(duration: 0.28), value: mode)
-    }
-
-    private var insightsHeader: some View {
-        HStack {
-            Text("INSIGHTS")
-                .font(NanoFont.aldrich(18))
-                .tracking(1.35)
-                .foregroundStyle(NanoTheme.teal)
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-            Rectangle()
-                .fill(NanoTheme.teal.opacity(0.6))
-                .frame(height: 1)
-            Button {
-                mode = mode == .carousel ? .grid : .carousel
-            } label: {
-                Label(
-                    mode == .carousel ? "2X2" : "SWIPE",
-                    systemImage: mode == .carousel
-                        ? "square.grid.2x2"
-                        : "arrow.left.arrow.right"
-                )
-                .font(NanoFont.aldrich(9))
-                .foregroundStyle(NanoTheme.teal)
-                .padding(.horizontal, 10)
-                .frame(height: 34)
-                .background(
-                    Capsule()
-                        .fill(NanoTheme.teal.opacity(0.08))
-                        .stroke(NanoTheme.teal.opacity(0.45), lineWidth: 1)
-                )
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(
-                mode == .carousel
-                    ? "Show all insights in a two by two grid"
-                    : "Show insights as swipeable cards"
-            )
-        }
-    }
-
-    private var carousel: some View {
-        VStack(spacing: 12) {
-            TabView(selection: $page) {
-                ForEach(Array(panels.enumerated()), id: \.element.id) { index, panel in
-                    StatsInsightPanel(panel: panel, dailyGoal: dailyGoal)
-                        .padding(.horizontal, 1)
-                        .tag(index)
-                }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .frame(height: 218)
-
-            HStack(spacing: 7) {
-                ForEach(Array(panels.enumerated()), id: \.element.id) { index, panel in
-                    Capsule()
-                        .fill(panel.tint.opacity(index == page ? 1 : 0.28))
-                        .frame(width: index == page ? 22 : 7, height: 7)
-                }
-            }
-            .animation(.snappy, value: page)
-        }
-    }
-
-    private var grid: some View {
-        LazyVGrid(
-            columns: [
-                GridItem(.flexible(), spacing: 10),
-                GridItem(.flexible(), spacing: 10)
-            ],
-            spacing: 10
-        ) {
-            ForEach(panels) { panel in
-                StatsInsightPanel(panel: panel, dailyGoal: dailyGoal, compact: true)
-            }
-        }
-    }
-}
-
-private enum StatsInsightsMode {
-    case carousel
-    case grid
-}
-
-private struct StatsInsightSnapshot {
-    let activeDays: Int
-    let average: Int
-    let bestDay: DailyStepRecord?
-    let longestStreak: Int
-    let currentMonthActiveDays: Int
-    let currentMonthSignals: [Int]
-
-    init(records: [DailyStepRecord]) {
-        let calendar = Calendar.autoupdatingCurrent
-        let active = records.filter { $0.steps > 0 }.sorted { $0.day < $1.day }
-        activeDays = active.count
-        average = active.isEmpty ? 0 : active.reduce(0) { $0 + $1.steps } / active.count
-        bestDay = active.max { $0.steps < $1.steps }
-
-        var longest = 0
-        var current = 0
-        var previous: Date?
-        for record in active {
-            let day = calendar.startOfDay(for: record.day)
-            if
-                let previous,
-                calendar.dateComponents([.day], from: previous, to: day).day == 1
-            {
-                current += 1
-            } else {
-                current = 1
-            }
-            longest = max(longest, current)
-            previous = day
-        }
-        longestStreak = longest
-
-        let now = Date()
-        let monthRecords = records.filter {
-            calendar.isDate($0.day, equalTo: now, toGranularity: .month)
-        }
-        currentMonthActiveDays = monthRecords.filter { $0.steps > 0 }.count
-        currentMonthSignals = monthRecords.map(\.steps)
-    }
-}
-
-private struct StatsInsightPanelModel: Identifiable {
-    let id: String
-    let symbol: String
-    let label: String
-    let value: String
-    let unit: String
-    let caption: String
-    let tint: Color
-    let signals: [Int]
-}
-
-private struct StatsInsightPanel: View {
-    let panel: StatsInsightPanelModel
-    let dailyGoal: Int
-    var compact = false
-
-    private var maximum: Int {
-        max(panel.signals.max() ?? 1, dailyGoal, 1)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: compact ? 9 : 12) {
-            HStack {
-                Image(systemName: panel.symbol)
-                Text(panel.label)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.65)
-                Spacer(minLength: 2)
-                Image(systemName: "info.circle")
-            }
-            .font(NanoFont.aldrich(compact ? 7 : 9))
-            .tracking(0.8)
-            .foregroundStyle(panel.tint)
-
-            Text(panel.value)
-                .font(NanoFont.aldrich(compact ? 25 : 39))
-                .foregroundStyle(panel.tint)
-                .lineLimit(1)
-                .minimumScaleFactor(0.65)
-
-            Text(panel.unit)
-                .font(NanoFont.aldrich(compact ? 7 : 10))
-                .tracking(1.2)
-                .foregroundStyle(panel.tint)
-
-            HStack(alignment: .bottom, spacing: compact ? 3 : 5) {
-                ForEach(Array(panel.signals.suffix(compact ? 8 : 14).enumerated()), id: \.offset) {
-                    _, value in
-                    Capsule()
-                        .fill(
-                            value > 0
-                                ? panel.tint.opacity(0.45 + min(Double(value) / Double(maximum), 1) * 0.55)
-                                : panel.tint.opacity(0.12)
-                        )
-                        .frame(
-                            maxWidth: .infinity,
-                            minHeight: 4,
-                            maxHeight: max(
-                                4,
-                                (compact ? 30 : 54) * min(
-                                    max(Double(value) / Double(maximum), value > 0 ? 0.08 : 0),
-                                    1
-                                )
-                            )
-                        )
-                }
-            }
-            .frame(maxHeight: compact ? 30 : 54, alignment: .bottom)
-
-            Text(panel.caption)
-                .font(NanoFont.aldrich(compact ? 7 : 9))
-                .tracking(1)
-                .foregroundStyle(panel.tint)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(minHeight: compact ? 166 : 186, alignment: .top)
-        .nanoHUDCard(
-            tint: panel.tint,
-            radius: compact ? 16 : 18,
-            padding: compact ? 12 : 16,
-            illuminated: true
-        )
-    }
-}
-
 struct RecentAchievementsRow: View {
     let sections: [StatsBadgeSection]
+    var sectionNumber = 7
+    var unlockedCount = 0
+    var totalCount = 0
 
     @State private var destination: BadgeDestination?
 
@@ -788,20 +506,23 @@ struct RecentAchievementsRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("RECENT ACHIEVEMENTS")
-                    .font(NanoFont.aldrich(14))
-                    .tracking(1.1)
-                Spacer()
+            StatsSectionHeader(number: sectionNumber, title: "ACHIEVEMENTS") {
                 Button {
                     destination = BadgeDestination(highlightBadgeID: nil)
                 } label: {
-                    Label("VIEW ALL", systemImage: "chevron.right")
-                        .labelStyle(.titleAndIcon)
-                        .font(NanoFont.aldrich(9))
-                        .foregroundStyle(NanoTheme.teal)
+                    HStack(spacing: 6) {
+                        Text("\(unlockedCount)/\(totalCount)")
+                            .foregroundStyle(NanoTheme.secondaryText)
+                        Text("VIEW ALL")
+                        Image(systemName: "chevron.right")
+                    }
+                    .font(NanoFont.aldrich(10))
+                    .foregroundStyle(NanoTheme.teal)
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("View all achievements, \(unlockedCount) of \(totalCount) earned")
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -860,6 +581,15 @@ private struct BadgeArtworkView: View {
     @State private var image: UIImage?
     @State private var failed = false
 
+    init(badge: StatsBadge, size: CGFloat, onReady: (() -> Void)? = nil) {
+        self.badge = badge
+        self.size = size
+        self.onReady = onReady
+        _image = State(initialValue: badge.unlocked
+            ? badge.artworkURL.flatMap { NanoImageMemoryCache.shared.image(for: BadgeArtworkImageCache.key($0)) }
+            : nil)
+    }
+
     var body: some View {
         Group {
             if badge.unlocked, badge.artworkURL != nil {
@@ -881,6 +611,12 @@ private struct BadgeArtworkView: View {
         }
         .frame(width: size, height: size)
         .task(id: "\(badge.id)-\(badge.unlocked)") {
+            if badge.unlocked, let url = badge.artworkURL,
+               let cached = NanoImageMemoryCache.shared.image(for: BadgeArtworkImageCache.key(url)) {
+                image = cached
+                onReady?()
+                return
+            }
             image = nil
             failed = false
             guard badge.unlocked, let artworkURL = badge.artworkURL else {
@@ -891,7 +627,7 @@ private struct BadgeArtworkView: View {
             do {
                 let data = try await BadgeArtworkImageCache.shared.data(for: artworkURL)
                 guard !Task.isCancelled else { return }
-                image = UIImage(data: data)
+                image = await NanoImageMemoryCache.shared.decode(data, for: BadgeArtworkImageCache.key(artworkURL))
                 failed = image == nil
                 onReady?()
             } catch {
@@ -930,7 +666,7 @@ private struct AchievementCard: View {
             BadgeArtworkView(badge: badge, size: 72)
             Text(badge.title)
                 .font(NanoFont.aldrich(10))
-                .foregroundStyle(.white)
+                .foregroundStyle(NanoTheme.text)
                 .lineLimit(badge.title.contains(" ") ? 2 : 1)
                 .minimumScaleFactor(0.75)
                 .multilineTextAlignment(.center)
@@ -992,7 +728,7 @@ struct BadgeCollectionView: View {
                                 HStack(alignment: .firstTextBaseline) {
                                     Text(section.title)
                                         .font(.system(.title3, design: .rounded, weight: .semibold))
-                                        .foregroundStyle(.white)
+                                        .foregroundStyle(NanoTheme.text)
                                     Spacer()
                                     Text("\(section.badges.filter(\.unlocked).count) / \(section.badges.count)")
                                         .font(.subheadline.monospacedDigit())
@@ -1067,7 +803,7 @@ struct BadgeCollectionView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Your achievements")
                 .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(NanoTheme.text)
             Text("A collection built one step at a time.")
                 .font(.subheadline)
                 .foregroundStyle(NanoTheme.secondaryText)
@@ -1097,9 +833,9 @@ struct BadgeCollectionView: View {
             Button { dismiss() } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(NanoTheme.text)
                     .frame(width: 44, height: 44)
-                    .background(.white.opacity(0.07), in: Circle())
+                    .background(NanoTheme.ink.opacity(0.07), in: Circle())
             }
             .buttonStyle(BadgeCollectionPressStyle())
             .accessibilityLabel("Close badge collection")
@@ -1141,7 +877,7 @@ private struct BadgeGridCell: View {
                 .accessibilityHidden(true)
             Text(badge.title)
                 .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                .foregroundStyle(badge.unlocked ? .white : NanoTheme.secondaryText)
+                .foregroundStyle(badge.unlocked ? NanoTheme.text : NanoTheme.secondaryText)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(minHeight: 40, alignment: .top)
@@ -1159,10 +895,10 @@ private struct BadgeGridCell: View {
         .frame(maxWidth: .infinity)
         .background {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(LinearGradient(colors: [.white.opacity(badge.unlocked ? 0.055 : 0.025), .white.opacity(0.015)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .fill(LinearGradient(colors: [NanoTheme.ink.opacity(badge.unlocked ? 0.055 : 0.025), NanoTheme.ink.opacity(0.015)], startPoint: .topLeading, endPoint: .bottomTrailing))
                 .overlay {
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .strokeBorder(highlighted ? badge.tint.opacity(0.5) : .white.opacity(0.07), lineWidth: 1)
+                        .strokeBorder(highlighted ? badge.tint.opacity(0.5) : NanoTheme.ink.opacity(0.07), lineWidth: 1)
                 }
         }
         .contentShape(RoundedRectangle(cornerRadius: 24))
@@ -1194,9 +930,9 @@ private struct BadgeDetailView: View {
                         Button { dismiss() } label: {
                             Image(systemName: "xmark")
                                 .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(NanoTheme.text)
                                 .frame(width: 44, height: 44)
-                                .background(.white.opacity(0.07), in: Circle())
+                                .background(NanoTheme.ink.opacity(0.07), in: Circle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Close badge")
@@ -1213,7 +949,7 @@ private struct BadgeDetailView: View {
                             .strokeBorder(accent.opacity(0.10), lineWidth: 1)
                             .frame(width: 276, height: 276)
                         Circle()
-                            .strokeBorder(.white.opacity(0.035), lineWidth: 1)
+                            .strokeBorder(NanoTheme.ink.opacity(0.035), lineWidth: 1)
                             .frame(width: 310, height: 310)
                         SpinningBadgeMedallion(badge: badge, appeared: appeared, size: 220)
                     }
@@ -1233,7 +969,7 @@ private struct BadgeDetailView: View {
 
                         Text(badge.title)
                             .font(.system(.largeTitle, design: .rounded, weight: .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(NanoTheme.text)
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
 
@@ -1254,12 +990,12 @@ private struct BadgeDetailView: View {
                         VStack(spacing: 20) {
                             if let date = badge.completedAt {
                                 HStack(spacing: 12) {
-                                    Rectangle().fill(.white.opacity(0.10)).frame(height: 1)
+                                    Rectangle().fill(NanoTheme.ink.opacity(0.10)).frame(height: 1)
                                     Text(date.formatted(.dateTime.month(.wide).day().year()))
                                         .font(.subheadline)
                                         .foregroundStyle(NanoTheme.secondaryText)
                                         .fixedSize()
-                                    Rectangle().fill(.white.opacity(0.10)).frame(height: 1)
+                                    Rectangle().fill(NanoTheme.ink.opacity(0.10)).frame(height: 1)
                                 }
                             }
                             BadgeShareButton(badge: badge)
@@ -1313,7 +1049,7 @@ struct BadgeAwardCelebrationView: View {
                             Image(systemName: "xmark")
                                 .font(.system(size: 15, weight: .semibold))
                                 .frame(width: 44, height: 44)
-                                .background(.white.opacity(0.06), in: Circle())
+                                .background(NanoTheme.ink.opacity(0.06), in: Circle())
                         }
                         .buttonStyle(BadgePressStyle(suppressMotion: reduceMotion))
                         .accessibilityLabel("Close achievement")
@@ -1365,8 +1101,8 @@ struct BadgeAwardCelebrationView: View {
                 .padding(24)
                 .frame(maxWidth: 390)
                 .background(NanoTheme.surface, in: RoundedRectangle(cornerRadius: 32))
-                .overlay(RoundedRectangle(cornerRadius: 32).stroke(.white.opacity(0.09), lineWidth: 1))
-                .shadow(color: .black.opacity(0.35), radius: 32, y: 14)
+                .overlay(RoundedRectangle(cornerRadius: 32).stroke(NanoTheme.ink.opacity(0.09), lineWidth: 1))
+                .shadow(color: NanoTheme.shadow.opacity(0.35), radius: 32, y: 14)
                 .opacity(appeared ? 1 : 0)
                 .scaleEffect(appeared || reduceMotion ? 1 : 0.96)
                 .padding(22)
@@ -1374,7 +1110,7 @@ struct BadgeAwardCelebrationView: View {
             }
             .scrollIndicators(.hidden)
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(NanoTheme.text)
         .background(Color.black.opacity(0.64).ignoresSafeArea())
         .preferredColorScheme(.dark)
         .interactiveDismissDisabled()
@@ -1478,7 +1214,7 @@ private struct BadgeShareArtwork: View {
                 .foregroundStyle(NanoTheme.teal)
             Text("ACHIEVEMENT UNLOCKED")
                 .font(.system(size: 10, weight: .semibold, design: .rounded)).tracking(2)
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(NanoTheme.text.opacity(0.7))
             Image(uiImage: artwork).resizable().scaledToFit()
                 .frame(width: 190, height: 190)
                 .shadow(color: badge.tint.opacity(0.35), radius: 24)
@@ -1487,7 +1223,7 @@ private struct BadgeShareArtwork: View {
                 .font(.system(size: 27, weight: .bold, design: .rounded))
                 .minimumScaleFactor(0.8).lineLimit(2)
             Text(badge.description)
-                .font(.system(size: 13)).foregroundStyle(.white.opacity(0.72))
+                .font(.system(size: 13)).foregroundStyle(NanoTheme.text.opacity(0.72))
                 .lineSpacing(3).fixedSize(horizontal: false, vertical: true)
             if let date = badge.completedAt {
                 Text(date.formatted(date: .abbreviated, time: .omitted))
@@ -1495,7 +1231,7 @@ private struct BadgeShareArtwork: View {
             }
         }
         .multilineTextAlignment(.center)
-        .foregroundStyle(.white)
+        .foregroundStyle(NanoTheme.text)
         .padding(30)
         .frame(width: 360, height: 560)
         .background {
@@ -1534,6 +1270,8 @@ private struct BadgeActivityShareSheet: UIViewControllerRepresentable {
     ) {}
 }
 
+/// A collectible coin: spins twice once it's on screen, spins again on tap,
+/// and can be turned by hand, springing back to face forward.
 private struct SpinningBadgeMedallion: View {
     let badge: StatsBadge
     let appeared: Bool
@@ -1543,6 +1281,11 @@ private struct SpinningBadgeMedallion: View {
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     private var reduceMotion: Bool { systemReduceMotion || suppressMotion }
     @State private var artworkReady = false
+    @State private var rotation: Double = 0
+    @State private var dragStart: Double?
+    @State private var hasIntroSpun = false
+
+    private var canSpin: Bool { badge.unlocked && !reduceMotion }
 
     var body: some View {
         BadgeArtworkView(
@@ -1557,23 +1300,57 @@ private struct SpinningBadgeMedallion: View {
                 if !badge.unlocked || badge.artworkURL == nil {
                     Circle()
                         .trim(from: 0.08, to: 0.42)
-                        .stroke(Color.white.opacity(0.42), lineWidth: 2)
+                        .stroke(NanoTheme.ink.opacity(0.42), lineWidth: 2)
                         .padding(size * 0.11)
                         .rotationEffect(.degrees(appeared && !reduceMotion ? 520 : 0))
+                        .animation(reduceMotion ? nil : .timingCurve(0.23, 1, 0.32, 1, duration: 0.72),
+                                   value: appeared)
                 }
             }
-            .rotation3DEffect(
-                .degrees(appeared && artworkReady && badge.unlocked && !reduceMotion ? 360 : 0),
-                axis: (0, 1, 0),
-                perspective: 0.62
-            )
+            .rotation3DEffect(.degrees(rotation), axis: (0, 1, 0), perspective: 0.55)
             .scaleEffect(appeared || reduceMotion ? 1 : 0.95)
-            .animation(reduceMotion ? nil : .timingCurve(0.23, 1, 0.32, 1, duration: 0.72),
-                       value: appeared && artworkReady)
             .shadow(color: badge.tint.opacity(badge.unlocked ? 0.48 : 0), radius: 24)
+            .contentShape(Circle())
+            .onTapGesture { spin(turns: 1, duration: 1.1) }
+            .simultaneousGesture(DragGesture(minimumDistance: 6)
+                .onChanged { value in
+                    // Vertical drags belong to the surrounding scroll view.
+                    guard canSpin, dragStart != nil
+                        || abs(value.translation.width) > abs(value.translation.height) else { return }
+                    let start = dragStart ?? rotation
+                    dragStart = start
+                    rotation = start + value.translation.width * 0.9
+                }
+                .onEnded { value in
+                    guard canSpin, let start = dragStart else { return }
+                    dragStart = nil
+                    // Carry the flick's momentum, then settle face-forward.
+                    let projected = start + value.predictedEndTranslation.width * 0.9
+                    withAnimation(.spring(response: 0.7, dampingFraction: 0.78)) {
+                        rotation = (projected / 360).rounded() * 360
+                    }
+                })
+            .task(id: appeared && artworkReady) {
+                guard appeared, artworkReady, !hasIntroSpun else { return }
+                hasIntroSpun = true
+                // Let a presenting sheet settle so the spin is actually seen.
+                try? await Task.sleep(for: .milliseconds(320))
+                guard !Task.isCancelled else { return }
+                spin(turns: 2, duration: 1.6)
+            }
             .onChange(of: badge.id) {
                 artworkReady = false
+                hasIntroSpun = false
+                rotation = 0
             }
+            .accessibilityAddTraits(canSpin ? .isButton : [])
+            .accessibilityHint(canSpin ? "Spins the badge" : "")
+    }
+
+    private func spin(turns: Double, duration: Double) {
+        guard canSpin, dragStart == nil else { return }
+        let target = ((rotation / 360).rounded() + turns) * 360
+        withAnimation(.timingCurve(0.16, 1, 0.3, 1, duration: duration)) { rotation = target }
     }
 }
 

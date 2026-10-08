@@ -105,5 +105,7 @@ assert 'let holes = componentHoles + navigationHoles' in s
 assert 'targets: componentHoles' in s and 'avoiding: navigationHoles' in s
 assert 'intersection(contentViewport)' in s
 assert 'pages[step].targets.map { $0.navigationTabTarget ?? $0 }' not in s
-assert '.appTourTarget(stage.id == displayedStages.first?.id ? .dex : nil)' in (root/'Nanobeasts/Features/Dex/DexView.swift').read_text()
+dex=(root/'Nanobeasts/Features/Dex/DexView.swift').read_text()
+assert '.appTourTarget(family.id == tourAnchorID ? .dex : nil)' in dex
+assert '.appTourTarget(stage.id == tourAnchorID ? .dex : nil)' in dex
 print('Shared tour anchors, EXP interaction, and screen-target wiring checks passed.')

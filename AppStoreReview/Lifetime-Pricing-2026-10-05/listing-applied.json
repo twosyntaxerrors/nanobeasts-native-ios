@@ -1,0 +1,40 @@
+{
+  "data": {
+    "type": "appStoreVersionLocalizations",
+    "id": "a1235984-ab7f-4aa2-b5fe-aae317136b3a",
+    "attributes": {
+      "locale": "en-US",
+      "description": "Turn your daily steps into a growing creature collection.\n\nWalk to hatch eggs, evolve Nanobeasts, and discover new companions. Set a daily step goal, build streaks, collect badges, and explore your Field Dex.\n\nYOUR MOVEMENT, AT A GLANCE\nTrack steps and activity with Apple Health. Review your progress, history, and milestones on iPhone.\n\nTAKE YOUR COMPANION ON A WALK\nThe Apple Watch app puts your current creature or egg beside your step progress. See your weekly steps, hourly activity, distance, active energy, and exercise time. Swipe to choose a workout and follow live stats as you move.\n\nREMEMBER THE JOURNEY\nRecord outdoor walks and other supported workouts. Review your workout time, steps, distance, pace, and active energy on iPhone. With location and route recording enabled, watch your route clear the fog and share a replay video with your workout stats.\n\nMAKE IT YOURS\nChoose your daily goal and reminders, and find privacy information and purchase options in Settings.\n\nTry Nanobeasts through its built-in free onboarding experience. Continue with a Nanobeasts Pro monthly subscription or lifetime access for a single payment. Monthly renews automatically until cancelled; lifetime has no recurring charges. Neither plan includes an additional free trial. Restore Purchases is available in the app.\n\nPrivacy Policy: https://nanobeasts.app/privacy\nTerms of Use: https://nanobeasts.app/terms",
+      "keywords": "step counter,walking game,pedometer,virtual pet,creature game,habit tracker,daily goals,streaks",
+      "marketingUrl": "https://nanobeasts.app",
+      "promotionalText": "Walk with your Nanobeast. Hatch and evolve creatures with your steps, track workouts on Apple Watch, and revisit your adventures on iPhone.",
+      "supportUrl": "https://nanobeasts.app/support"
+    },
+    "relationships": {
+      "appScreenshotSets": {
+        "links": {
+          "self": "https://api.appstoreconnect.apple.com/v1/appStoreVersionLocalizations/a1235984-ab7f-4aa2-b5fe-aae317136b3a/relationships/appScreenshotSets",
+          "related": "https://api.appstoreconnect.apple.com/v1/appStoreVersionLocalizations/a1235984-ab7f-4aa2-b5fe-aae317136b3a/appScreenshotSets"
+        }
+      },
+      "appPreviewSets": {
+        "links": {
+          "self": "https://api.appstoreconnect.apple.com/v1/appStoreVersionLocalizations/a1235984-ab7f-4aa2-b5fe-aae317136b3a/relationships/appPreviewSets",
+          "related": "https://api.appstoreconnect.apple.com/v1/appStoreVersionLocalizations/a1235984-ab7f-4aa2-b5fe-aae317136b3a/appPreviewSets"
+        }
+      },
+      "searchKeywords": {
+        "links": {
+          "self": "https://api.appstoreconnect.apple.com/v1/appStoreVersionLocalizations/a1235984-ab7f-4aa2-b5fe-aae317136b3a/relationships/searchKeywords",
+          "related": "https://api.appstoreconnect.apple.com/v1/appStoreVersionLocalizations/a1235984-ab7f-4aa2-b5fe-aae317136b3a/searchKeywords"
+        }
+      }
+    },
+    "links": {
+      "self": "https://api.appstoreconnect.apple.com/v1/appStoreVersionLocalizations/a1235984-ab7f-4aa2-b5fe-aae317136b3a"
+    }
+  },
+  "links": {
+    "self": "https://api.appstoreconnect.apple.com/v1/appStoreVersionLocalizations/a1235984-ab7f-4aa2-b5fe-aae317136b3a"
+  }
+}

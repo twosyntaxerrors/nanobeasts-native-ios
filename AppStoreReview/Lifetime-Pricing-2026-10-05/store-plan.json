@@ -1,0 +1,149 @@
+{
+  "actions": [
+    "edit",
+    "plan",
+    "discard"
+  ],
+  "desired_states": [
+    {
+      "common": {
+        "availability": null,
+        "duration": null,
+        "localizations": {
+          "en-US": {
+            "description": "Unlock Nanobeasts Pro forever with one payment.",
+            "name": "Nanobeasts Pro Lifetime"
+          }
+        },
+        "pricing": {
+          "territory_prices": {
+            "US": {
+              "amount_micros": 29990000,
+              "currency": "USD",
+              "start_date": null,
+              "subscription_price_point_id": null
+            }
+          }
+        },
+        "title": null
+      },
+      "create_revenuecat_product": null,
+      "product_id": "prod7a881dd01a",
+      "project_id": "proj83b947c7",
+      "store": "app_store",
+      "store_state": {
+        "preserve_current_subscription_price": null,
+        "privacy_policy_url": null,
+        "review_information": null,
+        "subscription_group_localizations": null,
+        "subscription_group_name": null,
+        "trial_offer": null
+      }
+    },
+    {
+      "common": {
+        "availability": null,
+        "duration": null,
+        "localizations": {
+          "en-US": {
+            "description": "Unlock Nanobeasts Pro forever at a special one-time price.",
+            "name": "Nanobeasts Pro Lifetime Offer"
+          }
+        },
+        "pricing": {
+          "territory_prices": {
+            "US": {
+              "amount_micros": 19990000,
+              "currency": "USD",
+              "start_date": null,
+              "subscription_price_point_id": null
+            }
+          }
+        },
+        "title": null
+      },
+      "create_revenuecat_product": null,
+      "product_id": "prod324317e5ab",
+      "project_id": "proj83b947c7",
+      "store": "app_store",
+      "store_state": {
+        "preserve_current_subscription_price": null,
+        "privacy_policy_url": null,
+        "review_information": null,
+        "subscription_group_localizations": null,
+        "subscription_group_name": null,
+        "trial_offer": null
+      }
+    },
+    {
+      "common": null,
+      "create_revenuecat_product": null,
+      "product_id": "prod3e863cf11f",
+      "project_id": "proj83b947c7",
+      "store": "app_store",
+      "store_state": {
+        "preserve_current_subscription_price": null,
+        "privacy_policy_url": null,
+        "review_information": null,
+        "subscription_group_localizations": null,
+        "subscription_group_name": null,
+        "trial_offer": null
+      }
+    }
+  ],
+  "error_message": "One or more product store state plan items failed.",
+  "has_changes": false,
+  "id": "68936231-f6b5-44df-9f7f-c06a8a5fe7e6",
+  "object": "product_store_state_plan",
+  "plan_items": [
+    {
+      "action": "unchanged",
+      "app_id": null,
+      "apply_error_message": null,
+      "apply_status": null,
+      "diff": [],
+      "error_message": "Product 'nanobeasts_native_premium_lifetime': There is a missing or expired agreement in App Store Connect that needs to be signed.",
+      "product_id": "prod7a881dd01a",
+      "store_identifier": "nanobeasts_native_premium_lifetime",
+      "warnings": []
+    },
+    {
+      "action": "unchanged",
+      "app_id": null,
+      "apply_error_message": null,
+      "apply_status": null,
+      "diff": [],
+      "error_message": "Product 'nanobeasts_native_premium_lifetime_winback': There is a missing or expired agreement in App Store Connect that needs to be signed.",
+      "product_id": "prod324317e5ab",
+      "store_identifier": "nanobeasts_native_premium_lifetime_winback",
+      "warnings": []
+    },
+    {
+      "action": "unchanged",
+      "app_id": null,
+      "apply_error_message": null,
+      "apply_status": null,
+      "diff": [],
+      "error_message": "Product 'nanobeasts_native_premium_yearly': There is a missing or expired agreement in App Store Connect that needs to be signed.",
+      "product_id": "prod3e863cf11f",
+      "store_identifier": "nanobeasts_native_premium_yearly",
+      "warnings": []
+    }
+  ],
+  "status": "plan_errored",
+  "summary": {
+    "products_added": 0,
+    "products_modified": 0,
+    "products_unchanged": 3
+  },
+  "timestamps": {
+    "applied_at": null,
+    "cancelled_at": null,
+    "created_at": 1791182959119,
+    "discarded_at": null,
+    "expired_at": null,
+    "planned_at": 1791182993491,
+    "planning_at": 1791182992728
+  },
+  "warnings": []
+}

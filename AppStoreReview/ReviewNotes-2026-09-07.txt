@@ -1,0 +1,9 @@
+Nanobeasts is a freemium walking and creature-collection app. No account is required.
+
+Complete onboarding to choose a daily goal and grant optional Apple Health and notification permissions. Without Health access, supported iPhone motion/pedometer tracking remains available. Free users receive up to 2,500 steps of creature progression per day; Nanobeasts Pro removes that daily progression cap. Apple Health tracking is available without Pro.
+
+Open the center workout tab on iPhone to record a workout or review completed workouts. The companion Apple Watch app opens to daily steps and the current creature/egg, a weekly steps chart, and daily energy, distance and exercise time. Scroll down for hourly steps and swipe horizontally to the workout picker. Outdoor workouts can record a route when the user grants Location permission and enables route recording. Workout and route samples are saved to Apple Health only with the relevant permission. Please use physical devices and actual movement to evaluate HealthKit, GPS and Watch connectivity; missing Health samples are not fabricated.
+
+Settings contains a notification toggle and permanent Privacy Policy, Terms of Service, Support and Manage Subscription links. The Nanobeasts Pro Active badge also opens Apple's subscription management sheet. The paywall includes Restore Purchases. Monthly and yearly subscriptions unlock the same premium entitlement through RevenueCat. The release build uses Apple subscription products nanobeasts_native_premium_monthly and nanobeasts_native_premium_yearly.
+
+This submission is for the native bundle com.twosyntaxerrors.nanobeasts.native. The separate unreleased Expo app record is retained independently.

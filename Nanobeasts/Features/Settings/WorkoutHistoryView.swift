@@ -704,7 +704,7 @@ struct WorkoutHubHeader: View {
             Button(action: close) {
                 Image(systemName: "xmark")
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(NanoTheme.text)
                     .frame(width: 46, height: 46)
                     .background(Circle().fill(NanoTheme.surface.opacity(0.94)))
                     .overlay(Circle().stroke(NanoTheme.elevated, lineWidth: 1))
@@ -805,7 +805,7 @@ struct WorkoutHistoryScreen: View {
                         .foregroundStyle(NanoTheme.teal)
                     Text("Every step has a story.")
                         .font(NanoFont.aldrich(25))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(NanoTheme.text)
                 }
 
                 weekSummary
@@ -819,7 +819,7 @@ struct WorkoutHistoryScreen: View {
                         VStack(alignment: .leading, spacing: 10) {
                             Text(group.month.formatted(.dateTime.month(.wide).year()))
                                 .font(NanoFont.aldrich(13))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(NanoTheme.text)
 
                             ForEach(group.workouts) { workout in
                                 Button {
@@ -852,7 +852,7 @@ struct WorkoutHistoryScreen: View {
                         .foregroundStyle(NanoTheme.secondaryText)
                     Text(historyDuration(thisWeek.reduce(0) { $0 + $1.duration }))
                         .font(NanoFont.spaceMono(25, bold: true))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(NanoTheme.text)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 4) {
@@ -950,7 +950,7 @@ struct WorkoutHistoryScreen: View {
             HStack(spacing: 12) {
                 Image(systemName: "heart.fill")
                     .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(NanoTheme.text)
                     .frame(width: 46, height: 46)
                     .background(
                         RoundedRectangle(cornerRadius: 14)
@@ -960,7 +960,7 @@ struct WorkoutHistoryScreen: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("APPLE HEALTH WORKOUTS")
                         .font(NanoFont.aldrich(11))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(NanoTheme.text)
                     Text(importMessage)
                         .font(NanoFont.aldrich(9))
                         .foregroundStyle(NanoTheme.secondaryText)
@@ -1005,7 +1005,7 @@ struct WorkoutHistoryScreen: View {
                 .foregroundStyle(NanoTheme.teal)
             Text("NO WORKOUTS YET")
                 .font(NanoFont.aldrich(14))
-                .foregroundStyle(.white)
+                .foregroundStyle(NanoTheme.text)
             Text("Start a session with your Nanobeast or import your recent Apple Health workouts.")
                 .font(NanoFont.aldrich(10))
                 .foregroundStyle(NanoTheme.secondaryText)
@@ -1158,7 +1158,7 @@ struct WorkoutHistoryDetailView: View {
             .padding(.bottom, 10)
             .background(NanoTheme.background.opacity(0.97))
         }
-        .preferredColorScheme(.dark)
+
         .task(id: workout.id) {
             let history = WorkoutHistoryStore()
             await history.refreshHealthTotals(for: workout.id)
@@ -1200,7 +1200,7 @@ struct WorkoutHistoryDetailView: View {
                 Button { dismiss() } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(NanoTheme.text)
                         .frame(width: 44, height: 44)
                         .background(Circle().fill(NanoTheme.surface))
                 }
@@ -1210,7 +1210,7 @@ struct WorkoutHistoryDetailView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(workout.name)
                     .font(NanoFont.aldrich(28))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(NanoTheme.text)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(workout.startedAt.formatted(date: .abbreviated, time: .shortened))
                     .font(NanoFont.aldrich(12))
@@ -1243,7 +1243,7 @@ struct WorkoutHistoryDetailView: View {
                 HStack(spacing: 7) {
                     Image(systemName: "pawprint.fill").foregroundStyle(NanoTheme.teal)
                     Text(companion.stage == 0 ? "Helping \(companion.name) hatch" : "Explored with \(companion.name)")
-                        .foregroundStyle(.white)
+                        .foregroundStyle(NanoTheme.text)
                 }
                 .font(NanoFont.aldrich(12))
                 .fixedSize(horizontal: false, vertical: true)
@@ -1272,7 +1272,7 @@ struct WorkoutHistoryDetailView: View {
     private func summaryMetric(_ title: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title).font(NanoFont.aldrich(9)).tracking(0.5).foregroundStyle(NanoTheme.secondaryText)
-            Text(value).font(NanoFont.spaceMono(16, bold: true)).foregroundStyle(.white)
+            Text(value).font(NanoFont.spaceMono(16, bold: true)).foregroundStyle(NanoTheme.text)
                 .lineLimit(1).minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1367,7 +1367,7 @@ private struct WorkoutHistoryRouteCard: View {
                 Text("RECORDED ROUTE")
                     .font(NanoFont.aldrich(11))
                     .tracking(1.1)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(NanoTheme.text)
                 Spacer()
                 Text("START → FINISH")
                     .font(NanoFont.aldrich(8))
@@ -1539,7 +1539,7 @@ private struct WorkoutHistoryRow: View {
                     Text(workout.name)
                         .lineLimit(1).minimumScaleFactor(0.8)
                         .font(NanoFont.aldrich(13))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(NanoTheme.text)
                     Spacer()
                     Text(workout.startedAt.formatted(.dateTime.day().month(.abbreviated)))
                         .fixedSize(horizontal: true, vertical: false)
@@ -1635,7 +1635,7 @@ private struct WorkoutHistoryDiscoveriesCard: View {
                         Text(event.name)
                             .lineLimit(1).minimumScaleFactor(0.8)
                             .font(NanoFont.aldrich(12))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(NanoTheme.text)
                     }
                     Spacer()
                 }
@@ -1668,7 +1668,7 @@ private struct WorkoutHistorySummaryMetric: View {
                 .foregroundStyle(NanoTheme.secondaryText)
             Text(value)
                 .font(NanoFont.spaceMono(13, bold: true))
-                .foregroundStyle(.white)
+                .foregroundStyle(NanoTheme.text)
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
         }

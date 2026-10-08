@@ -1,0 +1,15 @@
+steps:
+  - launch: com.twosyntaxerrors.nanobeasts.native
+  - tool: settings-permissions
+    args:
+      action: grant
+      permission: location
+      bundleId: com.twosyntaxerrors.nanobeasts.native
+  - tool: launch-app
+    args:
+      bundleId: com.twosyntaxerrors.nanobeasts.native
+  - tool: open-url
+    args:
+      url: nanobeasts://goldie/workout
+  - wait: 7000
+  - await: { idle: true }

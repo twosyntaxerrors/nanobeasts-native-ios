@@ -1,0 +1,27 @@
+{
+  "versionLocalizationId": "a1235984-ab7f-4aa2-b5fe-aae317136b3a",
+  "setId": "90c435c6-ce67-40fb-b94a-94acfa3bbe0b",
+  "displayType": "APP_WATCH_SERIES_4",
+  "total": 3,
+  "uploaded": 3,
+  "results": [
+    {
+      "fileName": "01-daily-activity.jpg",
+      "filePath": "AppStoreScreenshots/Watch-2026-09-07/01-daily-activity.jpg",
+      "assetId": "f1667771-5cf1-49cf-819e-e47e9d5f2d3a",
+      "state": "COMPLETE"
+    },
+    {
+      "fileName": "02-hourly-steps.jpg",
+      "filePath": "AppStoreScreenshots/Watch-2026-09-07/02-hourly-steps.jpg",
+      "assetId": "c94cac56-f999-44be-a678-4947d2c766a0",
+      "state": "COMPLETE"
+    },
+    {
+      "fileName": "03-workouts.jpg",
+      "filePath": "AppStoreScreenshots/Watch-2026-09-07/03-workouts.jpg",
+      "assetId": "e04c3a61-d81e-4641-acd2-356dd1728241",
+      "state": "COMPLETE"
+    }
+  ]
+}

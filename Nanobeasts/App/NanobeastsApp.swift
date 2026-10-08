@@ -8,6 +8,9 @@ import UIKit
 
 private enum GoldieCapturePresentation: Identifiable {
     case workout
+    case workoutSummary
+    case workoutMap
+    case zoneCard
     case onboarding
     case workoutGuide
     case share(WorkoutSharePayload)
@@ -17,6 +20,9 @@ private enum GoldieCapturePresentation: Identifiable {
     var id: String {
         switch self {
         case .workout: "workout"
+        case .workoutSummary: "workoutSummary"
+        case .workoutMap: "workoutMap"
+        case .zoneCard: "zoneCard"
         case .onboarding: "onboarding"
         case .workoutGuide: "workoutGuide"
         case .share: "share"
@@ -31,6 +37,7 @@ struct NanobeastsApp: App {
     @UIApplicationDelegateAdaptor(WorkoutNotificationAppDelegate.self)
     private var workoutNotificationDelegate
     @State private var store = AppStore()
+    @AppStorage(NanoAppearance.storageKey) private var appearance: NanoAppearance = .dark
     @State private var goldieRootID = 0
 #if targetEnvironment(simulator)
     @State private var capturesOnboarding = false
@@ -99,8 +106,12 @@ struct NanobeastsApp: App {
         WindowGroup {
             rootContent
                 .environment(store)
-                .tint(store.interfaceAccent.color)
-                .preferredColorScheme(.dark)
+                .tint(Color.nanoVivid(store.interfaceAccent.color))
+                .foregroundStyle(NanoTheme.text)
+                // Applied to the window, so sheets, alerts, the keyboard and the
+                // status bar follow too. Cinematic screens still force Dark locally.
+                .onAppear { NanoAppearanceWindow.apply(appearance) }
+                .onChange(of: appearance) { NanoAppearanceWindow.apply(appearance) }
                 .id(goldieRootID)
                 .onOpenURL(perform: handleSimulatorCaptureURL)
                 .fullScreenCover(item: $goldiePresentation) { presentation in
@@ -112,6 +123,18 @@ struct NanobeastsApp: App {
                 case .workout:
                     WorkoutView(simulatesTerritory: true)
                             .environment(store)
+                    case .workoutSummary:
+                        WorkoutView(previewsSummary: true)
+                            .environment(store)
+                    case .workoutMap:
+                        WorkoutView(previewsMap: true)
+                            .environment(store)
+                    case .zoneCard:
+#if targetEnvironment(simulator) && DEBUG
+                        GoldieZoneCardPreview()
+#else
+                        EmptyView()
+#endif
                     case let .history(workout):
                         WorkoutHistoryDetailView(workout: workout, distanceUnit: store.distanceUnit)
                             .environment(store)
@@ -247,6 +270,26 @@ struct NanobeastsApp: App {
                 goldiePresentation = url.lastPathComponent == "workout-replay" ? .replay(payload) : .share(payload)
             }
 
+        case "workout-map", "zone-card":
+            goldiePresentation = nil
+            UserDefaults.standard.removeObject(forKey: AppScreenshotScenario.goldieScenarioDefaultsKey)
+            store = AppStore()
+            goldieRootID += 1
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(700))
+                goldiePresentation = url.lastPathComponent == "zone-card" ? .zoneCard : .workoutMap
+            }
+
+        case "workout-summary":
+            goldiePresentation = nil
+            UserDefaults.standard.removeObject(forKey: AppScreenshotScenario.goldieScenarioDefaultsKey)
+            store = AppStore()
+            goldieRootID += 1
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(700))
+                goldiePresentation = .workoutSummary
+            }
+
         case "workout":
             goldiePresentation = nil
             UserDefaults.standard.removeObject(
@@ -309,4 +352,18 @@ struct NanobeastsApp: App {
         )
     }
 #endif
+}
+
+enum NanoAppearanceWindow {
+    @MainActor
+    static func apply(_ appearance: NanoAppearance) {
+        let style: UIUserInterfaceStyle = switch appearance {
+        case .dark: .dark
+        case .light: .light
+        case .system: .unspecified
+        }
+        for scene in UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }) {
+            for window in scene.windows { window.overrideUserInterfaceStyle = style }
+        }
+    }
 }

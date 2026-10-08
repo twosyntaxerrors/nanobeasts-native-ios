@@ -1,0 +1,99 @@
+{
+  "status": "final",
+  "category": "logo-reveal",
+  "duration_s": 3.2,
+  "fps": 30,
+  "canvas": {
+    "w": 1080,
+    "h": 2340,
+    "aspect": "6:13"
+  },
+  "style": "Small pixel Glitchlet jogging above the white Aldrich NANOBEASTS wordmark on the app grid over black.",
+  "palette": [
+    "#000000",
+    "#7652B8",
+    "#39234F",
+    "#B8E657",
+    "#EF79BC"
+  ],
+  "font": "Inter",
+  "beats": [],
+  "export": "mp4",
+  "asset_needs": [],
+  "shot_brief": "Centered transparent Glitchlet running poses above the white NANOBEASTS wordmark. Subtle native app grid fills the portrait background. No glow or opaque sprite backdrop.",
+  "content": {
+    "logo": "assets/glitchlet-run-sheet.png",
+    "tagline": "NANOBEASTS",
+    "url": "",
+    "mascot": "Glitchlet",
+    "frames": [
+      "assets/glitchlet-run-0.png",
+      "assets/glitchlet-run-1.png",
+      "assets/glitchlet-run-2.png",
+      "assets/glitchlet-run-3.png",
+      "assets/glitchlet-run-4.png",
+      "assets/glitchlet-run-5.png",
+      "assets/glitchlet-run-6.png",
+      "assets/glitchlet-run-7.png"
+    ],
+    "source": "assets/glitchlet-run-sheet-source.png",
+    "native_frame_size": {
+      "w": 96,
+      "h": 96
+    },
+    "frame_count": 8,
+    "cycle_fps": 10,
+    "cycle_duration_s": 0.8,
+    "cycles": 4,
+    "hero_frame": {
+      "center_x": 540,
+      "center_y": 1170,
+      "w": 288,
+      "h": 288
+    },
+    "motion": "Deterministic eight-frame raster pose swaps, frame=floor(t*10)%8, with nearest-neighbor sampling. Body bounce, alternating legs, and antenna movement are baked into the aligned poses. No additional CSS/GSAP transforms.",
+    "customize": {
+      "background": "black with subtle grid",
+      "image_rendering": "pixelated",
+      "intro": "none",
+      "outro": "none",
+      "audio": "none",
+      "pattern_interrupt": "none; this is an intentionally repeating app-loading mascot, not a narrative brand sting."
+    },
+    "registry_search": {
+      "query": "pixel sprite running animation frame cycle",
+      "tier": "words",
+      "shown": 68,
+      "total": 386,
+      "results_record": "registry-search.json",
+      "selected_block": null,
+      "rejected_relevant_result": {
+        "name": "lottie-character-walk",
+        "reason": "Jointed Lottie character walks into a scene, stops, and points at a card. It does not animate supplied raster sprite poses or hold a running loop at a fixed center."
+      },
+      "decision": "Use a deterministic supplied-image frame swap for the raster sprite-cycle gap. Do not reuse effects or layouts from unrelated registry matches.",
+      "gap_report": "Logged successfully through required HyperFrames feedback command."
+    },
+    "visible_character_width_native_px": 60,
+    "normalized_sheet_size": {
+      "w": 768,
+      "h": 96
+    },
+    "wordmark": {
+      "font": "Aldrich",
+      "font_file": "assets/Aldrich_400Regular.ttf",
+      "native_size_pt": 24,
+      "native_tracking_pt": 3,
+      "gap_pt": 24,
+      "reveal": {
+        "start_s": 0.12,
+        "stagger_s": 0.085,
+        "duration_s": 0.18,
+        "rise_pt": 4,
+        "letters": 10,
+        "complete_s": 1.065,
+        "registry_component": "bottom-up-letters"
+      }
+    }
+  }
+}

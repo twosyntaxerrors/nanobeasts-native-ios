@@ -1,0 +1,111 @@
+{
+  "ok": true,
+  "strict": false,
+  "browserSkipped": false,
+  "lint": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 1,
+    "infoCount": 0,
+    "findings": [
+      {
+        "code": "nested_structure_needs_subcomposition",
+        "severity": "warning",
+        "message": "<div id=\"splash-clip\"> is a timeline element that contains nested <div>. The timeline shows one row per top-level element, and the root composition is built only from sub-compositions.",
+        "selector": "#splash-clip",
+        "dataAttributes": {},
+        "sourceFile": "/Users/ervenstnoel/Documents/Nanobeasts Native/videos/nanobeasts-splash-cyan/index.html",
+        "bbox": {
+          "x": 0,
+          "y": 0,
+          "width": 0,
+          "height": 0
+        },
+        "time": 0,
+        "fixHint": "Move <div id=\"splash-clip\"> and its contents into a sub-composition file and mount it with data-composition-src."
+      }
+    ],
+    "filesScanned": 1
+  },
+  "runtime": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": []
+  },
+  "layout": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "duration": 1.2,
+    "samples": [
+      0.05,
+      0.3,
+      0.5,
+      0.65,
+      0.85,
+      1.15
+    ],
+    "transitionSamples": [],
+    "transitionSamplesDropped": 0,
+    "tolerance": 2,
+    "totalIssueCount": 0,
+    "truncated": false
+  },
+  "motion": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": false,
+    "samples": 0
+  },
+  "contrast": {
+    "ok": true,
+    "errorCount": 0,
+    "warningCount": 0,
+    "infoCount": 0,
+    "findings": [],
+    "enabled": true,
+    "samples": [
+      0.05,
+      0.3,
+      0.5,
+      0.65,
+      1.15
+    ],
+    "checked": 0,
+    "passed": 0
+  },
+  "hdr": {
+    "autoPromotion": null,
+    "inspection": "available"
+  },
+  "snapshots": {
+    "enabled": true,
+    "files": [
+      "snapshots/frame-00-at-0.1s.png",
+      "snapshots/frame-01-at-0.3s.png",
+      "snapshots/frame-02-at-0.5s.png",
+      "snapshots/frame-03-at-0.7s.png",
+      "snapshots/frame-04-at-1.1s.png"
+    ],
+    "times": [
+      0.05,
+      0.3,
+      0.5,
+      0.65,
+      1.15
+    ],
+    "findingFiles": []
+  },
+  "_meta": {
+    "version": "0.8.134",
+    "latestVersion": "0.8.134",
+    "updateAvailable": false
+  }
+}

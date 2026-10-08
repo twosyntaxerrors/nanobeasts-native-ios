@@ -269,10 +269,12 @@ enum OnboardingStoryMedia {
 }
 
 enum OnboardingDemoMedia {
-    /// v3 matches the landing page cut: no baked-in progress rail or label, so the
-    /// in-app countdown can sit in the top-right corner.
+    /// v5 replaces the fog route replay with the walk painting hexagon tiles until
+    /// its zone is mastered; Stats and Dex match v4. No baked-in progress rail or
+    /// label, so the in-app countdown can sit in the top-right corner. v4 stays on
+    /// R2 for rollback.
     static let url = R2AssetManifest.baseURL
-        .appending(path: "videos/onboarding/nanobeasts-field-demo-v3.mp4")
+        .appending(path: "videos/onboarding/nanobeasts-field-demo-v5.mp4")
     static let aspectRatio: CGFloat = 1080.0 / 1666.0
 }
 
@@ -393,7 +395,7 @@ private struct FieldDemoPresentation<Demo: View>: View {
 
     private var startButton: some View {
         Button(action: onStart) {
-            Text("Start my transformation")
+            Text("Start my evolution")
                 .font(.headline)
                 .foregroundStyle(Color.black)
                 .fixedSize(horizontal: false, vertical: true)

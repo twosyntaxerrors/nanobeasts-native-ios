@@ -1,0 +1,11 @@
+executionPrerequisite: >-
+  Nanobeasts is foregrounded on the workout setup screen.
+steps:
+  - tool: open-url
+    args:
+      url: nanobeasts://goldie/clear
+  - wait: 1500
+  - tool: open-url
+    args:
+      url: nanobeasts://goldie/workout-share
+  - wait: 7000

@@ -11,10 +11,12 @@ struct SettingsView: View {
     @State private var confirmsReset = false
     @State private var showsPaywall = false
     @State private var showsOnboardingPreview = false
+    @State private var paywallPreview: PaywallDesign?
     @State private var goalDraft = 10_000
     @State private var showsManageSubscriptions = false
     @StateObject private var notifications = NanoNotifications.shared
     @AppStorage("nanobeasts.notifications.setup-reminders") private var setupReminders = false
+    @AppStorage(NanoAppearance.storageKey) private var appearance: NanoAppearance = .dark
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
 
@@ -27,90 +29,26 @@ struct SettingsView: View {
 
             ScrollViewReader { scroll in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 16) {
+                LazyVStack(alignment: .leading, spacing: 12) {
                     SettingsScreenHeader()
 
-                    SettingsProfileHero(
+                    if let onExitReplay {
+                        Button(action: onExitReplay) {
+                            SettingsRowLabel(symbol: "arrow.uturn.backward", title: "End onboarding replay",
+                                             value: "Back to your profile", accessory: .chevron)
+                        }
+                        .buttonStyle(SettingsRowPressStyle())
+                        .settingsGroup()
+                    }
+
+                    SettingsProfileCard(
                         name: store.playerName,
-                        stageName: store.currentStage.name
+                        companion: store.currentStage,
+                        isPremium: store.isPremium
                     )
 
-                    SettingsProCard(isPremium: store.isPremium) {
-                        if isTourPreview { showsPaywall = true }
-                        else if store.isPremium { showsManageSubscriptions = true }
-                        else { showsPaywall = true }
-                    }
-
-                    if let onExitReplay {
-                        SettingsPanel(icon: "play.rectangle.fill", title: "ONBOARDING LAB",
-                                      subtitle: "Return to your saved profile.") {
-                            Button("End onboarding replay", action: onExitReplay)
-                                .frame(minHeight: 48)
-                        }
-                    } else {
-                        SettingsPanel(icon: "play.rectangle.fill", title: "ONBOARDING LAB",
-                                      subtitle: "Compare paywalls at the first hatch or a later evolution. Steps and purchases are simulated.") {
-                            Button { showsOnboardingPreview = true } label: {
-                                settingsActionLabel("Test onboarding & paywall", symbol: "play.rectangle")
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-
-                    notificationSettings
-
-                    SettingsPanel(
-                        icon: "paintpalette.fill",
-                        title: "APPEARANCE",
-                        subtitle: "Choose your interface signal color."
-                    ) {
-                        SettingsAccentPicker(
-                            selection: $store.interfaceAccent,
-                            hapticsEnabled: store.hapticsEnabled
-                        )
-
-                        SettingsDivider()
-
-                        SettingsToggleRow(
-                            title: "Reduce Motion",
-                            subtitle: "Use calmer transitions and animations.",
-                            isOn: $store.reduceMotion
-                        )
-                    }
-
-                    SettingsPanel(
-                        icon: "heart.fill",
-                        title: "MOVEMENT & HEALTH",
-                        subtitle: "Configure how activity is measured."
-                    ) {
-                        SettingsStatusRow(
-                            title: "Apple Health Sync",
-                            subtitle: store.healthState.title,
-                            status: store.healthState == .connected ? "CONNECTED" : "ACTION",
-                            active: store.healthState == .connected
-                        ) {
-                            Task {
-                                if store.hasRequestedHealthAccess {
-                                    await store.refreshHealthData()
-                                } else {
-                                    await store.requestHealthAccess()
-                                }
-                            }
-                        }
-
-                        SettingsDivider()
-
-                        SettingsDistanceUnitRow(selection: $store.distanceUnit)
-
-                        SettingsDivider()
-
-                        SettingsToggleRow(
-                            title: "Haptic Feedback",
-                            subtitle: "Tactile responses for key actions.",
-                            isOn: $store.hapticsEnabled
-                        )
-                    }
-
+                    // 01 — the one setting that shapes the game.
+                    StatsSectionHeader(number: 1, title: "DAILY GOAL")
                     DailyObjectiveCard(goal: $goalDraft,
                                        todayGoal: store.dailyGoal,
                                        scheduledGoal: store.scheduledDailyGoal,
@@ -121,64 +59,110 @@ struct SettingsView: View {
                             UINotificationFeedbackGenerator().notificationOccurred(.success)
                         }
                     }
-
                     .appTourTarget(.settingsGoal)
                     .id(AppTourTarget.settingsGoal)
 
-                    SettingsPanel(
-                        icon: "person.crop.circle.fill",
-                        title: "PROFILE & DATA",
-                        subtitle: "Your records remain private."
-                    ) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(
-                                    store.playerName.isEmpty
-                                        ? "Researcher archive"
-                                        : "\(store.playerName)'s archive"
-                                )
-                                .font(NanoFont.aldrich(13))
-                                .foregroundStyle(.white)
-                                Text("Stored locally on this device")
-                                    .font(NanoFont.aldrich(10))
-                                    .foregroundStyle(NanoTheme.secondaryText)
+                    StatsSectionHeader(number: 2, title: "APPEARANCE")
+                    VStack(spacing: 0) {
+                        SettingsThemePicker(selection: $appearance, hapticsEnabled: store.hapticsEnabled)
+                            .padding(14)
+                        SettingsDivider()
+                        SettingsAccentPicker(selection: $store.interfaceAccent, hapticsEnabled: store.hapticsEnabled)
+                            .padding(14)
+                        SettingsDivider()
+                        SettingsToggleRow(symbol: "figure.walk.motion", title: "Reduce Motion",
+                                          isOn: $store.reduceMotion)
+                    }
+                    .settingsGroup()
+                    SettingsFootnote("Reduce Motion uses calmer transitions and turns off creature animations.")
+
+                    StatsSectionHeader(number: 3, title: "NOTIFICATIONS")
+                    notificationSettings
+
+                    StatsSectionHeader(number: 4, title: "HEALTH & UNITS")
+                    VStack(spacing: 0) {
+                        Button {
+                            Task {
+                                if store.hasRequestedHealthAccess {
+                                    await store.refreshHealthData()
+                                } else {
+                                    await store.requestHealthAccess()
+                                }
                             }
-                            Spacer()
-                            Circle()
-                                .fill(NanoTheme.teal)
-                                .frame(width: 9, height: 9)
-                                .shadow(color: NanoTheme.teal, radius: 6)
+                        } label: {
+                            SettingsRowLabel(
+                                symbol: "heart.fill",
+                                title: "Apple Health",
+                                value: healthValue,
+                                valueTint: store.healthState == .connected ? NanoTheme.teal : NanoTheme.orange,
+                                accessory: store.healthState == .connected ? .refresh : .chevron
+                            )
                         }
-                        .padding(.horizontal, 14)
-                        .frame(minHeight: 64)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(NanoTheme.background.opacity(0.45))
-                                .stroke(NanoTheme.elevated, lineWidth: 1)
-                        )
+                        .buttonStyle(SettingsRowPressStyle())
+                        .accessibilityHint(store.healthState == .connected ? "Syncs your steps now" : "Connects Apple Health")
+                        SettingsDivider()
+                        SettingsDistanceUnitRow(selection: $store.distanceUnit)
+                        SettingsDivider()
+                        SettingsToggleRow(symbol: "hand.tap.fill", title: "Haptic Feedback", isOn: $store.hapticsEnabled)
+                    }
+                    .settingsGroup()
+                    SettingsFootnote("Steps come from Apple Health. Your records stay private on this device.")
+
+                    StatsSectionHeader(number: 5, title: "MEMBERSHIP")
+                    VStack(spacing: 0) {
+                        Button {
+                            if isTourPreview || !store.isPremium { showsPaywall = true }
+                            else { showsManageSubscriptions = true }
+                        } label: {
+                            SettingsRowLabel(
+                                symbol: store.isPremium ? "checkmark.seal.fill" : "sparkles",
+                                title: "Nanobeasts Pro",
+                                value: store.isPremium ? "Active" : "Upgrade",
+                                valueTint: NanoTheme.teal,
+                                accessory: .chevron
+                            )
+                        }
+                        .buttonStyle(SettingsRowPressStyle())
+                        .accessibilityHint(store.isPremium ? "Opens subscription management" : "Opens Nanobeasts Pro purchase options")
+                        SettingsDivider()
+                        Button {
+                            if isTourPreview { showsPaywall = true } else { showsManageSubscriptions = true }
+                        } label: {
+                            SettingsRowLabel(symbol: "creditcard.fill", title: "Manage Subscription", accessory: .chevron)
+                        }
+                        .buttonStyle(SettingsRowPressStyle())
+                    }
+                    .settingsGroup()
+                    if !store.isPremium {
+                        SettingsFootnote("Pro removes the daily evolution cap so your Nanobeasts keep growing.")
                     }
 
-                    SettingsPanel(icon: "info.circle.fill", title: "HELP & LEGAL",
-                                  subtitle: "Support and information, always within reach.") {
+                    StatsSectionHeader(number: 6, title: "HELP & LEGAL")
+                    VStack(spacing: 0) {
+                        settingsLink("Support", symbol: "questionmark.circle.fill", url: "https://nanobeasts.app/support")
+                        SettingsDivider()
                         settingsLink("Privacy Policy", symbol: "hand.raised.fill", url: "https://nanobeasts.app/privacy")
                         SettingsDivider()
                         settingsLink("Terms of Service", symbol: "doc.text.fill", url: "https://nanobeasts.app/terms")
-                        SettingsDivider()
-                        settingsLink("Support", symbol: "questionmark.circle.fill", url: "https://nanobeasts.app/support")
-                        SettingsDivider()
-                        Button { if isTourPreview { showsPaywall = true } else { showsManageSubscriptions = true } } label: {
-                            settingsActionLabel("Manage Subscription", symbol: "creditcard.fill")
-                        }.buttonStyle(.plain)
-                        SettingsDivider()
-                        Text("Icons by [Solar / 480 Design](https://github.com/480-Design/Solar-Icon-Set), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Adapted with app colors and sizing.")
-                            .font(.caption)
-                            .foregroundStyle(NanoTheme.secondaryText)
-                            .tint(NanoTheme.teal)
-                            .padding(.vertical, 8)
                     }
+                    .settingsGroup()
+                    Text("Icons by [Solar / 480 Design](https://github.com/480-Design/Solar-Icon-Set), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Adapted with app colors and sizing.")
+                        .font(NanoFont.spaceMono(10))
+                        .foregroundStyle(NanoTheme.mutedText)
+                        .tint(NanoTheme.teal)
+                        .padding(.horizontal, 6)
 
-                    ResetArchiveCard {
-                        confirmsReset = true
+                    StatsSectionHeader(number: 7, title: "YOUR DATA")
+                    Button { confirmsReset = true } label: {
+                        SettingsRowLabel(symbol: "arrow.counterclockwise", title: "Start Over",
+                                         tint: NanoTheme.danger, accessory: .none)
+                    }
+                    .buttonStyle(SettingsRowPressStyle())
+                    .settingsGroup()
+                    SettingsFootnote("Erases your progress, creatures and settings, then restarts setup. Apple Health data isn't affected.")
+
+                    if onExitReplay == nil {
+                        developerSection
                     }
                 }
                 .padding(.horizontal, 18)
@@ -229,61 +213,397 @@ struct SettingsView: View {
         .fullScreenCover(isPresented: $showsOnboardingPreview) {
             OnboardingReplayView()
         }
+        .fullScreenCover(item: $paywallPreview) { design in
+            RevenueCatPaywallScreen(playerName: store.playerName,
+                selectedGoals: store.onboardingGoals, primaryGoal: store.onboardingPrimaryGoal,
+                selectedBlockers: store.onboardingBlockers, isPreview: true, design: design)
+        }
+    }
+
+    private var healthValue: String {
+        switch store.healthState {
+        case .connected: "Connected"
+        case .connecting: "Connecting…"
+        case .notRequested: "Connect"
+        case .unavailable: "Unavailable"
+        case .failed: "Needs attention"
+        }
     }
 
     private var notificationSettings: some View {
-        SettingsPanel(icon: "bell.badge.fill", title: "NOTIFICATIONS",
-                      subtitle: "Choose when Nanobeasts can give you a nudge.") {
-            SettingsToggleRow(title: "Notifications",
-                subtitle: "Hatch and evolution reminders, plus workout check-ins.",
-                isOn: Binding(get: {
-                    store.onboardingWantsReminders && (isTourPreview || notifications.authorized)
-                }, set: { enabled in
-                    if isTourPreview { store.onboardingWantsReminders = enabled }
-                    else if !enabled { store.onboardingWantsReminders = false }
-                    else {
-                        Task {
-                            store.onboardingWantsReminders = await notifications.requestAuthorizationIfNeeded()
+        VStack(alignment: .leading, spacing: 8) {
+            VStack(spacing: 0) {
+                SettingsToggleRow(
+                    symbol: "bell.badge.fill",
+                    title: "Notifications",
+                    isOn: Binding(get: {
+                        store.onboardingWantsReminders && (isTourPreview || notifications.authorized)
+                    }, set: { enabled in
+                        if isTourPreview { store.onboardingWantsReminders = enabled }
+                        else if !enabled { store.onboardingWantsReminders = false }
+                        else {
+                            Task {
+                                store.onboardingWantsReminders = await notifications.requestAuthorizationIfNeeded()
+                            }
                         }
-                    }
-                }))
-                .disabled(notifications.isRequesting)
-            if setupReminders && !isTourPreview {
-                SettingsDivider()
-                SettingsToggleRow(title: "Setup reminders",
-                    subtitle: "Up to five nudges, two days apart. Stops when you subscribe or finish setup.",
-                    isOn: Binding(get: { setupReminders }, set: { enabled in
-                        NanoNotifications.shared.setSetupReminderPreference(enabled)
-                        setupReminders = enabled
                     }))
+                    .disabled(notifications.isRequesting)
+                if setupReminders && !isTourPreview {
+                    SettingsDivider()
+                    SettingsToggleRow(symbol: "calendar.badge.clock", title: "Setup Reminders",
+                        isOn: Binding(get: { setupReminders }, set: { enabled in
+                            NanoNotifications.shared.setSetupReminderPreference(enabled)
+                            setupReminders = enabled
+                        }))
+                }
+                if !isTourPreview, notifications.authorization == .denied {
+                    SettingsDivider()
+                    Button {
+                        if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
+                    } label: {
+                        SettingsRowLabel(symbol: "arrow.up.forward.app", title: "Allow in iPhone Settings",
+                                         value: "Off in iOS", valueTint: NanoTheme.orange, accessory: .external)
+                    }
+                    .buttonStyle(SettingsRowPressStyle())
+                }
             }
-            if !isTourPreview, notifications.authorization == .denied {
-                SettingsDivider()
-                Button {
-                    if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
-                } label: {
-                    settingsActionLabel("Allow in iPhone Settings", symbol: "arrow.up.forward.app")
-                }.buttonStyle(.plain)
-                Text("Notifications are disabled in iOS. Allow them there, then turn them on here.")
-                    .font(NanoFont.aldrich(11)).foregroundStyle(NanoTheme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
+            .settingsGroup()
+
+            SettingsFootnote(
+                notifications.authorization == .denied && !isTourPreview
+                    ? "Notifications are turned off for Nanobeasts in iOS. Allow them there, then switch them on here."
+                    : setupReminders && !isTourPreview
+                        ? "Hatch and evolution reminders plus workout check-ins. Setup reminders send up to five nudges, two days apart, and stop once you subscribe or finish setup."
+                        : "Hatch and evolution reminders, plus workout check-ins."
+            )
+        }
+    }
+
+    /// Testing tools for comparing onboarding and paywall designs. Kept last so
+    /// they stay out of the way of everyday settings.
+    private var developerSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            StatsSectionHeader(number: 8, title: "DEVELOPER")
+            VStack(spacing: 0) {
+                Button { showsOnboardingPreview = true } label: {
+                    SettingsRowLabel(symbol: "play.rectangle.fill", title: "Test Onboarding & Paywall", accessory: .chevron)
+                }
+                .buttonStyle(SettingsRowPressStyle())
+                ForEach(PaywallDesign.allCases) { design in
+                    SettingsDivider()
+                    Button { paywallPreview = design } label: {
+                        SettingsRowLabel(symbol: design == .original ? "rectangle" : "sparkles",
+                                         title: design.title, accessory: .chevron)
+                    }
+                    .buttonStyle(SettingsRowPressStyle())
+                }
             }
+            .settingsGroup()
+            SettingsFootnote("Steps and purchases are simulated. Your real paywall and progress stay the same.")
         }
     }
 
     private func settingsLink(_ title: String, symbol: String, url: String) -> some View {
-        Link(destination: URL(string: url)!) { settingsActionLabel(title, symbol: symbol) }
+        Link(destination: URL(string: url)!) {
+            SettingsRowLabel(symbol: symbol, title: title, accessory: .external)
+        }
+        .buttonStyle(SettingsRowPressStyle())
+    }
+}
+
+// MARK: - Building blocks
+
+private extension View {
+    /// The shared panel for a group of rows.
+    func settingsGroup() -> some View {
+        statsPanel(glow: 0.06, padding: 0)
+    }
+}
+
+private struct SettingsRowPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(NanoTheme.ink.opacity(configuration.isPressed ? 0.06 : 0))
+            .contentShape(Rectangle())
+    }
+}
+
+private struct SettingsFootnote: View {
+    let text: String
+    init(_ text: String) { self.text = text }
+
+    var body: some View {
+        Text(text)
+            .font(NanoFont.spaceMono(11))
+            .foregroundStyle(NanoTheme.secondaryText)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 6)
+    }
+}
+
+private struct SettingsIcon: View {
+    let symbol: String
+    var tint: Color = NanoTheme.teal
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(tint)
+            .frame(width: 32, height: 32)
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(tint.opacity(0.12)))
+            .accessibilityHidden(true)
+    }
+}
+
+/// One line: icon, title, the current value, then a chevron or link arrow.
+private struct SettingsRowLabel: View {
+    enum Accessory { case chevron, external, refresh, none }
+
+    let symbol: String
+    let title: String
+    var value: String? = nil
+    var valueTint: Color = NanoTheme.secondaryText
+    var tint: Color = NanoTheme.teal
+    var accessory: Accessory = .chevron
+
+    var body: some View {
+        HStack(spacing: 12) {
+            SettingsIcon(symbol: symbol, tint: tint)
+            Text(title)
+                .font(NanoFont.aldrich(14))
+                .foregroundStyle(tint == NanoTheme.danger ? NanoTheme.danger : NanoTheme.text)
+                .lineLimit(1).minimumScaleFactor(0.8)
+            Spacer(minLength: 8)
+            if let value {
+                Text(value)
+                    .font(NanoFont.aldrich(12))
+                    .foregroundStyle(valueTint)
+                    .lineLimit(1)
+            }
+            switch accessory {
+            case .chevron:
+                Image(systemName: "chevron.right").font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(NanoTheme.mutedText)
+            case .external:
+                Image(systemName: "arrow.up.right").font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(NanoTheme.mutedText)
+            case .refresh:
+                Image(systemName: "arrow.clockwise").font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(NanoTheme.mutedText)
+            case .none:
+                EmptyView()
+            }
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 54)
+    }
+}
+
+private struct SettingsToggleRow: View {
+    let symbol: String
+    let title: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            HStack(spacing: 12) {
+                SettingsIcon(symbol: symbol)
+                Text(title)
+                    .font(NanoFont.aldrich(14))
+                    .foregroundStyle(NanoTheme.text)
+            }
+        }
+        .tint(NanoTheme.teal)
+        .padding(.horizontal, 14)
+        .frame(minHeight: 54)
+    }
+}
+
+private struct SettingsDistanceUnitRow: View {
+    @Binding var selection: DistanceUnitPreference
+
+    var body: some View {
+        HStack(spacing: 12) {
+            SettingsIcon(symbol: "ruler.fill")
+            Text("Distance")
+                .font(NanoFont.aldrich(14))
+                .foregroundStyle(NanoTheme.text)
+            Spacer(minLength: 10)
+            Picker("Distance", selection: $selection) {
+                Text("Miles").tag(DistanceUnitPreference.miles)
+                Text("Km").tag(DistanceUnitPreference.kilometers)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 132)
+            .accessibilityHint("Changes distance displays throughout Nanobeasts")
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 54)
+    }
+}
+
+private struct SettingsDivider: View {
+    var body: some View {
+        Rectangle()
+            .fill(NanoTheme.ink.opacity(0.07))
+            .frame(height: 1)
+            .padding(.leading, 58)
+    }
+}
+
+private struct SettingsScreenHeader: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text("SETTINGS")
+                .font(NanoFont.aldrich(28))
+                .tracking(1.8)
+                .foregroundStyle(NanoTheme.text)
+            Text("Tune your Nanobeasts experience.")
+                .font(NanoFont.aldrich(13))
+                .foregroundStyle(NanoTheme.secondaryText)
+        }
+        .padding(.bottom, 4)
+    }
+}
+
+private struct SettingsProfileCard: View {
+    let name: String
+    let companion: CreatureStage
+    let isPremium: Bool
+
+    var body: some View {
+        let tint = NanoCreatureType.color(for: companion)
+        HStack(spacing: 14) {
+            ZStack {
+                Circle().fill(RadialGradient(colors: [tint.opacity(0.42), tint.opacity(0.06)],
+                                             center: .center, startRadius: 2, endRadius: 36))
+                CreatureArtworkView(stage: companion).padding(7)
+            }
+            .frame(width: 64, height: 64)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("RESEARCHER")
+                    .font(NanoFont.aldrich(9)).tracking(1.3)
+                    .foregroundStyle(NanoTheme.secondaryText)
+                Text(name.isEmpty ? "Researcher" : name)
+                    .font(NanoFont.aldrich(20))
+                    .foregroundStyle(NanoTheme.text)
+                    .lineLimit(1).minimumScaleFactor(0.8)
+                Text("Walking with \(companion.name)")
+                    .font(NanoFont.spaceMono(11))
+                    .foregroundStyle(NanoTheme.secondaryText)
+                    .lineLimit(1).minimumScaleFactor(0.8)
+            }
+
+            Spacer(minLength: 0)
+
+            Text(isPremium ? "PRO" : "FREE")
+                .font(NanoFont.aldrich(10)).tracking(1.2)
+                .foregroundStyle(isPremium ? NanoTheme.onAccent : NanoTheme.secondaryText)
+                .padding(.horizontal, 10).frame(height: 24)
+                .background(Capsule().fill(isPremium ? NanoTheme.teal : NanoTheme.ink.opacity(0.08)))
+        }
+        .statsPanel(tint: tint, glow: 0.16, padding: 14)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Dark / Light / System, each drawn as a tiny phone so the choice is obvious.
+private struct SettingsThemePicker: View {
+    @Binding var selection: NanoAppearance
+    let hapticsEnabled: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("THEME")
+                .font(NanoFont.aldrich(10)).tracking(1.3)
+                .foregroundStyle(NanoTheme.secondaryText)
+            HStack(spacing: 10) {
+                ForEach(NanoAppearance.allCases) { option in
+                    Button {
+                        guard selection != option else { return }
+                        selection = option
+                        if hapticsEnabled { UISelectionFeedbackGenerator().selectionChanged() }
+                    } label: {
+                        VStack(spacing: 8) {
+                            ThemePreview(option: option)
+                                .frame(height: 92)
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .strokeBorder(selection == option ? NanoTheme.teal : NanoTheme.ink.opacity(0.12),
+                                                      lineWidth: selection == option ? 2 : 1)
+                                }
+                            HStack(spacing: 6) {
+                                Image(systemName: selection == option ? "checkmark.circle.fill" : "circle")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(selection == option ? NanoTheme.teal : NanoTheme.mutedText)
+                                Text(option.title)
+                                    .font(NanoFont.aldrich(12))
+                                    .foregroundStyle(NanoTheme.text)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(SettingsAccentSwatchButtonStyle())
+                    .accessibilityLabel("\(option.title) theme")
+                    .accessibilityAddTraits(selection == option ? .isSelected : [])
+                }
+            }
+        }
+    }
+}
+
+private struct ThemePreview: View {
+    let option: NanoAppearance
+
+    private static let dark = (page: Color(red: 0.035, green: 0.035, blue: 0.043),
+                               card: Color(red: 0.11, green: 0.11, blue: 0.125), line: Color.white.opacity(0.22))
+    private static let light = (page: Color(red: 0.953, green: 0.953, blue: 0.949),
+                                card: Color(red: 1, green: 1, blue: 0.988), line: Color(red: 0.11, green: 0.12, blue: 0.13).opacity(0.18))
+
+    var body: some View {
+        ZStack {
+            switch option {
+            case .dark: phone(Self.dark)
+            case .light: phone(Self.light)
+            case .system:
+                phone(Self.light)
+                    .overlay {
+                        phone(Self.dark)
+                            .mask {
+                                GeometryReader { proxy in
+                                    Path { path in
+                                        path.move(to: CGPoint(x: proxy.size.width, y: 0))
+                                        path.addLine(to: CGPoint(x: proxy.size.width, y: proxy.size.height))
+                                        path.addLine(to: CGPoint(x: 0, y: proxy.size.height))
+                                        path.closeSubpath()
+                                    }
+                                }
+                            }
+                    }
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .accessibilityHidden(true)
     }
 
-    private func settingsActionLabel(_ title: String, symbol: String) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: symbol).foregroundStyle(NanoTheme.teal).frame(width: 22)
-            Text(title).foregroundStyle(.white)
-            Spacer(minLength: 4)
-            Image(systemName: "chevron.right").foregroundStyle(NanoTheme.secondaryText)
+    private func phone(_ palette: (page: Color, card: Color, line: Color)) -> some View {
+        ZStack(alignment: .top) {
+            palette.page
+            VStack(alignment: .leading, spacing: 5) {
+                Capsule().fill(palette.line).frame(width: 30, height: 4)
+                RoundedRectangle(cornerRadius: 5).fill(palette.card)
+                    .overlay(alignment: .leading) {
+                        Circle().fill(NanoTheme.teal).frame(width: 10, height: 10).padding(.leading, 6)
+                    }
+                    .frame(height: 22)
+                RoundedRectangle(cornerRadius: 5).fill(palette.card).frame(height: 14)
+                RoundedRectangle(cornerRadius: 5).fill(palette.card).frame(height: 14)
+            }
+            .padding(9)
         }
-        .font(NanoFont.aldrich(13)).frame(minHeight: 48)
-        .contentShape(Rectangle())
     }
 }
 
@@ -292,35 +612,27 @@ private struct SettingsAccentPicker: View {
     let hapticsEnabled: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 11) {
-            Text("INTERFACE ACCENT")
-                .font(NanoFont.aldrich(11))
-                .tracking(1.1)
-                .foregroundStyle(.white)
-
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 8) {
-                    ForEach(NanoAccent.allCases) { accent in
-                        swatch(accent)
-                    }
-                }
-
-                LazyVGrid(
-                    columns: Array(repeating: GridItem(.flexible()), count: 3),
-                    spacing: 8
-                ) {
-                    ForEach(NanoAccent.allCases) { accent in
-                        swatch(accent)
-                    }
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("ACCENT")
+                    .font(NanoFont.aldrich(10)).tracking(1.3)
+                    .foregroundStyle(NanoTheme.secondaryText)
+                Spacer()
+                Text(selection.displayName)
+                    .font(NanoFont.aldrich(12))
+                    .foregroundStyle(NanoTheme.teal)
+            }
+            HStack(spacing: 0) {
+                ForEach(NanoAccent.allCases) { accent in
+                    swatch(accent).frame(maxWidth: .infinity)
                 }
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 4)
     }
 
     private func swatch(_ accent: NanoAccent) -> some View {
         let isSelected = selection == accent
+        let color = Color.nanoVivid(accent.color)
 
         return Button {
             guard selection != accent else { return }
@@ -329,33 +641,25 @@ private struct SettingsAccentPicker: View {
                 UISelectionFeedbackGenerator().selectionChanged()
             }
         } label: {
-            RoundedRectangle(cornerRadius: 13, style: .continuous)
-                .fill(accent.color)
-                .frame(width: 38, height: 38)
+            Circle()
+                .fill(color)
+                .frame(width: 34, height: 34)
                 .overlay {
                     if isSelected {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(.white)
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(NanoTheme.onAccent)
                     }
                 }
+                .padding(3)
                 .overlay {
-                    RoundedRectangle(cornerRadius: 13, style: .continuous)
-                        .stroke(
-                            isSelected ? Color.white : Color.white.opacity(0.10),
-                            lineWidth: isSelected ? 2 : 1
-                        )
+                    Circle().strokeBorder(isSelected ? color : .clear, lineWidth: 2)
                 }
-                .shadow(
-                    color: isSelected ? accent.color.opacity(0.34) : .clear,
-                    radius: 8,
-                    y: 2
-                )
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
         .buttonStyle(SettingsAccentSwatchButtonStyle())
-        .accessibilityLabel("\(accent.displayName) interface accent")
+        .accessibilityLabel("\(accent.displayName) accent")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
@@ -371,306 +675,6 @@ private struct SettingsAccentSwatchButtonStyle: ButtonStyle {
                 reduceMotion ? nil : .easeOut(duration: 0.12),
                 value: configuration.isPressed
             )
-    }
-}
-
-private struct SettingsProCard: View {
-    let isPremium: Bool
-    let upgrade: () -> Void
-
-    var body: some View {
-        Button {
-            upgrade()
-        } label: {
-            HStack(spacing: 14) {
-                Image(systemName: isPremium ? "checkmark.seal.fill" : "sparkles")
-                    .font(.system(size: 21, weight: .semibold))
-                    .foregroundStyle(isPremium ? NanoTheme.teal : NanoTheme.background)
-                    .frame(width: 48, height: 48)
-                    .background(
-                        RoundedRectangle(cornerRadius: 15)
-                            .fill(isPremium ? NanoTheme.teal.opacity(0.10) : NanoTheme.teal)
-                            .stroke(NanoTheme.teal.opacity(0.42), lineWidth: 1)
-                    )
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(isPremium ? "NANOBEASTS PRO ACTIVE" : "UPGRADE TO PRO")
-                        .font(NanoFont.aldrich(13))
-                        .tracking(1.1)
-                        .foregroundStyle(.white)
-                    Text(
-                        isPremium
-                            ? "Manage your subscription."
-                            : "Remove the daily evolution cap and keep growing."
-                    )
-                    .font(NanoFont.aldrich(10))
-                    .foregroundStyle(NanoTheme.secondaryText)
-                    .multilineTextAlignment(.leading)
-                }
-
-                Spacer(minLength: 8)
-
-                Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(NanoTheme.teal)
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(NanoTheme.teal.opacity(isPremium ? 0.05 : 0.08))
-                    .stroke(NanoTheme.teal.opacity(0.45), lineWidth: 1.2)
-                    .shadow(
-                        color: NanoTheme.teal.opacity(isPremium ? 0.06 : 0.16),
-                        radius: 16
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-        .accessibilityHint(
-            isPremium
-                ? "Opens subscription management"
-                : "Opens Nanobeasts Pro subscription options"
-        )
-    }
-}
-
-private struct SettingsScreenHeader: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text("SYSTEM SETTINGS")
-                .font(NanoFont.aldrich(28))
-                .tracking(1.8)
-            Text("Tune your Nanobeasts experience.")
-                .font(NanoFont.aldrich(13))
-                .foregroundStyle(NanoTheme.secondaryText)
-        }
-    }
-}
-
-private struct SettingsProfileHero: View {
-    let name: String
-    let stageName: String
-
-    var body: some View {
-        HStack(spacing: 13) {
-            Image(systemName: "person.crop.circle.fill")
-                .font(.system(size: 27))
-                .foregroundStyle(NanoTheme.teal)
-                .frame(width: 54, height: 54)
-                .background(
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(NanoTheme.teal.opacity(0.09))
-                        .stroke(NanoTheme.teal.opacity(0.38), lineWidth: 1)
-                )
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text("ACTIVE RESEARCHER")
-                    .font(NanoFont.aldrich(9))
-                    .tracking(1.3)
-                    .foregroundStyle(NanoTheme.teal)
-                Text(name.isEmpty ? "RESEARCHER" : name.uppercased())
-                    .font(NanoFont.aldrich(18))
-                    .tracking(0.8)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                Text("LINKED TO \(stageName.uppercased())")
-                    .font(NanoFont.aldrich(9))
-                    .tracking(1)
-                    .foregroundStyle(NanoTheme.secondaryText)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .foregroundStyle(NanoTheme.teal)
-                .frame(width: 44, height: 44)
-                .background(
-                    RoundedRectangle(cornerRadius: 15)
-                        .fill(NanoTheme.teal.opacity(0.06))
-                        .stroke(NanoTheme.teal.opacity(0.30), lineWidth: 1)
-                )
-        }
-        .nanoHUDCard(radius: 24, padding: 15, illuminated: true)
-    }
-}
-
-private struct SettingsPanel<Content: View>: View {
-    let icon: String
-    let title: String
-    let subtitle: String
-    @ViewBuilder let content: Content
-
-    init(
-        icon: String,
-        title: String,
-        subtitle: String,
-        @ViewBuilder content: () -> Content
-    ) {
-        self.icon = icon
-        self.title = title
-        self.subtitle = subtitle
-        self.content = content()
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 11) {
-                Image(systemName: icon)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(NanoTheme.teal)
-                    .frame(width: 40, height: 40)
-                    .background(
-                        RoundedRectangle(cornerRadius: 13)
-                            .fill(NanoTheme.teal.opacity(0.08))
-                            .stroke(NanoTheme.teal.opacity(0.28), lineWidth: 1)
-                    )
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title)
-                        .font(NanoFont.aldrich(12))
-                        .tracking(1.4)
-                    Text(subtitle)
-                        .font(NanoFont.aldrich(10))
-                        .foregroundStyle(NanoTheme.secondaryText)
-                }
-            }
-
-            content
-        }
-        .nanoHUDCard(padding: 16)
-    }
-}
-
-private struct SettingsStatusRow: View {
-    let title: String
-    let subtitle: String
-    let status: String
-    let active: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title)
-                        .font(NanoFont.aldrich(13))
-                        .foregroundStyle(.white)
-                    Text(subtitle)
-                        .font(NanoFont.aldrich(10))
-                        .foregroundStyle(NanoTheme.secondaryText)
-                }
-                Spacer()
-                Text(status)
-                    .font(NanoFont.aldrich(8))
-                    .tracking(0.9)
-                    .foregroundStyle(active ? NanoTheme.teal : NanoTheme.secondaryText)
-                    .padding(.horizontal, 8)
-                    .frame(height: 26)
-                    .background(
-                        RoundedRectangle(cornerRadius: 9)
-                            .fill(active ? NanoTheme.teal.opacity(0.08) : NanoTheme.background.opacity(0.4))
-                            .stroke(
-                                active ? NanoTheme.teal.opacity(0.34) : NanoTheme.elevated,
-                                lineWidth: 1
-                            )
-                    )
-            }
-            .frame(minHeight: 52)
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-private struct SettingsDistanceUnitRow: View {
-    @Binding var selection: DistanceUnitPreference
-
-    var body: some View {
-        HStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Distance Unit")
-                    .font(NanoFont.aldrich(13))
-                    .foregroundStyle(.white)
-                Text("Choose how distances and badges are displayed.")
-                    .font(NanoFont.aldrich(9))
-                    .foregroundStyle(NanoTheme.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Spacer(minLength: 10)
-
-            Picker("Distance Unit", selection: $selection) {
-                Text("MI").tag(DistanceUnitPreference.miles)
-                Text("KM").tag(DistanceUnitPreference.kilometers)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(width: 126)
-            .accessibilityHint("Changes distance displays throughout Nanobeasts")
-        }
-        .padding(.horizontal, 14)
-        .frame(minHeight: 66)
-    }
-}
-
-private struct SettingsToggleRow: View {
-    let title: String
-    let subtitle: String
-    @Binding var isOn: Bool
-
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(NanoFont.aldrich(13))
-                Text(subtitle)
-                    .font(NanoFont.aldrich(10))
-                    .foregroundStyle(NanoTheme.secondaryText)
-            }
-            Spacer()
-            Toggle(title, isOn: $isOn)
-                .labelsHidden()
-                .accessibilityHint(subtitle)
-                .tint(NanoTheme.teal)
-                .scaleEffect(0.86)
-        }
-        .frame(minHeight: 52)
-    }
-}
-
-private struct SettingsActionRow: View {
-    let title: String
-    let subtitle: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title)
-                        .font(NanoFont.aldrich(13))
-                        .foregroundStyle(.white)
-                    Text(subtitle)
-                        .font(NanoFont.aldrich(10))
-                        .foregroundStyle(NanoTheme.secondaryText)
-                        .multilineTextAlignment(.leading)
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .foregroundStyle(NanoTheme.teal)
-            }
-            .frame(minHeight: 52)
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-private struct SettingsDivider: View {
-    var body: some View {
-        Rectangle()
-            .fill(NanoTheme.elevated.opacity(0.75))
-            .frame(height: 1)
     }
 }
 
@@ -696,149 +700,70 @@ private struct DailyObjectiveCard: View {
         if todayGoal < DailyGoalPolicy.manualMinimum {
             return "Your goal rises 500 a week until it reaches \(DailyGoalPolicy.manualMinimum.formatted())."
         }
-        return "Minimum objective: \(DailyGoalPolicy.manualMinimum.formatted()) steps. Changes start tomorrow."
+        return "Minimum \(DailyGoalPolicy.manualMinimum.formatted()) steps. Changes start tomorrow."
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 11) {
-                Image(systemName: "flag.fill")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(NanoTheme.teal)
-                    .frame(width: 40, height: 40)
-                    .background(
-                        RoundedRectangle(cornerRadius: 13)
-                            .fill(NanoTheme.teal.opacity(0.08))
-                            .stroke(NanoTheme.teal.opacity(0.28), lineWidth: 1)
-                    )
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("DAILY OBJECTIVE")
-                        .font(NanoFont.aldrich(12))
-                        .tracking(1.4)
-                    Text("Set the pace for creature evolution.")
-                        .font(NanoFont.aldrich(10))
-                        .foregroundStyle(NanoTheme.secondaryText)
-                }
-            }
-
-            VStack(spacing: 2) {
-                Text(goal.formatted())
-                    .font(NanoFont.aldrich(38))
-                Text("STEPS / DAY")
-                    .font(NanoFont.aldrich(9))
-                    .tracking(2)
-                    .foregroundStyle(NanoTheme.teal)
-            }
-            .frame(maxWidth: .infinity)
-
-            HStack {
-                objectiveButton(icon: "minus") {
+        VStack(spacing: 14) {
+            HStack(alignment: .center) {
+                objectiveButton(icon: "minus", label: "Lower goal by 1,000") {
                     goal = max(goal - 1_000, minimum)
                 }
                 .disabled(goal <= minimum)
                 .opacity(goal <= minimum ? 0.35 : 1)
+
                 Spacer()
-                Text("ADJUST BY 1,000")
-                    .font(NanoFont.aldrich(9))
-                    .tracking(1.2)
-                    .foregroundStyle(NanoTheme.secondaryText)
+                VStack(spacing: 2) {
+                    Text(goal.formatted())
+                        .font(NanoFont.aldrich(40))
+                        .foregroundStyle(NanoTheme.text)
+                        .contentTransition(.numericText())
+                    Text("STEPS A DAY")
+                        .font(NanoFont.aldrich(9)).tracking(2)
+                        .foregroundStyle(NanoTheme.teal)
+                }
+                .accessibilityElement(children: .combine)
                 Spacer()
-                objectiveButton(icon: "plus") {
+
+                objectiveButton(icon: "plus", label: "Raise goal by 1,000") {
                     goal = min(goal + 1_000, DailyGoalPolicy.maximum)
                 }
             }
-            .padding(5)
-            .background(
-                RoundedRectangle(cornerRadius: 15)
-                    .fill(NanoTheme.background.opacity(0.45))
-                    .stroke(NanoTheme.elevated, lineWidth: 1)
-            )
 
             Text(statusText)
-                .font(NanoFont.aldrich(9))
+                .font(NanoFont.spaceMono(11))
                 .foregroundStyle(hasChanges || scheduledGoal != nil ? NanoTheme.teal : NanoTheme.secondaryText)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity)
 
-            Button(action: save) {
-                HStack(spacing: 8) {
-                    Image(systemName: "bolt.fill")
-                    Text(hasChanges ? "SAVE FOR TOMORROW" : "SAVED")
-                        .font(NanoFont.aldrich(11))
-                        .tracking(1.2)
+            if hasChanges {
+                Button(action: save) {
+                    Text("SAVE FOR TOMORROW")
+                        .font(NanoFont.aldrich(12)).tracking(1.2)
+                        .foregroundStyle(NanoTheme.onAccent)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(Capsule().fill(NanoTheme.teal))
                 }
-                .foregroundStyle(NanoTheme.background)
-                .frame(maxWidth: .infinity)
-                .frame(height: 50)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(NanoTheme.teal)
-                        .shadow(color: NanoTheme.teal.opacity(0.32), radius: 10)
-                )
+                .buttonStyle(SettingsAccentSwatchButtonStyle())
+                .transition(.opacity.combined(with: .scale(scale: 0.98)))
             }
-            .buttonStyle(.plain)
-            .disabled(!hasChanges)
-            .opacity(hasChanges ? 1 : 0.45)
         }
-        .nanoHUDCard(radius: 24, padding: 16, illuminated: true)
+        .animation(.snappy(duration: 0.22), value: hasChanges)
+        .statsPanel(glow: 0.14, padding: 16)
     }
 
-    private func objectiveButton(icon: String, action: @escaping () -> Void) -> some View {
+    private func objectiveButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 18, weight: .medium))
+                .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(NanoTheme.teal)
-                .frame(width: 42, height: 42)
-                .background(
-                    RoundedRectangle(cornerRadius: 13)
-                        .stroke(NanoTheme.teal.opacity(0.40), lineWidth: 1)
-                )
+                .frame(width: 48, height: 48)
+                .background(Circle().fill(NanoTheme.teal.opacity(0.12)))
         }
-        .buttonStyle(.plain)
-    }
-}
-
-private struct ResetArchiveCard: View {
-    let reset: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 9) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(NanoTheme.danger)
-                Text("RESET ARCHIVE")
-                    .font(NanoFont.aldrich(12))
-                    .tracking(1.4)
-                    .foregroundStyle(NanoTheme.danger)
-            }
-
-            Text("Erase progress, creatures, and settings, then restart setup.")
-                .font(NanoFont.aldrich(10))
-                .foregroundStyle(NanoTheme.secondaryText)
-                .lineSpacing(4)
-
-            Button(action: reset) {
-                Text("START OVER")
-                    .font(NanoFont.aldrich(10))
-                    .tracking(1.2)
-                    .foregroundStyle(NanoTheme.danger)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 48)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(NanoTheme.danger, lineWidth: 1)
-                    )
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 22)
-                .fill(NanoTheme.danger.opacity(0.04))
-                .stroke(NanoTheme.danger.opacity(0.38), lineWidth: 1)
-        )
+        .buttonStyle(SettingsAccentSwatchButtonStyle())
+        .accessibilityLabel(label)
     }
 }
 

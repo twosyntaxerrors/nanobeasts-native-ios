@@ -10,6 +10,7 @@ persist = source[source.index('    private static func persist(exploredRoutes:')
 types = source[source.index('    private struct TerritoryArchive:'):]
 harness = '''import Foundation
 import CoreLocation
+@MainActor final class WorkoutZoneCelebrations { static let shared = WorkoutZoneCelebrations(); func territoryChanged(_ routes: [[CLLocationCoordinate2D]]) {} }
 final class WorkoutLocationTracker {
     var exploredRoutes: [[CLLocationCoordinate2D]] = []
     private var legacyExploredRoutes: [[CLLocationCoordinate2D]] = []

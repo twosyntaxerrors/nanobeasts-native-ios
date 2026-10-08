@@ -2,13 +2,10 @@ import RevenueCat
 import SwiftUI
 
 struct RevenueCatPaywallScreen: View {
-    private enum Plan {
-        case yearly
-        case monthly
-    }
-
+    private enum Plan { case monthly, lifetime }
     @Environment(\.dismiss) private var dismiss
     @Environment(AppStore.self) private var store
+
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     let playerName: String
@@ -19,14 +16,17 @@ struct RevenueCatPaywallScreen: View {
     var onPreviewPurchase: (() -> Void)? = nil
     var onPreviewClose: (() -> Void)? = nil
     var previewMilestone: String? = nil
+    var design: PaywallDesign = .original
 
     @AppStorage("nanobeasts.notifications.setup-reminders") private var setupReminders = false
     @State private var offering: Offering?
-    @State private var selectedPlan: Plan = .yearly
+    @State private var winbackOffering: Offering?
+    @State private var showsWinback = false
+    @State private var hasShownWinback = false
+    @State private var selectedPlan: Plan = .lifetime
     @State private var isPurchasing = false
     @State private var isRestoring = false
     @State private var isLoadingPlans = true
-    @State private var yearlyTrialEligibility: IntroEligibilityStatus = .unknown
     @State private var errorMessage: String?
     @State private var previewNotice: String?
 
@@ -35,13 +35,17 @@ struct RevenueCatPaywallScreen: View {
     }
 
     var body: some View {
-        PaywallPage(copy: copy, firstName: playerName, tint: NanoTheme.teal,
-                    milestone: isPreview ? previewMilestone : nil) {
-            topBar
-        } offers: {
-            offerSection
-        } checkout: {
-            purchaseFooter
+        paywallContent
+        .blur(radius: showsWinback ? 10 : 0)
+        .disabled(showsWinback)
+        .accessibilityHidden(showsWinback)
+        .overlay {
+            if showsWinback {
+                ZStack {
+                    Color.black.opacity(0.78).ignoresSafeArea()
+                    winbackPopup
+                }.transition(.opacity)
+            }
         }
         .background { PaywallBackdrop(tint: NanoTheme.teal).ignoresSafeArea() }
         .preferredColorScheme(.dark)
@@ -52,35 +56,78 @@ struct RevenueCatPaywallScreen: View {
         } message: { Text(previewNotice ?? "") }
     }
 
+    @ViewBuilder private var paywallContent: some View {
+        switch design {
+        case .original:
+            PaywallPage(copy: copy, firstName: playerName, tint: NanoTheme.teal,
+                        milestone: isPreview ? previewMilestone : nil) {
+                topBar
+            } offers: {
+                offerSection
+            } checkout: {
+                purchaseFooter
+            }
+        case .refined:
+            RefinedPaywallPage(family: evolutionFamily, tint: NanoTheme.teal) {
+                topBar
+            } offers: {
+                offerSection
+                if let lifetimeComparison, selectedPlan == .lifetime {
+                    Text(lifetimeComparison)
+                        .font(.caption).foregroundStyle(NanoTheme.secondaryText)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } checkout: {
+                purchaseFooter
+            }
+        }
+    }
+
+    private var evolutionFamily: CreatureFamily {
+        if store.currentFamily.stages.filter({ !$0.isEgg }).count >= 2 {
+            return store.currentFamily
+        }
+        return store.catalog.families.first { $0.stages.filter { !$0.isEgg }.count >= 2 }
+            ?? store.currentFamily
+    }
+
+    private var winbackPopup: some View {
+        LifetimeWinbackPopup(amount: winbackAmount, standardAmount: lifetimeAmount,
+            tint: NanoTheme.teal, discountPercent: winbackDiscountPercent, errorMessage: errorMessage,
+            isPurchasing: isPurchasing, isDisabled: isPurchasing || isRestoring,
+            onPurchase: { Task { await purchaseSelectedPlan(package: winbackPackage) } },
+            onDismiss: closePaywall)
+        .padding(.horizontal, 24)
+    }
+
     private var offerSection: some View {
         VStack(spacing: 16) {
             let layout = dynamicTypeSize.isAccessibilitySize
                 ? AnyLayout(VStackLayout(spacing: 18)) : AnyLayout(HStackLayout(spacing: 12))
             layout {
                 PaywallPlanCard(title: "MONTHLY", price: monthlyAmount, period: "/month",
-                    detail: "No free trial", selected: selectedPlan == .monthly, tint: NanoTheme.teal) {
+                    detail: "Billed monthly", selected: selectedPlan == .monthly, tint: NanoTheme.teal) {
                     withAnimation(.snappy(duration: 0.25)) { selectedPlan = .monthly }
                 }
-                PaywallPlanCard(title: "YEARLY", price: yearlyWeeklyEquivalent ?? yearlyAmount,
-                    period: yearlyWeeklyEquivalent == nil ? "/year" : "/week",
-                    detail: yearlyDetail, badge: yearlySavingsBadge,
-                    accessibilityBillingDetail: yearlyWeeklyEquivalent == nil ? nil : "\(yearlyAmount) billed yearly",
-                    highlightsDetail: eligibleYearlyTrialDuration != nil,
-                    selected: selectedPlan == .yearly, tint: NanoTheme.teal) {
-                    withAnimation(.snappy(duration: 0.25)) { selectedPlan = .yearly }
+                PaywallPlanCard(title: "LIFETIME", price: lifetimeAmount,
+                    period: standardPackage == nil || isLoadingPlans ? "" : " once",
+                    detail: "Yours forever. No renewal.", badge: "BEST VALUE",
+                    selected: selectedPlan == .lifetime, tint: NanoTheme.teal) {
+                    withAnimation(.snappy(duration: 0.25)) { selectedPlan = .lifetime }
                 }
             }
             .disabled(isPurchasing || isRestoring)
             .padding(.top, 10)
 
             if isLoadingPlans {
-                HStack(spacing: 8) { ProgressView(); Text("Loading subscription plans…") }
+                HStack(spacing: 8) { ProgressView(); Text("Loading plans…") }
                     .font(.caption).foregroundStyle(NanoTheme.secondaryText)
             }
             if let errorMessage {
                 Text(errorMessage).font(.caption).foregroundStyle(NanoTheme.pink)
                     .multilineTextAlignment(.center)
-                if !isLoadingPlans && (monthlyPackage == nil || yearlyPackage == nil) {
+                if !isLoadingPlans && (monthlyPackage == nil || standardPackage == nil) {
                     Button("Try again") { Task { await loadOffering() } }
                         .font(.caption.weight(.semibold)).tint(NanoTheme.teal)
                         .frame(minHeight: 44)
@@ -92,11 +139,12 @@ struct RevenueCatPaywallScreen: View {
     private var purchaseFooter: some View {
         VStack(spacing: 12) {
             PaywallCheckout(title: purchaseButtonTitle, summary: purchaseSummary,
-                renewalNotice: renewalDisclosure, tint: NanoTheme.teal,
-                billingPrice: annualBillingPrice, billingLeadIn: annualBillingLeadIn,
+                renewalNotice: purchaseDisclosure, tint: NanoTheme.teal,
+                reassurance: selectedPlan == .monthly ? "Cancel anytime" : "One-time purchase",
                 isPurchasing: isPurchasing, isRestoring: isRestoring,
                 isDisabled: isPurchasing || isRestoring || isLoadingPlans || selectedPackage == nil,
                 isRestoreDisabled: isPurchasing || isRestoring || isLoadingPlans,
+                spacing: design == .refined ? 8 : 12,
                 onPurchase: { Task { await purchaseSelectedPlan() } },
                 onRestore: { Task { await restore() } })
             if setupReminders && !isPreview {
@@ -113,8 +161,11 @@ struct RevenueCatPaywallScreen: View {
     private var topBar: some View {
         HStack {
             Button {
-                if isPreview, let onPreviewClose { onPreviewClose() }
-                else { dismiss() }
+                if !hasShownWinback, canOfferWinback {
+                    hasShownWinback = true
+                    errorMessage = nil
+                    showsWinback = true
+                } else { closePaywall() }
             } label: {
                 SolarImage(.closeCircle, size: 24)
                     .frame(width: 44, height: 44)
@@ -124,7 +175,7 @@ struct RevenueCatPaywallScreen: View {
             .buttonStyle(.plain).foregroundStyle(NanoTheme.secondaryText)
             Spacer()
             if isPreview {
-                Text("PREVIEW · NO CHARGE").font(.system(size: 9, weight: .medium))
+                Text("\(design.previewTitle) · NO CHARGE").font(.system(size: 9, weight: .medium))
                     .foregroundStyle(NanoTheme.secondaryText)
             }
 #if DEBUG
@@ -136,144 +187,97 @@ struct RevenueCatPaywallScreen: View {
         }
     }
 
-    private var yearlyPrice: String {
-        yearlyPackage.map {
-            "\($0.storeProduct.localizedPriceString)/year"
-        } ?? (isLoadingPlans ? "Loading…" : "Unavailable")
-    }
-
-    private var monthlyPrice: String {
-        monthlyPackage.map {
-            "\($0.storeProduct.localizedPriceString)/month"
-        } ?? (isLoadingPlans ? "Loading…" : "Unavailable")
-    }
-
-    private var yearlyDetail: String {
-        if let duration = eligibleYearlyTrialDuration {
-            return "Free trial for \(duration)"
-        }
-        return "Billed yearly"
-    }
-
-    private var yearlySavingsBadge: String? {
-        guard let annual = yearlyPackage?.storeProduct,
-              let monthly = monthlyPackage?.storeProduct,
-              let currency = annual.currencyCode,
-              currency == monthly.currencyCode,
-              annual.price > 0, monthly.price > 0 else { return nil }
-        let annualValue = NSDecimalNumber(decimal: annual.price).doubleValue
-        let monthlyValue = NSDecimalNumber(decimal: monthly.price).doubleValue
-        let savings = Int(((1 - annualValue / (monthlyValue * 12)) * 100).rounded())
-        return savings > 0 ? "SAVE \(savings)%" : nil
-    }
-
-    private var eligibleYearlyTrialDuration: String? {
-        guard yearlyTrialEligibility == .eligible,
-              let trial = yearlyPackage?.storeProduct.introductoryDiscount,
-              trial.paymentMode == .freeTrial else { return nil }
-
-        let count = trial.subscriptionPeriod.value * trial.numberOfPeriods
-        switch trial.subscriptionPeriod.unit {
-        case .day:
-            return "\(count) \(count == 1 ? "day" : "days")"
-        case .week:
-            return "\(count * 7) days"
-        case .month:
-            return "\(count) \(count == 1 ? "month" : "months")"
-        case .year:
-            return "\(count) \(count == 1 ? "year" : "years")"
-        @unknown default:
-            return nil
-        }
+    private var lifetimeAmount: String {
+        guard !isLoadingPlans else { return "Loading…" }
+        return standardPackage?.storeProduct.localizedPriceString ?? "Unavailable"
     }
 
     private var purchaseButtonTitle: String {
-        if isLoadingPlans { return "Loading plans…" }
+        if isLoadingPlans { return "Loading…" }
         if selectedPackage == nil { return "Plan unavailable" }
-        if selectedPlan == .yearly, eligibleYearlyTrialDuration != nil {
-            return localizedTrialZeroPrice.map { "Try for \($0)" } ?? "Start your free trial"
-        }
-        return "Start your journey"
+        return selectedPlan == .monthly ? "Start your journey" : "Unlock Forever"
     }
 
-    private var localizedTrialZeroPrice: String? {
-        guard let formatter = yearlyPackage?.storeProduct.priceFormatter?.copy() as? NumberFormatter else {
-            return nil
-        }
-        formatter.minimumFractionDigits = 0
+    private var lifetimeComparison: String? {
+        guard !isLoadingPlans, let lifetime = standardPackage?.storeProduct,
+              let monthly = monthlyPackage?.storeProduct, monthly.price > 0,
+              let currency = lifetime.currencyCode, currency == monthly.currencyCode else { return nil }
+        let payments = NSDecimalNumber(decimal: lifetime.price / monthly.price).doubleValue
+        guard payments.isFinite, payments >= 1 else { return nil }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
         formatter.maximumFractionDigits = 0
-        return formatter.string(from: NSDecimalNumber.zero)
+        guard let count = formatter.string(from: NSNumber(value: payments.rounded())) else { return nil }
+        return "About \(count) monthly payments. Yours forever."
     }
 
     private var purchaseSummary: String {
         guard !isLoadingPlans, selectedPackage != nil else { return "" }
-        if selectedPlan == .yearly {
-            if let duration = eligibleYearlyTrialDuration {
-                return "\(duration) free, then \(yearlyPrice)."
-            }
-            return "\(yearlyPrice), billed today."
-        }
-        return "\(monthlyPrice), billed today. No free trial."
+        return selectedPlan == .monthly
+            ? "\(monthlyAmount)/month, billed today."
+            : "\(lifetimeAmount), paid once for lifetime access."
     }
 
-    private var renewalDisclosure: String {
+    private var purchaseDisclosure: String {
         guard !isLoadingPlans, selectedPackage != nil else { return "" }
-        if selectedPlan == .yearly, eligibleYearlyTrialDuration != nil {
-            return "Renews automatically. Cancel at least 24 hours before your trial ends to avoid being charged."
-        }
-        return "Renews automatically until cancelled."
-    }
-
-    private var yearlyAmount: String {
-        yearlyPackage?.storeProduct.localizedPriceString ?? (isLoadingPlans ? "Loading…" : "Unavailable")
-    }
-
-    /// A comparison only. The annual amount below checkout remains the charge.
-    /// Use the product's period and currency formatter, including zero-decimal currencies.
-    private var yearlyWeeklyEquivalent: String? {
-        guard !isLoadingPlans, let annual = yearlyPackage?.storeProduct,
-              annual.price > 0, let period = annual.subscriptionPeriod,
-              period.unit == .year, period.value == 1,
-              let formatter = annual.priceFormatter?.copy() as? NumberFormatter else { return nil }
-        let weeks = period.numberOfUnitsAs(unit: .week)
-        guard weeks > 0 else { return nil }
-        formatter.roundingMode = .halfUp
-        return formatter.string(from: NSDecimalNumber(decimal: annual.price / weeks))
-    }
-
-    private var annualBillingPrice: String? {
-        guard selectedPlan == .yearly, !isLoadingPlans, yearlyPackage != nil else { return nil }
-        return yearlyPrice
-    }
-
-    private var annualBillingLeadIn: String {
-        if let duration = eligibleYearlyTrialDuration { return "\(duration) free, then" }
-        return "Billed today, then annually"
+        return selectedPlan == .monthly
+            ? "Renews automatically until cancelled."
+            : "Billed today. No recurring payments."
     }
 
     private var monthlyAmount: String {
         monthlyPackage?.storeProduct.localizedPriceString ?? (isLoadingPlans ? "Loading…" : "Unavailable")
     }
 
-    private var monthlyPackage: Package? {
-        offering?.monthly
-            ?? offering?.availablePackages.first {
-                $0.storeProduct.productIdentifier == AppStore.premiumMonthlyProductID
-            }
+    private var winbackAmount: String {
+        winbackPackage?.storeProduct.localizedPriceString ?? "Unavailable"
     }
 
-    private var yearlyPackage: Package? {
-        offering?.annual
-            ?? offering?.availablePackages.first {
-                $0.storeProduct.productIdentifier == AppStore.premiumYearlyProductID
-            }
+    private var winbackDiscountPercent: Int? {
+        guard canOfferWinback, let standard = standardPackage?.storeProduct,
+              let winback = winbackPackage?.storeProduct else { return nil }
+        // Round down so the headline never overstates the localized discount.
+        let percentage = NSDecimalNumber(decimal: (standard.price - winback.price) / standard.price * 100).doubleValue
+        guard percentage.isFinite, percentage >= 1, percentage < 100 else { return nil }
+        return Int(percentage.rounded(.down))
+    }
+
+    private var monthlyPackage: Package? {
+        offering?.availablePackages.first {
+            $0.storeProduct.productIdentifier == AppStore.premiumMonthlyProductID
+                && $0.storeProduct.subscriptionPeriod?.unit == .month
+                && $0.storeProduct.subscriptionPeriod?.value == 1
+        }
+    }
+
+    private var standardPackage: Package? {
+        offering?.availablePackages.first {
+            $0.storeProduct.productIdentifier == AppStore.premiumLifetimeProductID
+                && $0.storeProduct.productType == .nonConsumable
+        }
+    }
+
+    private var winbackPackage: Package? {
+        winbackOffering?.availablePackages.first {
+            $0.storeProduct.productIdentifier == AppStore.premiumLifetimeWinbackProductID
+                && $0.storeProduct.productType == .nonConsumable
+        }
     }
 
     private var selectedPackage: Package? {
-        switch selectedPlan {
-        case .yearly: yearlyPackage
-        case .monthly: monthlyPackage
-        }
+        selectedPlan == .monthly ? monthlyPackage : standardPackage
+    }
+
+    private var canOfferWinback: Bool {
+        guard !isLoadingPlans, let standard = standardPackage?.storeProduct,
+              let winback = winbackPackage?.storeProduct,
+              let currency = standard.currencyCode, currency == winback.currencyCode else { return false }
+        return winback.price > 0 && standard.price > winback.price
+    }
+
+    private func closePaywall() {
+        if isPreview, let onPreviewClose { onPreviewClose() }
+        else { dismiss() }
     }
 
 #if DEBUG
@@ -286,14 +290,12 @@ struct RevenueCatPaywallScreen: View {
     @MainActor
     private func loadOffering() async {
         isLoadingPlans = true
-        yearlyTrialEligibility = .unknown
         errorMessage = nil
         defer { isLoadingPlans = false }
-        // A replay models a new eligible customer, independent of prior test purchases.
-        // It uses the same offer-formatting code, and the purchase action remains simulated.
+        // Replay products never reach the real purchase action.
         if isPreview {
             offering = PaywallPreviewOffering.make()
-            yearlyTrialEligibility = .eligible
+            winbackOffering = PaywallPreviewOffering.make(isWinback: true)
             return
         }
         guard Purchases.isConfigured else {
@@ -303,23 +305,26 @@ struct RevenueCatPaywallScreen: View {
 
         do {
             let offerings = try await Purchases.shared.offerings()
-            offering = offerings.current
-            if monthlyPackage == nil || yearlyPackage == nil {
-                errorMessage = "The current RevenueCat offering is missing a monthly or yearly plan."
-            }
-            if let product = yearlyPackage?.storeProduct {
-                yearlyTrialEligibility = await Purchases.shared.checkTrialOrIntroDiscountEligibility(product: product)
+            guard !Task.isCancelled else { return }
+            offering = offerings.all[AppStore.lifetimeOfferingID]
+            winbackOffering = offerings.all[AppStore.lifetimeWinbackOfferingID]
+            if standardPackage == nil || monthlyPackage == nil {
+                errorMessage = "Plans are temporarily unavailable. Please try again shortly."
             }
         } catch {
-            errorMessage = "RevenueCat could not load the plans. Please check your connection and try again."
+            guard !Task.isCancelled else { return }
+            errorMessage = "Couldn’t load plans. Check your connection and try again."
         }
     }
 
     @MainActor
-    private func purchaseSelectedPlan() async {
-        guard !isLoadingPlans, !isPurchasing, !isRestoring, let selectedPackage else { return }
+    private func purchaseSelectedPlan(package: Package? = nil) async {
+        guard !isLoadingPlans, !isPurchasing, !isRestoring, let purchasePackage = package ?? selectedPackage else { return }
         if isPreview {
-            onPreviewPurchase?()
+            if let onPreviewPurchase { onPreviewPurchase() }
+            else {
+                previewNotice = "Preview only: \(purchasePackage.storeProduct.localizedPriceString)\(purchasePackage.storeProduct.productType == .nonConsumable ? " once for lifetime access" : " per month"). No purchase was made."
+            }
             return
         }
         isPurchasing = true
@@ -327,7 +332,7 @@ struct RevenueCatPaywallScreen: View {
         defer { isPurchasing = false }
 
         do {
-            let result = try await Purchases.shared.purchase(package: selectedPackage)
+            let result = try await Purchases.shared.purchase(package: purchasePackage)
             guard !result.userCancelled else { return }
 
             await store.applyRevenueCatPurchase(result.customerInfo)
@@ -337,14 +342,14 @@ struct RevenueCatPaywallScreen: View {
                 errorMessage = "Your purchase is still pending confirmation."
             }
         } catch {
-            errorMessage = purchaseErrorMessage(for: error)
+            errorMessage = purchaseErrorMessage(for: error, productID: purchasePackage.storeProduct.productIdentifier)
         }
     }
 
     @MainActor
     private func restore() async {
         guard !isPreview else {
-            previewNotice = "Restore is simulated in this preview. Your existing subscription is unchanged."
+            previewNotice = "Restore is simulated in this preview. Your existing purchases are unchanged."
             return
         }
         isRestoring = true
@@ -357,18 +362,17 @@ struct RevenueCatPaywallScreen: View {
             if store.isPremium {
                 dismiss()
             } else {
-                errorMessage = "No active Nanobeasts subscription was found for this Apple Account."
+                errorMessage = "No Nanobeasts Pro purchase was found for this Apple Account."
             }
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
-    private func purchaseErrorMessage(for error: Error) -> String {
+    private func purchaseErrorMessage(for error: Error, productID: String) -> String {
 #if DEBUG
         let nsError = error as NSError
         let underlyingError = nsError.userInfo[NSUnderlyingErrorKey] as? NSError
-        let productID = selectedPackage?.storeProduct.productIdentifier ?? "unknown"
         print(
             """
             [Nanobeasts StoreKit] Purchase failed
@@ -389,7 +393,7 @@ struct RevenueCatPaywallScreen: View {
         switch revenueCatError {
         case .productNotAvailableForPurchaseError:
 #if DEBUG
-            let diagnostic = purchaseDiagnostic(for: error)
+            let diagnostic = purchaseDiagnostic(for: error, productID: productID)
             return """
             Apple’s sandbox returned “product unavailable” after loading this plan. \
             Your tester settings are correct; this is an App Store product-state \
@@ -409,9 +413,8 @@ struct RevenueCatPaywallScreen: View {
         }
     }
 
-    private func purchaseDiagnostic(for error: Error) -> String {
+    private func purchaseDiagnostic(for error: Error, productID: String) -> String {
         let nsError = error as NSError
-        let productID = selectedPackage?.storeProduct.productIdentifier ?? "unknown"
         let underlyingError = nsError.userInfo[NSUnderlyingErrorKey] as? NSError
 
         if let underlyingError {

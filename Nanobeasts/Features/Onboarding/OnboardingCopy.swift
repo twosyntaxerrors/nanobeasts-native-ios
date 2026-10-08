@@ -107,7 +107,7 @@ struct OnboardingCopy {
         var copy: Self = switch selection.primary {
         case .weight:
             Self(paywallHeadline: "Evolve your habits. Walk toward your weight goal.",
-                paywallDetail: "Unlock your personal walking plan to support your weight goal, and watch your progress come to life.",
+                paywallDetail: "Make each walk a step toward your weight goal. Keep hatching and evolving creatures as you go.",
                 planHeadline: "Small walks. A step toward the body you want.",
                 planDetail: "Build a walking routine that supports your weight goal, with visible progress and a reason to keep going.",
                 paywallBenefits: [
@@ -116,7 +116,7 @@ struct OnboardingCopy {
                     .init(symbol: "pawprint.fill", title: "Make it easier to keep going", detail: "Grow creatures with every walk you take toward your weight-loss goal.")])
         case .fitness:
             Self(paywallHeadline: "Evolve your routine. Find your momentum.",
-                paywallDetail: "Unlock a walking plan alongside your strength training, with visible progress as you work toward your body-composition goal.",
+                paywallDetail: "Keep walking alongside your strength training, and turn those steps into new hatches and evolutions.",
                 planHeadline: "Make walking part of a stronger routine.",
                 planDetail: "Keep your strength routine and add walks toward your body-composition goal. Your daily target gives you a place to start.",
                 paywallBenefits: [
@@ -125,7 +125,7 @@ struct OnboardingCopy {
                     .init(symbol: "pawprint.fill", title: "Build your routine toward a leaner body", detail: "Your steps grow creatures as you work toward the body you want.")])
         case .habit:
             Self(paywallHeadline: "Evolve your habits. Change your everyday.",
-                paywallDetail: "Unlock your personalized walking plan and watch small, repeatable steps come to life.",
+                paywallDetail: "Keep your walking habit growing, with new creatures and evolutions to look forward to.",
                 planHeadline: "Make tomorrow’s walk something to look forward to.",
                 planDetail: "Start with a target that fits your routine. See your consistency grow, one day and one creature at a time.",
                 paywallBenefits: [
@@ -134,16 +134,16 @@ struct OnboardingCopy {
                     .init(symbol: "pawprint.fill", title: "Look forward to tomorrow’s walk", detail: "Your steps hatch and evolve creatures as your walking habit grows.")])
         case .collection:
             Self(paywallHeadline: "Real steps. A world of new discoveries.",
-                paywallDetail: "Unlock your walking plan and bring your collection to life, one hatch and evolution at a time.",
+                paywallDetail: "Keep hatching, evolving, and discovering new creatures as your daily steps add up.",
                 planHeadline: "Your next discovery starts with a walk.",
                 planDetail: "We’ll turn your daily steps into hatching, evolution, and new entries in your Field Dex.",
                 paywallBenefits: [
                     .init(symbol: "figure.walk", title: "Walk your way to new creatures", detail: "Reach step milestones to hatch eggs and evolve your Nanobeasts."),
                     .init(symbol: "chart.xyaxis.line", title: "See your collection fill up", detail: "Your Field Dex records each species you unlock through walking."),
-                    .init(symbol: "pawprint.fill", title: "Take your creature on an adventure", detail: "Clear map fog together, then share your route replay and stats.")])
+                    .init(symbol: "pawprint.fill", title: "Take your creature on an adventure", detail: "Paint your streets together, then share your route replay and stats.")])
         case nil:
             Self(paywallHeadline: "Evolve your habits. Watch progress come to life.",
-                paywallDetail: "Unlock your personalized walking plan and give your next walk a purpose.",
+                paywallDetail: "Keep the adventure going. Turn your daily steps into new hatches and evolutions.",
                 planHeadline: "Small steps. Something to look forward to.",
                 planDetail: "We’ll set a daily target, track your walks, and turn your steps into a creature-collection adventure.",
                 paywallBenefits: [

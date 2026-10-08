@@ -1,0 +1,445 @@
+{
+  "project": "nanobeasts-splash-cyan",
+  "runtime": "all",
+  "compositions": [
+    {
+      "composition": "index.html",
+      "source": "index.html",
+      "tweens": [
+        {
+          "id": "#logo-pieces-fromTo-33-visual",
+          "target": "#logo-pieces",
+          "method": "fromTo",
+          "group": "visual",
+          "start": 0.033,
+          "duration": 0.266667,
+          "end": 0.3,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 0.033,
+              "properties": {
+                "opacity": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 0.3,
+              "properties": {
+                "opacity": 0.65
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#logo-pieces-fromTo-500-visual",
+          "target": "#logo-pieces",
+          "method": "fromTo",
+          "group": "visual",
+          "start": 0.5,
+          "duration": 0.333333,
+          "end": 0.833,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 0.5,
+              "properties": {
+                "opacity": 0.65
+              }
+            },
+            {
+              "pct": 100,
+              "time": 0.833,
+              "properties": {
+                "opacity": 1
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#crack-pulse-fromTo-33",
+          "target": "#crack-pulse",
+          "method": "fromTo",
+          "start": 0.033,
+          "duration": 0.386667,
+          "end": 0.42,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 0.033,
+              "properties": {
+                "opacity": 0,
+                "scale": 0.7
+              }
+            },
+            {
+              "pct": 100,
+              "time": 0.42,
+              "properties": {
+                "opacity": 0.24,
+                "scale": 0.95
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#crack-pulse-fromTo-420",
+          "target": "#crack-pulse",
+          "method": "fromTo",
+          "start": 0.42,
+          "duration": 0.08,
+          "end": 0.5,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 0.42,
+              "properties": {
+                "opacity": 0.24,
+                "scale": 0.95
+              }
+            },
+            {
+              "pct": 100,
+              "time": 0.5,
+              "properties": {
+                "opacity": 0.58,
+                "scale": 1
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#crack-pulse-fromTo-500",
+          "target": "#crack-pulse",
+          "method": "fromTo",
+          "start": 0.5,
+          "duration": 0.3,
+          "end": 0.8,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 0.5,
+              "properties": {
+                "opacity": 0.58,
+                "scale": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 0.8,
+              "properties": {
+                "opacity": 0,
+                "scale": 1.16
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#crack-ring-fromTo-500",
+          "target": "#crack-ring",
+          "method": "fromTo",
+          "start": 0.5,
+          "duration": 0.066667,
+          "end": 0.567,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 0.5,
+              "properties": {
+                "scale": 0.34,
+                "opacity": 0
+              }
+            },
+            {
+              "pct": 100,
+              "time": 0.567,
+              "properties": {
+                "scale": 0.58,
+                "opacity": 0.3
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#crack-ring-fromTo-567",
+          "target": "#crack-ring",
+          "method": "fromTo",
+          "start": 0.567,
+          "duration": 0.233333,
+          "end": 0.8,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 0.567,
+              "properties": {
+                "scale": 0.58,
+                "opacity": 0.3
+              }
+            },
+            {
+              "pct": 100,
+              "time": 0.8,
+              "properties": {
+                "scale": 2.1,
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#upper-egg-fromTo-300",
+          "target": "#upper-egg",
+          "method": "fromTo",
+          "start": 0.3,
+          "duration": 0.433333,
+          "end": 0.733,
+          "shape": "keyframes",
+          "keyframes": [
+            {
+              "pct": 15.4,
+              "time": 0.367,
+              "properties": {
+                "x": -3.5,
+                "y": -1,
+                "rotation": -0.35
+              }
+            },
+            {
+              "pct": 30.8,
+              "time": 0.433,
+              "properties": {
+                "x": 4,
+                "y": -2,
+                "rotation": 0.4
+              }
+            },
+            {
+              "pct": 46.2,
+              "time": 0.5,
+              "properties": {
+                "x": -2,
+                "y": -0.5,
+                "rotation": -0.2
+              }
+            },
+            {
+              "pct": 100,
+              "time": 0.733,
+              "properties": {
+                "x": 0,
+                "y": 0,
+                "rotation": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": -3.5,
+              "y": -1
+            },
+            {
+              "x": 4,
+              "y": -2
+            },
+            {
+              "x": -2,
+              "y": -0.5
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ],
+          "composedWith": [
+            {
+              "selector": "#logo-pieces",
+              "summary": "opacity 0..1"
+            }
+          ]
+        },
+        {
+          "id": "__unresolved__-fromTo-__raw:p.start",
+          "target": "__unresolved__",
+          "method": "fromTo",
+          "start": 0,
+          "duration": 0.166667,
+          "end": 0.167,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 0,
+              "properties": {
+                "x": 0,
+                "y": 0,
+                "rotation": 0,
+                "svgOrigin": "__raw:p.origin"
+              }
+            },
+            {
+              "pct": 100,
+              "time": 0.167,
+              "properties": {
+                "x": "__raw:p.x",
+                "y": "__raw:p.y",
+                "rotation": "__raw:p.rotation"
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ]
+        },
+        {
+          "id": "__unresolved__-fromTo-__raw:p.start + 0.166667",
+          "target": "__unresolved__",
+          "method": "fromTo",
+          "start": 0,
+          "duration": 0.266666,
+          "end": 0.267,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 0,
+              "properties": {
+                "x": "__raw:p.x",
+                "y": "__raw:p.y",
+                "rotation": "__raw:p.rotation"
+              }
+            },
+            {
+              "pct": 100,
+              "time": 0.267,
+              "properties": {
+                "x": 0,
+                "y": 0,
+                "rotation": 0
+              }
+            }
+          ],
+          "path": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0,
+              "y": 0
+            }
+          ]
+        },
+        {
+          "id": "#logo-final-set-833-visual",
+          "target": "#logo-final",
+          "method": "set",
+          "group": "visual",
+          "start": 0.833,
+          "duration": 0,
+          "end": 0.833,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 0.833,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 0.833,
+              "properties": {
+                "opacity": 1
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#logo-pieces-set-833-visual",
+          "target": "#logo-pieces",
+          "method": "set",
+          "group": "visual",
+          "start": 0.833,
+          "duration": 0,
+          "end": 0.833,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 0.833,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 0.833,
+              "properties": {
+                "opacity": 0
+              }
+            }
+          ],
+          "path": null
+        },
+        {
+          "id": "#logo-final-to-833-visual",
+          "target": "#logo-final",
+          "method": "to",
+          "group": "visual",
+          "start": 0.833,
+          "duration": 0.366667,
+          "end": 1.2,
+          "shape": "flat",
+          "keyframes": [
+            {
+              "pct": 0,
+              "time": 0.833,
+              "properties": {
+                "opacity": 1
+              }
+            },
+            {
+              "pct": 100,
+              "time": 1.2,
+              "properties": {
+                "opacity": 1
+              }
+            }
+          ],
+          "path": null
+        }
+      ],
+      "traces": [],
+      "cssKeyframes": [],
+      "anime": []
+    }
+  ],
+  "_meta": {
+    "version": "0.8.134",
+    "latestVersion": "0.8.134",
+    "updateAvailable": false
+  }
+}

@@ -132,10 +132,11 @@ with tempfile.TemporaryDirectory(prefix='nanobeasts-paywall-timing-') as temp:
 
 # The Settings entry must be present in the Release build used on the phone.
 preview_paywall = (root / 'Nanobeasts/Features/Paywall/RevenueCatPaywallScreen.swift').read_text()
-purchase = preview_paywall.split('private func purchaseSelectedPlan() async {', 1)[1].split('private func restore()', 1)[0]
+purchase = preview_paywall.split('private func purchaseSelectedPlan(package: Package? = nil) async {', 1)[1].split('private func restore()', 1)[0]
 assert purchase.index('if isPreview {') < purchase.index('Purchases.shared.purchase(')
-preview_branch = purchase.split('if isPreview {', 1)[1].split('}', 1)[0]
-assert 'onPreviewPurchase?()' in preview_branch and 'return' in preview_branch
+# The preview branch hands off to the preview handler and returns before any real purchase.
+preview_branch = purchase.split('if isPreview {', 1)[1].split('Purchases.shared.purchase(', 1)[0]
+assert 'onPreviewPurchase' in preview_branch and 'return' in preview_branch
 # The replay now renders the production tabs with a fresh, non-persisting store.
 assert '@Environment(AppStore.self)' not in source
 assert '@State private var replayStore = AppStore.makeOnboardingReplay()' in source

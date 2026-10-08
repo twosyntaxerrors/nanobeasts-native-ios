@@ -19,6 +19,25 @@ stubs = r'''
 import Foundation
 import Combine
 import OSLog
+import ImageIO
+// Lock Screen companion artwork: the App Group store, R2 lookup and image types.
+final class UIImage {
+    init(cgImage: CGImage) {}
+    func pngData() -> Data? { Data([0x89]) }
+}
+enum WidgetSnapshotStore {
+    nonisolated(unsafe) static var savedArtwork: [String] = []
+    static func hasInlineArtworkData(filename: String) -> Bool { savedArtwork.contains(filename) }
+    static func saveArtworkData(_ data: Data, filename: String) { savedArtwork.append(filename) }
+}
+enum R2AssetManifest {
+    static func url(for imageKey: String) -> URL { URL(string: "https://assets.invalid/\(imageKey).png")! }
+}
+actor R2ArtworkCache {
+    static let shared = R2ArtworkCache()
+    // Offline in tests: artwork preparation must fail quietly, never block the activity.
+    func data(for url: URL) async throws -> Data { throw URLError(.notConnectedToInternet) }
+}
 protocol ActivityAttributes {}
 enum ActivityState { case active, stale, ended, dismissed }
 struct ActivityContent<S> { var state: S; var staleDate: Date? }
@@ -139,6 +158,11 @@ checks = r'''
         let decoded = try! JSONDecoder().decode(WorkoutActivityAttributes.self,
             from: JSONSerialization.data(withJSONObject: legacy))
         expect(decoded.workoutSource == nil, "Existing activities decode without source field")
+        expect(WorkoutLiveActivityArtwork.filename(imageKey: "glitchlet-stage-1/modern v2")
+               == "live-companion-glitchlet-stage-1-modern-v2.png", "Companion artwork filename is App Group safe")
+        WidgetSnapshotStore.savedArtwork = [WorkoutLiveActivityArtwork.filename(imageKey: "cached")]
+        WorkoutLiveActivityArtwork.prepare(imageKey: "cached")
+        expect(WidgetSnapshotStore.savedArtwork.count == 1, "Already-saved artwork is not fetched again")
         print("PASS: \(count) Live Activity lifecycle, Watch payload, recovery and compatibility checks")
     }
 }

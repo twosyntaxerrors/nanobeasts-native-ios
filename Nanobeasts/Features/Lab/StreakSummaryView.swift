@@ -11,12 +11,14 @@ struct StreakSummaryView: View {
     var referenceDate: Date? = nil
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
     @State private var selectedDate: Date?
     @State private var displayedCount = 0
     @State private var ignited = false
     @State private var shareImage: UIImage?
     @State private var presentsShareSheet = false
+    @State private var flarvaPoster: UIImage?
     @Namespace private var selection
 
     private var suppressMotion: Bool { reducesMotion || systemReduceMotion }
@@ -34,6 +36,7 @@ struct StreakSummaryView: View {
                 topBar
                 StreakShareCard(summary: summary, count: displayedCount, animated: !suppressMotion,
                                 ignited: ignited || suppressMotion, hapticsEnabled: hapticsEnabled,
+                                flarvaPoster: flarvaPoster,
                                 selectedID: selected.id, namespace: selection) { day in
                     withAnimation(motion) { selectedDate = day.date }
                 }
@@ -68,7 +71,13 @@ struct StreakSummaryView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
+        .task {
+            guard flarvaPoster == nil else { return }
+            if let data = try? await R2ArtworkCache.shared.data(for: StreakFlarvaArtwork.walkingURL),
+               !Task.isCancelled {
+                flarvaPoster = UIImage(data: data)
+            }
+        }
     }
 
     private var topBar: some View {
@@ -79,14 +88,14 @@ struct StreakSummaryView: View {
             Button { dismiss() } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(NanoTheme.text.opacity(0.8))
                     .frame(width: 40, height: 40)
                     .background(NanoTheme.surface, in: Circle())
             }
             .buttonStyle(StreakPressStyle(reduceMotion: suppressMotion))
             .accessibilityLabel("Close streak")
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(NanoTheme.text)
         .padding(.horizontal, 20)
         .padding(.top, 12)
     }
@@ -116,11 +125,12 @@ struct StreakSummaryView: View {
 
     @MainActor
     private func share(_ summary: StreakHistorySummary) {
-        let card = StreakShareCard(summary: summary, count: summary.current, animated: false, ignited: true)
+        let card = StreakShareCard(summary: summary, count: summary.current, animated: false, ignited: true,
+                                   flarvaPoster: flarvaPoster)
             .frame(width: 360)
             .padding(24)
             .background(NanoTheme.background)
-            .environment(\.colorScheme, .dark)
+            .environment(\.colorScheme, colorScheme)
         let renderer = ImageRenderer(content: card)
         renderer.scale = 3
         renderer.isOpaque = true
@@ -131,11 +141,13 @@ struct StreakSummaryView: View {
 
 /// The hero doubles as the share artwork, so what people see is exactly what they post.
 private struct StreakShareCard: View {
+    @Environment(\.colorScheme) private var colorScheme
     let summary: StreakHistorySummary
     let count: Int
     let animated: Bool
     let ignited: Bool
     var hapticsEnabled = false
+    var flarvaPoster: UIImage? = nil
     var selectedID: Date? = nil
     var namespace: Namespace.ID? = nil
     var onSelect: ((StreakHistorySummary.Day) -> Void)? = nil
@@ -149,18 +161,19 @@ private struct StreakShareCard: View {
             HStack {
                 Text("NANOBEASTS")
                     .font(NanoFont.aldrich(13)).tracking(3)
-                    .foregroundStyle(.white.opacity(0.9))
+                    .foregroundStyle(NanoTheme.text.opacity(0.9))
                 Spacer()
                 Text(summary.today.date.formatted(.dateTime.month(.abbreviated).day()))
                     .font(NanoFont.spaceMono(12))
-                    .foregroundStyle(.white.opacity(0.55))
+                    .foregroundStyle(NanoTheme.text.opacity(0.55))
             }
 
-            StreakFlame(isLit: isLit, embers: min(18, 6 + summary.current / 3), animated: animated)
-                .frame(maxWidth: 190, minHeight: 110, maxHeight: 200)
+            StreakFlarvaHero(isLit: isLit, embers: min(18, 6 + summary.current / 3), animated: animated,
+                            poster: flarvaPoster)
+                .frame(maxWidth: 230, minHeight: 110, maxHeight: 210)
                 .scaleEffect(ignited ? 1 : 0.35, anchor: .bottom)
                 .opacity(ignited ? 1 : 0)
-                .keyframeAnimator(initialValue: 1.0, trigger: flare) { content, scale in
+                .keyframeAnimator(initialValue: 1.0, trigger: animated ? flare : 0) { content, scale in
                     content.scaleEffect(scale, anchor: .bottom)
                 } keyframes: { _ in
                     SpringKeyframe(1.16, duration: 0.12, spring: .snappy)
@@ -179,7 +192,7 @@ private struct StreakShareCard: View {
                 .contentTransition(.numericText(value: Double(count)))
                 .lineLimit(1).minimumScaleFactor(0.6)
                 .shadow(color: NanoTheme.orange.opacity(isLit ? 0.55 : 0), radius: 22, y: 4)
-                .padding(.top, -34)
+                .padding(.top, -12)
             Text("DAY STREAK")
                 .font(NanoFont.aldrich(15)).tracking(4)
                 .foregroundStyle(isLit ? NanoTheme.orange : NanoTheme.secondaryText)
@@ -192,22 +205,22 @@ private struct StreakShareCard: View {
 
             statRow.padding(.top, 20)
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(NanoTheme.text)
         .padding(.horizontal, 20)
         .padding(.vertical, 22)
         .background {
             ZStack {
-                Color(red: 0.06, green: 0.04, blue: 0.035)
+                Color.nano(dark: NanoPlatformColor(red: 0.06, green: 0.04, blue: 0.035, alpha: 1), light: NanoPlatformColor(hex: 0xFBFAF5))
                 RadialGradient(colors: [NanoTheme.orange.opacity(isLit ? 0.34 : 0.08), .clear],
                                center: UnitPoint(x: 0.5, y: 0.3), startRadius: 10, endRadius: 260)
-                LinearGradient(colors: [.clear, Color(red: 0.55, green: 0.12, blue: 0.04).opacity(isLit ? 0.28 : 0)],
+                LinearGradient(colors: [.clear, Color(red: 0.55, green: 0.12, blue: 0.04).opacity(isLit ? (colorScheme == .light ? 0.1 : 0.28) : 0)],
                                startPoint: .center, endPoint: .bottom)
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .strokeBorder(LinearGradient(colors: [NanoTheme.orange.opacity(0.45), .white.opacity(0.06)],
+                .strokeBorder(LinearGradient(colors: [NanoTheme.orange.opacity(0.45), NanoTheme.ink.opacity(0.06)],
                                              startPoint: .top, endPoint: .bottom), lineWidth: 1)
         }
         .accessibilityElement(children: .contain)
@@ -222,9 +235,9 @@ private struct StreakShareCard: View {
                     VStack(spacing: 8) {
                         Text(day.date.formatted(.dateTime.weekday(.narrow)))
                             .font(.system(size: 11, weight: day.isToday ? .bold : .medium))
-                            .foregroundStyle(day.isToday ? NanoTheme.orange : .white.opacity(0.5))
+                            .foregroundStyle(day.isToday ? NanoTheme.orange : NanoTheme.ink.opacity(0.5))
                         ZStack {
-                            Circle().stroke(.white.opacity(0.12), lineWidth: 2)
+                            Circle().stroke(NanoTheme.ink.opacity(0.12), lineWidth: 2)
                             if !day.isFuture && !day.metGoal {
                                 Circle().trim(from: 0, to: day.progress)
                                     .stroke(NanoTheme.orange.opacity(0.75), style: StrokeStyle(lineWidth: 2, lineCap: .round))
@@ -238,7 +251,7 @@ private struct StreakShareCard: View {
                             } else {
                                 Text(day.date.formatted(.dateTime.day()))
                                     .font(.system(size: 11, weight: .semibold, design: .rounded))
-                                    .foregroundStyle(day.isFuture ? .white.opacity(0.35) : .white)
+                                    .foregroundStyle(day.isFuture ? NanoTheme.ink.opacity(0.35) : .white)
                             }
                         }
                         .frame(width: 30, height: 30)
@@ -247,7 +260,7 @@ private struct StreakShareCard: View {
                     .background {
                         if isSelected, let namespace {
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(.white.opacity(0.08))
+                                .fill(NanoTheme.ink.opacity(0.08))
                                 .matchedGeometryEffect(id: "selected-day", in: namespace)
                         }
                     }
@@ -270,10 +283,10 @@ private struct StreakShareCard: View {
                 divider
                 stat("THIS WEEK", "\(summary.week.filter(\.metGoal).count)/7")
                 divider
-                stat("TODAY", day.steps.formatted(), tint: day.metGoal ? NanoTheme.orange : .white)
+                stat("TODAY", day.steps.formatted(), tint: day.metGoal ? NanoTheme.orange : NanoTheme.text)
             } else {
                 stat(day.date.formatted(.dateTime.weekday(.abbreviated)).uppercased(),
-                     day.isFuture ? "—" : day.steps.formatted(), tint: day.metGoal ? NanoTheme.orange : .white)
+                     day.isFuture ? "—" : day.steps.formatted(), tint: day.metGoal ? NanoTheme.orange : NanoTheme.text)
                 divider
                 stat("GOAL", day.goal.formatted())
                 divider
@@ -285,19 +298,19 @@ private struct StreakShareCard: View {
         .transition(.opacity)
     }
 
-    private func stat(_ label: String, _ value: String, tint: Color = .white) -> some View {
+    private func stat(_ label: String, _ value: String, tint: Color = NanoTheme.text) -> some View {
         VStack(spacing: 4) {
             Text(value).font(NanoFont.spaceMono(17, bold: true)).monospacedDigit()
                 .foregroundStyle(tint)
                 .lineLimit(1).minimumScaleFactor(0.7)
             Text(label).font(.system(size: 9, weight: .semibold)).tracking(1.2)
-                .foregroundStyle(.white.opacity(0.5))
+                .foregroundStyle(NanoTheme.text.opacity(0.5))
         }
         .frame(maxWidth: .infinity)
     }
 
     private var divider: some View {
-        Rectangle().fill(.white.opacity(0.1)).frame(width: 1, height: 28)
+        Rectangle().fill(NanoTheme.ink.opacity(0.1)).frame(width: 1, height: 28)
     }
 
     static func headline(for streak: Int) -> String {
@@ -316,6 +329,65 @@ private struct StreakShareCard: View {
         let date = day.date.formatted(.dateTime.weekday(.wide).month().day())
         if day.isFuture { return "\(date), upcoming, show goal" }
         return "\(date)\(day.isToday ? ", today" : ""), \(day.steps.formatted()) of \(day.goal.formatted()) steps, \(day.metGoal ? "goal met" : "goal not met"). Show details."
+    }
+}
+
+private enum StreakFlarvaArtwork {
+    static let walkingURL = R2AssetManifest.baseURL
+        .appending(path: "images/gif-animations/Flarva_HappyWalk_Onboard.png")
+}
+
+/// The APNG uses the existing animated-image player and stays separate from the fire.
+private struct StreakFlarvaHero: View {
+    let isLit: Bool
+    let embers: Int
+    let animated: Bool
+    var poster: UIImage? = nil
+
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var animationLoaded = false
+    @State private var isVisible = false
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .bottom) {
+                StreakFlame(isLit: isLit, embers: embers, animated: animated)
+                    .frame(width: geometry.size.width * 1.15, height: geometry.size.height * 1.28)
+                    .frame(width: geometry.size.width, height: geometry.size.height, alignment: .bottom)
+                    .mask { Rectangle().padding(12).blur(radius: 12) }
+                ZStack {
+                    if !animationLoaded || !animated {
+                        Group {
+                            if let poster {
+                                Image(uiImage: poster).resizable()
+                            } else {
+                                Image("StreakFlarvaDetermined").resizable()
+                            }
+                        }
+                        .scaledToFit()
+                    }
+                    if animated, isVisible {
+                        RemoteAnimatedWebPView(
+                            url: StreakFlarvaArtwork.walkingURL,
+                            isPlaying: scenePhase == .active,
+                            maxBufferSize: 16 * 1_024 * 1_024,
+                            onLoad: { animationLoaded = $0 }
+                        )
+                        .opacity(animationLoaded ? 1 : 0)
+                    }
+                }
+                    .frame(width: geometry.size.width * 0.84, height: geometry.size.height * 0.92)
+                    .padding(.bottom, geometry.size.height * 0.04)
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height, alignment: .bottom)
+        }
+        .accessibilityHidden(true)
+        .onAppear { isVisible = true }
+        .onDisappear {
+            isVisible = false
+            animationLoaded = false
+        }
+        .onChange(of: animated) { animationLoaded = false }
     }
 }
 

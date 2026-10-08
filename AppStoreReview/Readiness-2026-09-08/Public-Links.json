@@ -1,0 +1,14 @@
+[
+  {
+    "page": "privacy",
+    "error": "HTTP Error 403: Forbidden"
+  },
+  {
+    "page": "terms",
+    "error": "HTTP Error 403: Forbidden"
+  },
+  {
+    "page": "support",
+    "error": "HTTP Error 403: Forbidden"
+  }
+]

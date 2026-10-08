@@ -1,0 +1,7 @@
+executionPrerequisite: >-
+  Nanobeasts is foregrounded after the evolution reveal.
+steps:
+  - tool: open-url
+    args:
+      url: nanobeasts://goldie/workout
+  - wait: 7000

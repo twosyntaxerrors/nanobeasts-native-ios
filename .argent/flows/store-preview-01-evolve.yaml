@@ -1,0 +1,5 @@
+steps:
+  - tool: open-url
+    args:
+      url: nanobeasts://goldie/scenario/evolution
+  - wait: 7000

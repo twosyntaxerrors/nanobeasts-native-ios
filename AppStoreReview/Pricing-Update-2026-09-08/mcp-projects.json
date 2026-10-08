@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "object: list\nitems[1]{object,id,name,created_at,icon_url,icon_url_large}:\n  project,proj83b947c7,X,\"2025-11-16T23:27:59.436Z\",\"https://www.appatar.io/com.twosyntaxerrors.nanobeasts/small\",\"https://www.appatar.io/com.twosyntaxerrors.nanobeasts/large\"\nnext_page: null\nurl: \"https://api.revenuecat.com/v2/projects\""
+    }
+  ],
+  "isError": false
+}

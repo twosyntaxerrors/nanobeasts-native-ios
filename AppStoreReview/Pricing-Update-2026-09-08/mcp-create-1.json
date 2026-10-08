@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "state: active\nobject: product\nid: prod63d647dfe8\nstore_identifier: nanobeasts_test_premium_yearly_v2\ntype: subscription\nsubscription:\n  duration: P1Y\n  grace_period_duration: null\n  trial_duration: null\none_time: null\ncreated_at: \"2026-09-08T22:25:12.432Z\"\napp_id: appfb4be2ccc9\ndisplay_name: Premium Yearly (Test) \u00e2\u0080\u0094 $29.99 + 7-day trial"
+    }
+  ],
+  "isError": false
+}

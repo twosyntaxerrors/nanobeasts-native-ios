@@ -1,0 +1,203 @@
+{
+  "status": "final",
+  "category": "logo-reveal",
+  "duration_s": 1.2,
+  "duration_override": "An in-app splash uses the assistant-proposed 1.2-second opening pace, overriding the category's 3\u20135-second heuristic; this remains a preview default open to revision.",
+  "fps": 30,
+  "canvas": {
+    "w": 720,
+    "h": 1280,
+    "aspect": "9:16"
+  },
+  "style": "A silent cyan crystal hatch on black. One compact build of light peaks in a cyan pulse, then leaves the supplied logo perfectly crisp and still.",
+  "palette": [
+    "#000000",
+    "#00D5F4",
+    "#81EDFF",
+    "#163A65",
+    "#F1F8FC"
+  ],
+  "font": "Inter",
+  "beats": [
+    0.3,
+    0.5,
+    0.733333
+  ],
+  "export": "mp4",
+  "asset_needs": [],
+  "shot_brief": "The cyan crystal logo from the top-left of the supplied sheet emerges from black as light gathers at the egg crack. A tiny egg tremor and lifted crystal accents imply a hatch; a controlled cyan pulse brings the NANOBEASTS / EVOLVE artwork to full visibility. All motion finishes by 0.83 seconds for a readable settled hold through 1.2 seconds.",
+  "content": {
+    "logo": "assets/logo-cyan.png",
+    "tagline": "",
+    "url": "",
+    "block": "logo-sting",
+    "customize": {
+      "subject": "Use supplied raster logo, with no recreated text. Replace generic wordmark with clipped source artwork.",
+      "timing": "Replace original slam with gentle masked fade, one pulse at 0.50 s, all motion settled by 0.833333 s.",
+      "accent": "#00D5F4",
+      "impact_frame": "Disable white full-screen frame. Keep black background.",
+      "scale": "Near-rest only: 0.98 to 1; never scale lettering after 0.5 s.",
+      "ring": "Behind the egg crack, centered on source point [760,430]; fade out by 0.8 s."
+    },
+    "supporting_components": [
+      {
+        "name": "beat-pulse-background",
+        "use": "Borrow finite glow-intensity pulse; localize radial light to the egg crack rather than tinting the whole screen.",
+        "start": 0.033333,
+        "peak": 0.5,
+        "end": 0.8
+      },
+      {
+        "name": "camera-shake",
+        "use": "Apply a bounded deterministic tiny tremor to clipped upper egg wrapper only. Do not shake camera or lettering.",
+        "start": 0.3,
+        "end": 0.5,
+        "max_translation_px": 2,
+        "max_rotation_degrees": 0.5
+      }
+    ],
+    "layout": {
+      "hero_frame": {
+        "x": 60,
+        "y": 440,
+        "w": 600,
+        "h": 400
+      },
+      "safe_zone": {
+        "x": 48,
+        "y": 280,
+        "w": 624,
+        "h": 680
+      },
+      "background": "#000000",
+      "anchor": "center",
+      "source_to_canvas_scale": 0.390625,
+      "crack_origin_source": [
+        760,
+        430
+      ],
+      "crack_origin_canvas": [
+        356.875,
+        607.96875
+      ],
+      "lettering_source_bounds": [
+        30,
+        330,
+        1500,
+        827
+      ],
+      "upper_egg_source_bounds": [
+        530,
+        25,
+        1060,
+        465
+      ],
+      "lower_egg_source_bounds": [
+        520,
+        800,
+        1060,
+        990
+      ]
+    },
+    "piece_strategy": {
+      "mode": "deterministic source crops or clip masks",
+      "egg": "Mask the upper egg above the wordmark contour. Treat source bounds as guides, not a rectangular mask that cuts through lettering. Copy only pixels wholly outside the wordmark.",
+      "wordmark": "A stationary base uses complementary masks so moving pieces are not duplicated at their original positions. Keep the entire NANOBEASTS / EVOLVE band fixed from initial reveal through final hold.",
+      "shards": "At most 4 floating source shard accents, using tightly matched polygons outside the lettering; 4\u20137 px outward/upward displacement and 1\u20132 degrees rotation, then reset. No fabricated crystal art.",
+      "reassembly": "At 0.833333 s, the original full logo alone is visible at identity transform; hide piece copies and glow overlays to avoid seams or doubling.",
+      "fallback": "If clean masks cannot be achieved quickly, use intact logo reveal with localized crack pulse; omit independent egg/shard motion rather than distort artwork."
+    },
+    "phases": [
+      {
+        "id": "charge",
+        "start": 0,
+        "end": 0.3,
+        "motion": "Intact logo fades from near-black to 65% opacity; glow builds from crack point. Typography remains at final position."
+      },
+      {
+        "id": "tremor",
+        "start": 0.3,
+        "end": 0.5,
+        "motion": "Upper egg tiny left/right tremor while 3\u20134 source crystal accents lift outward. Crack glow reaches peak."
+      },
+      {
+        "id": "cyan-pulse",
+        "start": 0.5,
+        "end": 0.833333,
+        "motion": "One restrained cyan pulse behind the mark, final opacity resolves, shards and egg return to source alignment. No white flash."
+      },
+      {
+        "id": "settled-hold",
+        "start": 0.833333,
+        "end": 1.2,
+        "motion": "Original exact artwork holds completely still on black for 11 frames. No exit; application handoff will own fade later."
+      }
+    ]
+  },
+  "constraints": [
+    "The supplied artwork is a flattened raster; it does not contain genuine separated egg, shard, or lettering layers. Limited masks simulate movement of visible parts only.",
+    "Preserve exact NANOBEASTS / EVOLVE lettering and final artwork; do not vectorize, regenerate, or add slogans.",
+    "No audio, full-screen flashes, repeated pulses, elaborate particle field, or camera movement.",
+    "All motion is deterministic and seek-safe; paused root timeline duration exactly 1.2 seconds.",
+    "Preview only; do not change app source or export a final video. App bundle format comparisons happen after motion review."
+  ],
+  "asset_resolution": {
+    "hero": "assets/logo-cyan.png",
+    "source": "assets/source-logo-sheet.png",
+    "inspected": true,
+    "dimensions": {
+      "w": 1536,
+      "h": 1024
+    },
+    "format": "RGBA PNG",
+    "note": "Parent prepared and inspected the transparent extraction. Logo includes a broad baked glow; no separate egg or shard layers."
+  },
+  "block": "logo-sting",
+  "customize": {
+    "subject": "Use supplied raster logo, with no recreated text. Replace generic wordmark with clipped source artwork.",
+    "timing": "Replace original slam with gentle masked fade, one pulse at 0.50 s, all motion settled by 0.833333 s.",
+    "accent": "#00D5F4",
+    "impact_frame": "Disable white full-screen frame. Keep black background.",
+    "scale": "Near-rest only: 0.98 to 1; never scale lettering after 0.5 s.",
+    "ring": "Behind the egg crack, centered on source point [760,430]; fade out by 0.8 s."
+  },
+  "catalog_evidence": [
+    {
+      "query": "logo reveal glow bloom piece assembly",
+      "tier": "words",
+      "selected": "logo-sting",
+      "alternatives": [
+        "logo-outro"
+      ],
+      "reason": "Logo Sting already contains an accent ring and a dead-still hold; its compact component form is easier to retime than the 6-second landscape Logo Outro."
+    },
+    {
+      "query": "glowing egg cracks cyan light pulse",
+      "tier": "words",
+      "selected": "beat-pulse-background",
+      "reason": "Finite accent glow pulse fits the crack light; source geometry binding is custom."
+    },
+    {
+      "query": "small shake jitter vibration",
+      "tier": "words",
+      "selected": "camera-shake",
+      "reason": "Deterministic seek-safe wrapper shake can be restricted to the upper egg."
+    },
+    {
+      "query": "crystal shards lift float outward",
+      "tier": "words",
+      "alternatives": [
+        "glass-shard-title",
+        "parallax-zoom",
+        "soft-blur-in"
+      ],
+      "reason": "No listed result directly supplies separated parts of this flattened logo. Binding exact raster shard crops to authored transforms is source-specific customization; avoid glass-shard-title typography reconstruction."
+    },
+    {
+      "query": "radial cyan expanding pulse ring",
+      "tier": "words",
+      "selected": "logo-sting",
+      "reason": "Logo Sting accent ring can be localized behind egg and recolored cyan; do not stack unrelated radial transitions."
+    }
+  ]
+}

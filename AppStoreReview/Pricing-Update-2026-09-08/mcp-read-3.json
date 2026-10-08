@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "object: list\nitems[2]:\n  - object: paywall\n    id: pw205f2ac5228440cd\n    name: Untitled Paywall\n    offering_id: ofrnga29777771f\n    created_at: \"2026-04-05T02:28:27.268Z\"\n    published_at: null\n    automatically_scale_font_size: true\n    revision: 27\n    offering:\n      state: active\n      object: offering\n      id: ofrnga29777771f\n      lookup_key: default\n      display_name: Default Offering\n      is_current: false\n      created_at: \"2026-01-31T04:13:41.723Z\"\n      project_id: proj83b947c7\n      paywall_id: pw205f2ac5228440cd\n      metadata: null\n  - object: paywall\n    id: pwcb5cf4da5e2d4ca2\n    name: Nanobeasts Pro\n    offering_id: ofrngb73fbef039\n    created_at: \"2026-07-13T22:25:38.460Z\"\n    published_at: \"2026-07-15T20:46:10.330Z\"\n    automatically_scale_font_size: true\n    revision: 334\n    offering:\n      state: active\n      object: offering\n      id: ofrngb73fbef039\n      lookup_key: nanobeasts_pro_paywall_draft\n      display_name: Nanobeasts Pro - Paywall Draft\n      is_current: true\n      created_at: \"2026-07-14T02:53:25.539Z\"\n      project_id: proj83b947c7\n      paywall_id: pwcb5cf4da5e2d4ca2\n      metadata:\n        duplicated_from_offering_id: ofrnga29777771f\nnext_page: null\nurl: \"https://api.revenuecat.com/v2/projects/proj83b947c7/paywalls\""
+    }
+  ],
+  "isError": false
+}

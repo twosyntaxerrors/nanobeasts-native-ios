@@ -30,3 +30,18 @@ goldie/out/
 
 # Cloudflare Wrangler local state
 .wrangler/
+
+# Large local working media (kept on disk, not in Git)
+AppStoreScreenshots/
+Design Assets/
+marketing/
+.argent/recordings/
+videos/*/renders/
+videos/*/snapshots/
+videos/*/assets/
+tmp/
+Design/*
+!Design/BadgeAssets/
+!Design/BadgeConcepts/
+!Design/*.md
+videos/*/reference/

@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\n  \"store\": \"test_store\",\n  \"project_id\": \"proj83b947c7\",\n  \"product_id\": \"prod7c2b2aad28\",\n  \"store_status\": {\n    \"status\": \"ok\",\n    \"raw_store_status\": null\n  },\n  \"common\": {\n    \"pricing\": {\n      \"currency_prices\": {}\n    }\n  },\n  \"store_state\": {},\n  \"store_fetched_at\": \"2026-09-08T22:26:15Z\"\n}"
+    }
+  ],
+  "isError": false
+}

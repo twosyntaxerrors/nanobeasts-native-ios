@@ -440,7 +440,7 @@ struct OnboardingReplayView: View {
             EvolutionLifecycleExperience(catalog: replayStore.catalog,
                 event: CreatureDiscoveryEvent(stage: creature, kind: .maturity),
                 nextEggs: replayEggs, allowsDismissal: false, onChooseEgg: chooseNextEgg,
-                previewEggSelectionDetail: "Choose your next specimen and walk to hatch its stage-one creature. Nanobeasts Pro unlocks its stage-two evolution. Your creatures and steps stay saved if you decide later.",
+                previewEggSelectionDetail: "Choose your next specimen and walk to hatch a new creature. Its identity stays a mystery until it hatches.",
                 dismissesOnCompletion: false,
                 onCompleted: {
                     journey.finishEggArrival()

@@ -1,0 +1,11 @@
+The Watch app name and workout header now read Nanobeasts.
+
+Settings and Apple Watch update
+
+In Settings, turn notifications off and confirm later local reminders stay off. Turn them back on and check that the saved preference survives closing and reopening the app. Confirm Privacy Policy, Terms of Service, Support, and Manage Subscription remain accessible. An active Nanobeasts Pro badge should open Apple's subscription management.
+
+On Apple Watch, check the current creature or egg beside today's steps, the weekly activity chart, and calories, distance, and exercise time. Scroll down for hourly steps and swipe to the workout page. Verify the companion briefly animates on arrival and respects Reduce Motion.
+
+Record a short outdoor walk with location and route recording enabled. Check live metrics, pause/resume, completion, and the saved iPhone workout with its route. Reopen the app to confirm previously granted permissions do not need to be enabled again.
+
+Before release, verify monthly and yearly subscription purchases, restore, cancellation, and expiration using TestFlight's sandbox. Confirm purchases unlock the daily creature-progression limit and that free Apple Health tracking remains available.

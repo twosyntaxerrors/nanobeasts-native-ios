@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>destination</key>
+	<string>export</string>
+	<key>manageAppVersionAndBuildNumber</key>
+	<false/>
+	<key>method</key>
+	<string>app-store-connect</string>
+	<key>provisioningProfiles</key>
+	<dict>
+		<key>com.twosyntaxerrors.nanobeasts.native</key>
+		<string>77218d44-2715-421f-a364-ff1d0e71ad7b</string>
+		<key>com.twosyntaxerrors.nanobeasts.native.watchkitapp</key>
+		<string>a46be292-19f6-4d3f-a135-630bdd9e1a1b</string>
+		<key>com.twosyntaxerrors.nanobeasts.native.widgets</key>
+		<string>6d88fcfc-d062-421c-a848-5a8b04d77627</string>
+	</dict>
+	<key>signingCertificate</key>
+	<string>BB9D1E52ECFE206485423091C904D48B70C82940</string>
+	<key>signingStyle</key>
+	<string>manual</string>
+	<key>teamID</key>
+	<string>C48J72F8MH</string>
+	<key>uploadSymbols</key>
+	<true/>
+</dict>
+</plist>

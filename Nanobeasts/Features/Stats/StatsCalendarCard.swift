@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct ActivityCalendarCard: View {
-    let scope: StatsCalendarScope
     @Binding var monthOffset: Int
     let records: [DailyStepRecord]
     let dailyGoal: Int
@@ -9,8 +8,9 @@ struct ActivityCalendarCard: View {
     let workouts: [WorkoutHistoryRecord]
     let importedHistoryRange: DateInterval?
     let distanceUnit: DistanceUnitPreference
+    let currentStreak: Int
+    let bestStreak: Int
 
-    @State private var weekOffset = 0
     @State private var selectedDay: StatsCalendarDay?
 
     private let weekdays = ["S", "M", "T", "W", "T", "F", "S"]
@@ -76,40 +76,8 @@ struct ActivityCalendarCard: View {
         return result
     }
 
-    private var weekDays: [StatsCalendarDay] {
-        let weekday = calendar.component(.weekday, from: today)
-        let currentWeekStart = calendar.date(
-            byAdding: .day,
-            value: -(weekday - 1),
-            to: today
-        ) ?? today
-        let start = calendar.date(
-            byAdding: .weekOfYear,
-            value: weekOffset,
-            to: currentWeekStart
-        ) ?? currentWeekStart
-        let stepsByDay = recordsByDay
-
-        return (0..<7).compactMap { index in
-            guard let date = calendar.date(byAdding: .day, value: index, to: start) else {
-                return nil
-            }
-            return makeCalendarDay(
-                slot: index,
-                date: date,
-                stepsByDay: stepsByDay
-            )
-        }
-    }
-
     var body: some View {
-        Group {
-            if scope == .month {
-                monthCard
-            } else {
-                weekCard
-            }
-        }
+        monthCard
         .sheet(item: $selectedDay) { day in
             DailyFieldReportView(
                 day: day,
@@ -127,6 +95,7 @@ struct ActivityCalendarCard: View {
     private var monthCard: some View {
         VStack(spacing: 14) {
             monthNavigation
+            monthSummary
 
             CalendarProvenanceLegend(
                 showsImportedHistory: monthDays.contains(where: \.isImportedFromAppleHealth),
@@ -152,7 +121,41 @@ struct ActivityCalendarCard: View {
                 }
             }
         }
-        .nanoHUDCard(padding: 16)
+        .statsPanel(padding: 16)
+    }
+
+    /// Duolingo-style tally above the grid: goal days this month and streaks.
+    private var monthSummary: some View {
+        let elapsed = monthDays.filter { $0.date.map { $0 <= today } ?? false }
+        let hits = elapsed.filter { $0.steps >= dailyGoal }.count
+        return HStack(spacing: 8) {
+            summaryChip(value: "\(hits)/\(elapsed.count)", label: "GOAL DAYS", symbol: "checkmark.seal.fill",
+                        tint: NanoTheme.teal)
+            summaryChip(value: "\(currentStreak)", label: "STREAK", symbol: "flame.fill", tint: NanoTheme.orange)
+            summaryChip(value: "\(bestStreak)", label: "BEST", symbol: "crown.fill", tint: NanoTheme.cyan)
+        }
+    }
+
+    private func summaryChip(value: String, label: String, symbol: String, tint: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(tint)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(value)
+                    .font(NanoFont.aldrich(15))
+                    .foregroundStyle(NanoTheme.text)
+                    .lineLimit(1).minimumScaleFactor(0.7)
+                Text(label)
+                    .font(NanoFont.aldrich(7)).tracking(1)
+                    .foregroundStyle(NanoTheme.mutedText)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, minHeight: 46)
+        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(NanoTheme.ink.opacity(0.045)))
+        .accessibilityElement(children: .combine)
     }
 
     private var monthNavigation: some View {
@@ -172,55 +175,6 @@ struct ActivityCalendarCard: View {
                 monthOffset += 1
             }
         }
-    }
-
-    private var weekCard: some View {
-        VStack(spacing: 16) {
-            weekNavigation
-            CalendarProvenanceLegend(
-                showsImportedHistory: weekDays.contains(where: \.isImportedFromAppleHealth),
-                journeyStartDate: weekDays.first(where: \.isJourneyStart)?.date
-            )
-            WeeklyBarChart(
-                days: weekDays,
-                dailyGoal: dailyGoal,
-                calendar: calendar,
-                onSelect: select
-            )
-        }
-        .nanoHUDCard(padding: 16)
-    }
-
-    private var weekNavigation: some View {
-        HStack {
-            CalendarArrow(systemName: "chevron.left", enabled: true) {
-                weekOffset -= 1
-            }
-
-            Spacer()
-
-            VStack(spacing: 5) {
-                Text(weekOffset == 0 ? "CURRENT WEEK" : "WEEKLY VIEW")
-                    .font(NanoFont.aldrich(10))
-                    .tracking(1)
-                    .foregroundStyle(NanoTheme.teal)
-                Text(weekDateRange)
-                    .font(NanoFont.aldrich(16))
-            }
-
-            Spacer()
-
-            CalendarArrow(systemName: "chevron.right", enabled: weekOffset < 0) {
-                weekOffset += 1
-            }
-        }
-    }
-
-    private var weekDateRange: String {
-        guard let first = weekDays.first?.date, let last = weekDays.last?.date else {
-            return "THIS WEEK"
-        }
-        return "\(first.formatted(.dateTime.month(.abbreviated).day())) – \(last.formatted(.dateTime.month(.abbreviated).day()))"
     }
 
     private func select(_ day: StatsCalendarDay) {
@@ -333,7 +287,7 @@ private struct CalendarArrow: View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(enabled ? .white : NanoTheme.mutedText)
+                .foregroundStyle(enabled ? NanoTheme.text : NanoTheme.mutedText)
                 .frame(width: 36, height: 36)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
@@ -369,10 +323,10 @@ private struct StatsCalendarCell: View {
                     VStack(spacing: 1) {
                         Text(date.formatted(.dateTime.day()))
                             .font(NanoFont.aldrich(12))
-                            .foregroundStyle(ratio >= 1 ? NanoTheme.background : .white)
+                            .foregroundStyle(ratio >= 1 ? NanoTheme.onAccent : NanoTheme.text)
                         Text(day.steps > 0 ? day.steps.formatted(.number.notation(.compactName)) : "")
                             .font(NanoFont.aldrich(8))
-                            .foregroundStyle(ratio >= 1 ? NanoTheme.background : NanoTheme.teal)
+                            .foregroundStyle(ratio >= 1 ? NanoTheme.onAccent : NanoTheme.teal)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(cellBackground(date))
@@ -413,123 +367,6 @@ private struct StatsCalendarCell: View {
     }
 
     private func accessibilityLabel(for date: Date) -> String {
-        var parts = [
-            date.formatted(.dateTime.weekday(.wide).month(.wide).day().year()),
-            "\(day.steps.formatted()) steps",
-        ]
-        if day.isImportedFromAppleHealth {
-            parts.append("imported from Apple Health")
-        } else if day.isJourneyStart {
-            parts.append("Nanobeasts journey began")
-        }
-        return parts.joined(separator: ", ")
-    }
-}
-
-private struct WeeklyBarChart: View {
-    let days: [StatsCalendarDay]
-    let dailyGoal: Int
-    let calendar: Calendar
-    let onSelect: (StatsCalendarDay) -> Void
-
-    private var scaleMaximum: Int {
-        max(dailyGoal, max(days.map(\.steps).max() ?? 1, 1))
-    }
-
-    var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            ForEach(days) { day in
-                WeeklyBar(
-                    day: day,
-                    dailyGoal: dailyGoal,
-                    scaleMaximum: scaleMaximum,
-                    calendar: calendar
-                ) {
-                    onSelect(day)
-                }
-            }
-        }
-        .frame(minHeight: 154)
-    }
-}
-
-private struct WeeklyBar: View {
-    let day: StatsCalendarDay
-    let dailyGoal: Int
-    let scaleMaximum: Int
-    let calendar: Calendar
-    let action: () -> Void
-
-    private var isFuture: Bool {
-        guard let date = day.date else { return false }
-        return calendar.startOfDay(for: date) > calendar.startOfDay(for: Date())
-    }
-
-    private var barFraction: Double {
-        guard scaleMaximum > 0 else { return 0 }
-        return min(max(Double(day.steps) / Double(scaleMaximum), day.steps > 0 ? 0.08 : 0), 1)
-    }
-
-    var body: some View {
-        VStack(spacing: 5) {
-            Text(day.date?.formatted(.dateTime.weekday(.narrow)) ?? "")
-                .font(NanoFont.aldrich(10))
-                .foregroundStyle(isFuture ? NanoTheme.mutedText : NanoTheme.teal)
-
-            Button(action: action) {
-                GeometryReader { proxy in
-                    ZStack(alignment: .bottom) {
-                        RoundedRectangle(cornerRadius: 9)
-                            .fill(NanoTheme.elevated)
-                        if day.steps > 0 && !isFuture {
-                            RoundedRectangle(cornerRadius: 9)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            NanoTheme.teal.opacity(day.steps >= dailyGoal ? 1 : 0.68),
-                                            NanoTheme.teal.opacity(0.28)
-                                        ],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    )
-                                )
-                                .frame(height: proxy.size.height * barFraction)
-                        }
-                    }
-                }
-                .frame(height: 104)
-                .padding(4)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.clear, lineWidth: 1)
-                )
-                .overlay(alignment: .topTrailing) {
-                    if day.isJourneyStart {
-                        CalendarProvenanceMarker(kind: .journeyStart)
-                            .padding(9)
-                    } else if day.isImportedFromAppleHealth {
-                        CalendarProvenanceMarker(kind: .imported)
-                            .padding(10)
-                    }
-                }
-            }
-            .buttonStyle(.plain)
-            .disabled(isFuture)
-            .opacity(isFuture ? 0.35 : 1)
-            .accessibilityLabel(accessibilityLabel)
-
-            Text(day.date?.formatted(.dateTime.day()) ?? "")
-                .font(NanoFont.aldrich(10))
-                .foregroundStyle(NanoTheme.secondaryText)
-            Text(day.steps > 0 ? day.steps.formatted(.number.notation(.compactName)) : "–")
-                .font(NanoFont.aldrich(8))
-                .foregroundStyle(day.steps > 0 ? .white : NanoTheme.mutedText)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var accessibilityLabel: String {
-        guard let date = day.date else { return "Calendar day" }
         var parts = [
             date.formatted(.dateTime.weekday(.wide).month(.wide).day().year()),
             "\(day.steps.formatted()) steps",
@@ -661,7 +498,7 @@ private struct DailyFieldReportView: View {
                     VStack(spacing: 10) {
                         Text(day.steps.formatted())
                             .font(NanoFont.aldrich(48))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(NanoTheme.text)
                         Text("STEPS RECORDED")
                             .font(NanoFont.aldrich(10))
                             .tracking(1.7)
@@ -777,7 +614,7 @@ private struct DailyFieldReportView: View {
                         VStack(alignment: .leading, spacing: 5) {
                             Text(workout.name)
                                 .font(NanoFont.aldrich(12))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(NanoTheme.text)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
 
@@ -871,7 +708,7 @@ private struct ImportedHistoryProvenanceView: View {
                 Text("APPLE HEALTH HISTORY")
                     .font(NanoFont.aldrich(10))
                     .tracking(1.1)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(NanoTheme.text)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
                 Text("Imported before your Nanobeasts journey")

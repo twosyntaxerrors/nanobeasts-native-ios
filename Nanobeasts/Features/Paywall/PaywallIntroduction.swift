@@ -20,14 +20,6 @@ struct PaywallIntroduction: View {
     var body: some View {
         VStack(spacing: 28) {
             VStack(spacing: 20) {
-                Text(milestone ?? "YOUR PLAN IS READY")
-                    .font(.system(size: 10, weight: .bold))
-                    .tracking(2)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(tint)
-                    .padding(.horizontal, 16).padding(.vertical, 8)
-                    .background(tint.opacity(0.07), in: Capsule())
-                    .overlay(Capsule().stroke(tint.opacity(0.24), lineWidth: 1))
                 Text(headline)
                     .font(.system(size: headlineSize, weight: .bold))
                     .tracking(-0.6)
@@ -213,26 +205,28 @@ struct PaywallCheckout: View {
     let summary: String
     let renewalNotice: String
     let tint: Color
+    var reassurance: String = "Cancel anytime"
     var billingPrice: String? = nil
     var billingLeadIn: String = ""
     var isPurchasing = false
     var isRestoring = false
     var isDisabled = false
     var isRestoreDisabled = false
+    var spacing: CGFloat = 12
     let onPurchase: () -> Void
     let onRestore: () -> Void
     @ScaledMetric(relativeTo: .title2) private var billingPriceSize: CGFloat = 28
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: spacing) {
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 8) {
-                    Label { Text("Cancel anytime") } icon: { SolarImage(.checkCircle, size: 18) }
+                    Label { Text(reassurance) } icon: { SolarImage(.checkCircle, size: 18) }
                     Text("·")
                     Text("Made in USA 🇺🇸")
                 }.fixedSize()
                 VStack(spacing: 6) {
-                    Label { Text("Cancel anytime") } icon: { SolarImage(.checkCircle, size: 18) }
+                    Label { Text(reassurance) } icon: { SolarImage(.checkCircle, size: 18) }
                     Text("Made in USA 🇺🇸")
                 }
             }
@@ -279,5 +273,176 @@ struct PaywallCheckout: View {
             .frame(minWidth: 44, minHeight: 44)
         Button(isRestoring ? "Restoring…" : "Restore", action: onRestore)
             .disabled(isRestoreDisabled).frame(minWidth: 44, minHeight: 44)
+    }
+}
+
+/// Mascot-led dismissal offer; localized pricing and purchases stay in the screen.
+struct LifetimeWinbackPopup: View {
+    let amount: String
+    let standardAmount: String
+    let tint: Color
+    var discountPercent: Int? = nil
+    var errorMessage: String? = nil
+    var isPurchasing = false
+    var isDisabled = false
+    var mascotImage: Image = Image("WinbackGlitchletSmiling")
+    let onPurchase: () -> Void
+    let onDismiss: () -> Void
+    @ScaledMetric(relativeTo: .title) private var titleSize: CGFloat = 26
+    @ScaledMetric(relativeTo: .largeTitle) private var discountSize: CGFloat = 58
+    @ScaledMetric(relativeTo: .title) private var priceSize: CGFloat = 32
+
+    private static let mascotSize: CGFloat = 116
+    // How far the mascot peeks above the card's top edge.
+    private static let mascotOverhang: CGFloat = 44
+    private static let cardShape = RoundedRectangle(cornerRadius: 46, style: .continuous)
+
+    var body: some View {
+        ViewThatFits(in: .vertical) {
+            content
+            ScrollView { content }
+                .scrollIndicators(.hidden)
+        }
+        .frame(maxWidth: 350)
+        .accessibilityElement(children: .contain)
+    }
+
+    private var content: some View {
+        VStack(spacing: 14) {
+            offerCard
+
+            if let errorMessage {
+                Text(errorMessage).font(.caption).foregroundStyle(.pink)
+                    .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+            }
+
+            Button(action: onPurchase) {
+                HStack(spacing: 8) {
+                    if isPurchasing { ProgressView().tint(.black) }
+                    Text(isPurchasing ? "Connecting securely…" : "Unlock Forever")
+                        .font(.headline).fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, minHeight: 56).padding(.vertical, 2)
+                .foregroundStyle(.black)
+                .background(tint, in: Capsule())
+            }
+            .buttonStyle(.plain).disabled(isDisabled)
+            .padding(.top, 10)
+
+            Button("No thanks", action: onDismiss)
+                .font(.subheadline).foregroundStyle(.white.opacity(0.65))
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .buttonStyle(.plain).disabled(isDisabled)
+        }
+        // Reserve real layout space for the mascot that peeks over the card.
+        .padding(.top, Self.mascotOverhang)
+    }
+
+    private var offerCard: some View {
+        VStack(spacing: 0) {
+            Text("Lifetime offer")
+                .font(.system(size: titleSize, weight: .bold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.42))
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let discountPercent {
+                Text("\(discountPercent)% OFF")
+                    .font(.system(size: discountSize, weight: .heavy, design: .rounded))
+                    .foregroundStyle(tint)
+                    .lineLimit(1).minimumScaleFactor(0.6)
+                    .padding(.top, 4)
+            }
+
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) { price; once }.fixedSize()
+                VStack(spacing: 0) { price; once }
+            }
+            .multilineTextAlignment(.center).foregroundStyle(.black)
+            .padding(.horizontal, 22).padding(.vertical, 10)
+            .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .padding(.top, 12)
+
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark").fontWeight(.heavy)
+                Text("Yours forever. No renewal.")
+            }
+            .font(.subheadline.weight(.semibold)).foregroundStyle(tint)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.top, 22)
+
+            VStack(spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(standardAmount).strikethrough().foregroundStyle(.white.opacity(0.38))
+                    Image(systemName: "arrow.right").font(.footnote.weight(.bold))
+                        .foregroundStyle(.white.opacity(0.38))
+                    Text(amount).foregroundStyle(.white)
+                }
+                .font(.body.weight(.bold))
+                Text("Lifetime access")
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(.white.opacity(0.42))
+            }
+            .padding(.top, 40)
+        }
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, 22)
+        .padding(.top, Self.mascotSize - Self.mascotOverhang + 40)
+        .padding(.bottom, 36)
+        .frame(maxWidth: .infinity)
+        .background {
+            Self.cardShape
+                .fill(Color(red: 0.135, green: 0.135, blue: 0.15))
+                .overlay { WinbackOfferPattern().clipShape(Self.cardShape) }
+                // Thick, lit-from-above bezel gives the card a physical edge.
+                .overlay {
+                    Self.cardShape.strokeBorder(
+                        LinearGradient(colors: [.white.opacity(0.26), .white.opacity(0.1)],
+                                       startPoint: .top, endPoint: .bottom),
+                        lineWidth: 3)
+                }
+                .shadow(color: .black.opacity(0.55), radius: 32, y: 18)
+        }
+        .overlay(alignment: .top) {
+            mascotImage.resizable().scaledToFit()
+                .frame(width: Self.mascotSize, height: Self.mascotSize)
+                .shadow(color: .black.opacity(0.25), radius: 4, y: 3)
+                .offset(y: -Self.mascotOverhang)
+                .accessibilityHidden(true)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Lifetime offer. \(discountPercent.map { "\($0) percent off. " } ?? "")Normally \(standardAmount). \(amount), paid once. No recurring payments.")
+    }
+
+    private var price: some View {
+        Text(amount).font(.system(size: priceSize, weight: .heavy, design: .rounded))
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var once: some View {
+        Text("once").font(.system(size: priceSize * 0.62, weight: .bold, design: .rounded))
+    }
+}
+
+/// Large, faint, hand-placed percent marks behind the offer (positions are unit coordinates).
+private struct WinbackOfferPattern: View {
+    private static let marks: [(x: CGFloat, y: CGFloat, size: CGFloat, angle: Double)] = [
+        (0.13, 0.07, 36, -24), (0.87, 0.08, 32, 20), (0.27, 0.19, 24, 14), (0.79, 0.2, 26, -12),
+        (0.09, 0.34, 42, 22), (0.66, 0.33, 50, -18), (0.95, 0.4, 32, 16), (0.31, 0.45, 30, -28),
+        (0.88, 0.56, 40, 24), (0.05, 0.62, 28, -14), (0.93, 0.76, 26, -22), (0.11, 0.82, 38, 18),
+        (0.47, 0.93, 26, -10), (0.83, 0.93, 34, 12)
+    ]
+
+    var body: some View {
+        Canvas { context, size in
+            for mark in Self.marks {
+                var glyphContext = context
+                glyphContext.translateBy(x: mark.x * size.width, y: mark.y * size.height)
+                glyphContext.rotate(by: .degrees(mark.angle))
+                let glyph = Text("%")
+                    .font(.system(size: mark.size, weight: .black, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.05))
+                glyphContext.draw(glyph, at: .zero)
+            }
+        }
+        .allowsHitTesting(false).accessibilityHidden(true)
     }
 }

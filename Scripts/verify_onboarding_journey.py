@@ -232,7 +232,7 @@ for mask in 1..<(1 << allReasons.count) {
 check(chosenVariants == allReasons.count * (1 << (allReasons.count - 1)), "Exercised every valid primary-goal choice across all nonempty selections")
 let allWeight = OnboardingCopy.forGoals(Set(allReasons.map(\.rawValue)), primaryGoal: WalkingMotivation.weight.rawValue)
 check(allWeight.paywallHeadline.contains("weight goal"), "All reasons with weight primary leads with the weight goal")
-check(allWeight.paywallDetail.contains("walking plan") && allWeight.paywallDetail.contains("weight goal"), "Daily walking serves the chosen outcome")
+check(allWeight.paywallDetail.contains("hatching") && allWeight.paywallDetail.contains("weight goal"), "Daily walking serves the chosen outcome")
 check(allWeight.planDetail.contains("strength training"), "The selected secondary training goal shapes the plan mechanism")
 check(OnboardingCopy.forGoals([]).motivation == nil, "Missing answers use general copy")
 check(OnboardingCopy.forGoals(["Future Goal"]).motivation == nil, "Unknown answers never invent a motivation")
@@ -315,11 +315,11 @@ for tick in 0...150 {
     previousProgress = preparation.progress
 }
 check(WalkingPlanPreparation(elapsed: 4.2).target(for: heavyChart) == 15000, "Loading finishes with the exact plan target")
-check(fitnessCopy.paywallHeadline == "Evolve your routine. Find your momentum." && fitnessCopy.paywallDetail.contains("body-composition goal"), "Fitness copy invites progress without promising fat loss")
+check(fitnessCopy.paywallHeadline == "Evolve your routine. Find your momentum." && fitnessCopy.paywallDetail.contains("strength training"), "Fitness copy invites progress without promising fat loss")
 for goal in WalkingMotivation.allCases {
     let copy = OnboardingCopy.forGoals([goal.rawValue])
     check(copy.paywallHeadline.contains(copy.paywallAccent), "Each goal's emotional headline retains its intended accent")
-    check(copy.paywallDetail.contains("Unlock"), "The visible subhead explains the value of subscribing")
+    check(!copy.paywallDetail.contains("walking plan") && copy.paywallDetail.contains("Keep"), "The subhead describes continuing the adventure rather than unlocking a plan already shown")
     for text in [copy.paywallHeadline, copy.paywallDetail, copy.planHeadline, copy.planDetail, copy.comparisonDetail] {
         check(!text.contains("Transform your body") && !text.contains("fat-burning") && !text.contains("20 miles"), "No guaranteed transformation or arbitrary fat-burning distance")
     }

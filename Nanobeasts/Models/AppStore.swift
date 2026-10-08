@@ -96,7 +96,14 @@ enum DistanceUnitPreference: String, Codable, CaseIterable, Identifiable, Sendab
 final class AppStore {
     static let premiumMonthlyProductID = "nanobeasts_native_premium_monthly"
     static let premiumYearlyProductID = "nanobeasts_native_premium_yearly"
+    static let premiumLifetimeProductID = "nanobeasts_native_premium_lifetime"
+    static let premiumLifetimeWinbackProductID = "nanobeasts_native_premium_lifetime_winback"
+    static let lifetimeOfferingID = "nanobeasts_native_lifetime"
+    static let lifetimeWinbackOfferingID = "nanobeasts_native_lifetime_winback"
+    static let lifetimeProductIDs: Set<String> = [premiumLifetimeProductID, premiumLifetimeWinbackProductID]
     static let premiumProductIDs: Set<String> = [
+        premiumLifetimeProductID,
+        premiumLifetimeWinbackProductID,
         premiumMonthlyProductID,
         premiumYearlyProductID,
     ]
@@ -621,7 +628,18 @@ final class AppStore {
         state.lastCountedJourneySteps = history.reduce(0) { $0 + $1.steps }
         state.dailyHistory = history
         state.analyticsHistory = history
-        state.hourlyAnalyticsHistory = []
+        // Screenshot fixture: each day's steps spread over the hours with an evening
+        // peak, so Rhythm shows a real pattern instead of its empty state.
+        let hourWeights = [0, 0, 0, 0, 0, 0, 2, 5, 7, 5, 4, 4, 7, 5, 4, 4, 6, 12, 13, 8, 5, 3, 1, 0]
+        let weightTotal = hourWeights.reduce(0, +)
+        state.hourlyAnalyticsHistory = history.flatMap { record in
+            hourWeights.enumerated().compactMap { hour, weight -> HourlyStepRecord? in
+                guard weight > 0,
+                      let start = Calendar.autoupdatingCurrent.date(byAdding: .hour, value: hour, to: record.day)
+                else { return nil }
+                return HourlyStepRecord(start: start, steps: record.steps * weight / weightTotal)
+            }
+        }
         state.dailyGoalHistory = goalHistory
         state.pendingLifecycleEvents =
             scenario == .evolution || scenario == .finalEvolution
@@ -1320,8 +1338,11 @@ final class AppStore {
         return true
     }
 
-    func markBadgeAwardPresented(_ badgeID: String) {
-        if hasTestingActivityPreview {
+    /// Records that a badge's celebration was seen. Only a badge that exists
+    /// solely because of the hidden step preview stays memory-only; a badge the
+    /// real journey earned is persisted, or every preview reset re-awards it.
+    func markBadgeAwardPresented(_ badgeID: String, earnedWithoutPreview: Bool = true) {
+        if hasTestingActivityPreview, !earnedWithoutPreview {
             testingPresentedBadgeIDs.insert(badgeID)
             return
         }
@@ -1453,8 +1474,12 @@ final class AppStore {
         for await result in StoreKit.Transaction.currentEntitlements {
             guard case let .verified(transaction) = result,
                   Self.premiumProductIDs.contains(transaction.productID),
-                  transaction.revocationDate == nil, !transaction.isUpgraded,
-                  let paidThrough = transaction.expirationDate else { continue }
+                  transaction.revocationDate == nil, !transaction.isUpgraded else { continue }
+            if Self.lifetimeProductIDs.contains(transaction.productID), transaction.productType == .nonConsumable {
+                return NanoSubscriptionAccess(premium: true, onboardingCompleted: onboardingCompleted,
+                    expiresAt: nil, updatedAt: Date())
+            }
+            guard let paidThrough = transaction.expirationDate else { continue }
             var expiration = paidThrough
             if paidThrough <= Date(),
                let status = await transaction.subscriptionStatus,
@@ -1540,7 +1565,7 @@ final class AppStore {
            defaults.bool(forKey: Self.testStorePremiumUnlockKey) { access.isDevelopmentOnly = true }
 #endif
         if let appleAccess, appleAccess.isDevelopmentOnly == true || !resolvedPremium
-            || (expiration.map { (appleAccess.expiresAt ?? .distantPast) > $0 } ?? false) {
+            || (expiration.map { (appleAccess.expiresAt ?? .distantFuture) > $0 } ?? false) {
             saveSubscriptionAccess(appleAccess)
         } else {
             saveSubscriptionAccess(access)

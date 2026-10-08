@@ -214,28 +214,12 @@ enum WorkoutReplayVideoExporter {
         let frame = track.frame(at: routeProgress)
         var points = Array(projected.prefix(max(0, frame.coordinates.count - 1)))
         if let marker = frame.marker { points.append(snapshot.point(for: marker)) }
-        let path = CGMutablePath()
-        let breaks = Set(frame.breakIndices)
-        for (index, point) in points.enumerated() {
-            let positioned = CGPoint(x: point.x + mapFrame.minX, y: point.y + mapFrame.minY)
-            if index == 0 || breaks.contains(index) { path.move(to: positioned) }
-            else { path.addLine(to: positioned) }
-        }
         profile["pathGeometry", default: 0] += Date().timeIntervalSince(phase)
         phase = Date()
-        // An alpha-only mask avoids rebuilding a full-color transparency layer.
-        // The map and its native attribution are already in the cached base.
-        try prepared.drawFog(clearing: path, into: context)
+        // The walked tiles are the route; the map and attribution are in the cached base.
+        try prepared.drawFog(frame: frame, snapshot: snapshot, accent: accent, into: context)
         profile["fogDraw", default: 0] += Date().timeIntervalSince(phase)
         phase = Date()
-        context.addPath(path)
-        context.setLineWidth(9)
-        context.setLineCap(.round)
-        context.setLineJoin(.round)
-        context.setStrokeColor(accent.cgColor)
-        context.setShadow(offset: .zero, blur: 10, color: accent.withAlphaComponent(0.5).cgColor)
-        context.strokePath()
-        context.setShadow(offset: .zero, blur: 0)
         if let point = points.last {
             let rect = CGRect(x: point.x + mapFrame.minX - 52, y: point.y + mapFrame.minY - 52, width: 104, height: 104)
             prepared.marker.draw(at: CGPoint(x: rect.minX - 2, y: rect.minY - 2))
@@ -260,8 +244,10 @@ enum WorkoutReplayVideoExporter {
 /// Owned by one export worker. Decode, resize and color-convert static artwork once.
 private final class WorkoutReplayPreparedFrames {
     private let base: CGContext
-    private let fogMask: CGContext
     private let fogRect: CGRect
+    private var revealedTiles: Set<WorkoutHexKey> = []
+    private var completedRoutePointCount = 0
+    private let hexRims = CGMutablePath()
     let marker: UIImage
     let ending: UIImage
 
@@ -270,13 +256,6 @@ private final class WorkoutReplayPreparedFrames {
         let map = WorkoutReplayVideoExporter.mapFrame
         fogRect = CGRect(x: map.minX, y: map.minY, width: map.width, height: map.height - 65)
         base = try Self.bitmap(size: canvas)
-        guard let mask = CGContext(data: nil, width: Int(fogRect.width), height: Int(fogRect.height),
-            bitsPerComponent: 8, bytesPerRow: Int(fogRect.width), space: nil,
-            bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.alphaOnly.rawValue)) else { throw WorkoutReplayVideoError.image }
-        fogMask = mask
-        mask.translateBy(x: 0, y: fogRect.height)
-        mask.scaleBy(x: 1, y: -1)
-        mask.translateBy(x: -fogRect.minX, y: -fogRect.minY)
 
         UIGraphicsPushContext(base)
         UIColor(red: 0.025, green: 0.03, blue: 0.03, alpha: 1).setFill()
@@ -317,29 +296,25 @@ private final class WorkoutReplayPreparedFrames {
         }
     }
 
-    func drawFog(clearing path: CGPath, into context: CGContext) throws {
-        fogMask.setBlendMode(.copy)
-        fogMask.setFillColor(UIColor.white.cgColor)
-        fogMask.fill(fogRect)
-        fogMask.setBlendMode(.destinationOut)
-        fogMask.setLineCap(.round)
-        fogMask.setLineJoin(.round)
-        for (width, alpha) in [(260.0, 0.12), (242.0, 0.16), (224.0, 0.23), (205.0, 0.34), (186.0, 0.50), (168.0, 1.0)] {
-            fogMask.addPath(path)
-            fogMask.setStrokeColor(UIColor.white.withAlphaComponent(alpha).cgColor)
-            fogMask.setLineWidth(width)
-            fogMask.strokePath()
+    func drawFog(frame: WorkoutRouteReplayTrack.Frame, snapshot: MKMapSnapshotter.Snapshot,
+                 accent: UIColor, into context: CGContext) throws {
+        let incoming = WorkoutHexGrid.tiles(route: frame.coordinates, breaks: frame.breakIndices,
+            startingAt: max(0, completedRoutePointCount - 1))
+        completedRoutePointCount = max(0, frame.coordinates.count - 1)
+        let fresh = incoming.subtracting(revealedTiles)
+        revealedTiles.formUnion(incoming)
+        for tile in fresh {
+            hexRims.addPath(WorkoutTrailPainter.hexPath([tile]) { vertex in
+                let p = snapshot.point(for: vertex.coordinate)
+                return CGPoint(x: p.x + fogRect.minX, y: p.y + fogRect.minY)
+            })
         }
-        guard let image = fogMask.makeImage() else { throw WorkoutReplayVideoError.image }
+        // The same accent trail as the live map, kept inside the map card.
         context.saveGState()
-        defer { context.restoreGState() }
-        // CGImage masks use image coordinates; map them into UIKit's top-down canvas.
-        context.translateBy(x: fogRect.minX, y: fogRect.maxY)
-        context.scaleBy(x: 1, y: -1)
-        let bounds = CGRect(origin: .zero, size: fogRect.size)
-        context.clip(to: bounds, mask: image)
-        context.setFillColor(UIColor(red: 0.64, green: 0.10, blue: 0.56, alpha: 0.62).cgColor)
-        context.fill(bounds)
+        context.clip(to: fogRect)
+        WorkoutTrailPainter.paint(explored: CGMutablePath(), walking: hexRims, accent: accent,
+                                  isDark: true, rimWidth: 3, in: context)
+        context.restoreGState()
     }
 
     private static func bitmap(size: CGSize) throws -> CGContext {

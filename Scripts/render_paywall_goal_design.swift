@@ -41,15 +41,16 @@ import SwiftUI
                     Text("PREVIEW · NO CHARGE").font(.system(size: 9, weight: .medium))
                 }.foregroundStyle(.white.opacity(0.55))
             } offers: {
-                let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 18)) : AnyLayout(HStackLayout(spacing: 12))
-                layout {
-                    PaywallPlanCard(title: "MONTHLY", price: "$4.99", period: "/month", detail: "No free trial", selected: false, tint: tint) {}
-                    PaywallPlanCard(title: "YEARLY", price: "$29.99", period: "/year", detail: "Free trial for 7 days", badge: "SAVE 50%", highlightsDetail: true, selected: true, tint: tint) {}
+                HStack(spacing: 12) {
+                    PaywallPlanCard(title: "MONTHLY", price: "$4.99", period: "/month",
+                        detail: "Billed monthly", selected: false, tint: tint) {}
+                    PaywallPlanCard(title: "LIFETIME", price: "$29.99", period: " once",
+                        detail: "Yours forever. No renewal.", badge: "BEST VALUE", selected: true, tint: tint) {}
                 }.padding(.top, 10)
             } checkout: {
-                PaywallCheckout(title: "Try for $0", summary: "7 days free, then $29.99/year.",
-                    renewalNotice: "Renews automatically. Cancel at least 24 hours before your trial ends to avoid being charged.",
-                    tint: tint, onPurchase: {}, onRestore: {})
+                PaywallCheckout(title: "Unlock Forever", summary: "$29.99, paid once for lifetime access.",
+                    renewalNotice: "Billed today. No recurring payments.",
+                    tint: tint, reassurance: "One-time purchase", onPurchase: {}, onRestore: {})
             }
             .frame(width: width)
             .background(PaywallBackdrop(tint: tint))

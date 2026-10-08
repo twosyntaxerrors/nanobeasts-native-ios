@@ -1,0 +1,112 @@
+{
+  "product_details": [
+    {
+      "current_price": {
+        "amount": 499,
+        "amount_micros": 4990000,
+        "currency": "USD"
+      },
+      "default_purchase_option_id": "base_option",
+      "default_subscription_option_id": "base_option",
+      "description": null,
+      "identifier": "nanobeasts_test_premium_monthly_v2",
+      "normal_period_duration": "P1M",
+      "product_type": "subscription",
+      "purchase_options": {
+        "base_option": {
+          "base": {
+            "cycle_count": 1,
+            "period_duration": "P1M",
+            "price": {
+              "amount": 499,
+              "amount_micros": 4990000,
+              "currency": "USD"
+            }
+          },
+          "discount": null,
+          "id": "base_option",
+          "intro_price": null,
+          "price_id": "prc6025b5de170e41e69aa9",
+          "trial": null
+        }
+      },
+      "subscription_options": {
+        "base_option": {
+          "base": {
+            "cycle_count": 1,
+            "period_duration": "P1M",
+            "price": {
+              "amount": 499,
+              "amount_micros": 4990000,
+              "currency": "USD"
+            }
+          },
+          "discount": null,
+          "id": "base_option",
+          "intro_price": null,
+          "price_id": "prc6025b5de170e41e69aa9",
+          "trial": null
+        }
+      },
+      "title": "Nanobeasts Pro Monthly"
+    },
+    {
+      "current_price": {
+        "amount": 2999,
+        "amount_micros": 29990000,
+        "currency": "USD"
+      },
+      "default_purchase_option_id": "offer6af3257fa82544cc90ce3eef560a5c4f",
+      "default_subscription_option_id": "offer6af3257fa82544cc90ce3eef560a5c4f",
+      "description": null,
+      "identifier": "nanobeasts_test_premium_yearly_v2",
+      "normal_period_duration": "P1Y",
+      "product_type": "subscription",
+      "purchase_options": {
+        "offer6af3257fa82544cc90ce3eef560a5c4f": {
+          "base": {
+            "cycle_count": 1,
+            "period_duration": "P1Y",
+            "price": {
+              "amount": 2999,
+              "amount_micros": 29990000,
+              "currency": "USD"
+            }
+          },
+          "discount": null,
+          "id": "offer6af3257fa82544cc90ce3eef560a5c4f",
+          "intro_price": null,
+          "price_id": "prc26f62572920240eda18d",
+          "trial": {
+            "cycle_count": 1,
+            "period_duration": "P1W",
+            "price": null
+          }
+        }
+      },
+      "subscription_options": {
+        "offer6af3257fa82544cc90ce3eef560a5c4f": {
+          "base": {
+            "cycle_count": 1,
+            "period_duration": "P1Y",
+            "price": {
+              "amount": 2999,
+              "amount_micros": 29990000,
+              "currency": "USD"
+            }
+          },
+          "discount": null,
+          "id": "offer6af3257fa82544cc90ce3eef560a5c4f",
+          "intro_price": null,
+          "price_id": "prc26f62572920240eda18d",
+          "trial": {
+            "cycle_count": 1,
+            "period_duration": "P1W",
+            "price": null
+          }
+        }
+      },
+      "title": "Nanobeasts Pro Yearly"
+    }
+  ]
+}

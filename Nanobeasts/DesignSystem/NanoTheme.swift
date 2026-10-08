@@ -15,20 +15,111 @@ enum NanoAccentPreference {
     }
 }
 
+/// The user's Appearance choice. Dark is the original look and the default.
+enum NanoAppearance: String, CaseIterable, Identifiable {
+    case dark, light, system
+
+    static let storageKey = "nanobeasts.appearance.v1"
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .dark: "Dark"
+        case .light: "Light"
+        case .system: "System"
+        }
+    }
+
+    /// `nil` follows the iPhone's own setting.
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .dark: .dark
+        case .light: .light
+        case .system: nil
+        }
+    }
+}
+
+#if canImport(UIKit)
+typealias NanoPlatformColor = UIColor
+#else
+typealias NanoPlatformColor = NSColor
+#endif
+
+extension NanoPlatformColor {
+    convenience init(hex: UInt32, alpha: CGFloat = 1) {
+        self.init(red: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255,
+                  blue: CGFloat(hex & 0xFF) / 255, alpha: alpha)
+    }
+
+    /// A deeper, slightly richer tone of the same hue, so bright accents stay
+    /// readable on the light palette.
+    func deepened(_ factor: CGFloat = 0.58) -> NanoPlatformColor {
+        var hue: CGFloat = 0, saturation: CGFloat = 0, brightness: CGFloat = 0, alpha: CGFloat = 0
+        #if canImport(UIKit)
+        guard getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha) else { return self }
+        #else
+        guard let rgb = usingColorSpace(.deviceRGB) else { return self }
+        rgb.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+        #endif
+        return NanoPlatformColor(hue: hue, saturation: min(saturation * 1.12, 1),
+                                 brightness: brightness * factor, alpha: alpha)
+    }
+}
+
+extension Color {
+    /// Resolves per view: forced-dark screens keep dark values inside a light app.
+    static func nano(dark: NanoPlatformColor, light: NanoPlatformColor) -> Color {
+        #if canImport(UIKit)
+        Color(uiColor: UIColor { $0.userInterfaceStyle == .light ? light : dark })
+        #else
+        Color(nsColor: NSColor(name: nil) { $0.bestMatch(from: [.aqua, .darkAqua]) == .aqua ? light : dark })
+        #endif
+    }
+
+    /// Bright in Dark; a deeper tone of the same hue in Light.
+    static func nanoVivid(_ color: Color, lightFactor: CGFloat = 0.58) -> Color {
+        let base = NanoPlatformColor(color)
+        return nano(dark: base, light: base.deepened(lightFactor))
+    }
+}
+
 enum NanoTheme {
-    static let background = Color(red: 0.035, green: 0.035, blue: 0.043)
-    static let surface = Color(red: 0.094, green: 0.094, blue: 0.106)
-    static let elevated = Color(red: 0.153, green: 0.153, blue: 0.165)
-    static var teal: Color { NanoAccentPreference.current.color }
-    static var cyan: Color { NanoAccentPreference.current.secondaryColor }
-    static let pink = Color(red: 0.957, green: 0.447, blue: 0.714)
-    static let green = Color(red: 0.525, green: 0.937, blue: 0.675)
-    static let orange = Color(red: 0.984, green: 0.467, blue: 0.086)
-    static let purple = Color(red: 0.655, green: 0.545, blue: 0.980)
-    static let danger = Color(red: 0.937, green: 0.267, blue: 0.267)
-    static let secondaryText = Color(red: 0.631, green: 0.631, blue: 0.667)
-    static let mutedText = Color(red: 0.322, green: 0.322, blue: 0.357)
-    static let border = elevated
+    // Light palette: Japanese colours for UI (nuevo.tokyo) — no pure white or black.
+    // Shironeri page, Gofuniro cards, Shiraumenezu insets, Shironezu borders, sumi ink.
+    static let background = Color.nano(dark: NanoPlatformColor(red: 0.035, green: 0.035, blue: 0.043, alpha: 1),
+                                       light: NanoPlatformColor(hex: 0xF3F3F2))
+    static let surface = Color.nano(dark: NanoPlatformColor(red: 0.094, green: 0.094, blue: 0.106, alpha: 1),
+                                    light: NanoPlatformColor(hex: 0xFFFFFC))
+    /// Cards and panels that sit on the page.
+    static let panel = Color.nano(dark: NanoPlatformColor(red: 0.063, green: 0.063, blue: 0.075, alpha: 1),
+                                  light: NanoPlatformColor(hex: 0xFFFFFC))
+    static let elevated = Color.nano(dark: NanoPlatformColor(red: 0.153, green: 0.153, blue: 0.165, alpha: 1),
+                                     light: NanoPlatformColor(hex: 0xE5E4E6))
+    static let border = Color.nano(dark: NanoPlatformColor(red: 0.153, green: 0.153, blue: 0.165, alpha: 1),
+                                   light: NanoPlatformColor(hex: 0xDCDDDD))
+    /// Primary text.
+    static let text = Color.nano(dark: .white, light: NanoPlatformColor(hex: 0x1D1E22))
+    /// The contrasting base for hairlines, tints and inset fills (use with opacity).
+    static let ink = Color.nano(dark: .white, light: NanoPlatformColor(hex: 0x1D1E22))
+    static let secondaryText = Color.nano(dark: NanoPlatformColor(red: 0.631, green: 0.631, blue: 0.667, alpha: 1),
+                                          light: NanoPlatformColor(hex: 0x5D5F67))
+    static let mutedText = Color.nano(dark: NanoPlatformColor(red: 0.322, green: 0.322, blue: 0.357, alpha: 1),
+                                      light: NanoPlatformColor(hex: 0x8B8D95))
+    /// Shadows read heavy on a light page, so they soften there.
+    static let shadow = Color.nano(dark: .black, light: NanoPlatformColor(white: 0.25, alpha: 0.45))
+
+    static var teal: Color { .nanoVivid(NanoAccentPreference.current.color) }
+    static var cyan: Color { .nanoVivid(NanoAccentPreference.current.secondaryColor) }
+    /// Text and icons placed on an accent fill.
+    static let onAccent = Color.nano(dark: .black, light: NanoPlatformColor(hex: 0xFFFFFC))
+
+    static let pink = Color.nanoVivid(Color(red: 0.957, green: 0.447, blue: 0.714), lightFactor: 0.72)
+    static let green = Color.nanoVivid(Color(red: 0.525, green: 0.937, blue: 0.675), lightFactor: 0.6)
+    static let orange = Color.nanoVivid(Color(red: 0.984, green: 0.467, blue: 0.086), lightFactor: 0.85)
+    static let purple = Color.nanoVivid(Color(red: 0.655, green: 0.545, blue: 0.980), lightFactor: 0.72)
+    static let danger = Color.nanoVivid(Color(red: 0.937, green: 0.267, blue: 0.267), lightFactor: 0.85)
     static var glow: Color { teal.opacity(0.22) }
 
     static var backgroundGradient: LinearGradient {

@@ -1,0 +1,925 @@
+{
+  "project_id": "proj83b947c7",
+  "product_id": "prod431d497fe4",
+  "store": "app_store",
+  "store_status": {
+    "status": "needs_action",
+    "raw_store_status": "READY_TO_SUBMIT",
+    "read_error_reason": null
+  },
+  "common": {
+    "pricing": {
+      "territory_prices": {
+        "AE": {
+          "amount_micros": 19990000,
+          "currency": "AED"
+        },
+        "AF": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "AG": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "AI": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "AL": {
+          "amount_micros": 5990000,
+          "currency": "USD"
+        },
+        "AM": {
+          "amount_micros": 5990000,
+          "currency": "USD"
+        },
+        "AO": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "AR": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "AT": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "AU": {
+          "amount_micros": 7990000,
+          "currency": "AUD"
+        },
+        "AZ": {
+          "amount_micros": 5990000,
+          "currency": "USD"
+        },
+        "BA": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "BB": {
+          "amount_micros": 5990000,
+          "currency": "USD"
+        },
+        "BE": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "BF": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "BG": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "BH": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "BJ": {
+          "amount_micros": 5990000,
+          "currency": "USD"
+        },
+        "BM": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "BN": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "BO": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "BR": {
+          "amount_micros": 29900000,
+          "currency": "BRL"
+        },
+        "BS": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "BT": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "BW": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "BY": {
+          "amount_micros": 5990000,
+          "currency": "USD"
+        },
+        "BZ": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "CA": {
+          "amount_micros": 6990000,
+          "currency": "CAD"
+        },
+        "CD": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "CG": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "CH": {
+          "amount_micros": 4000000,
+          "currency": "CHF"
+        },
+        "CI": {
+          "amount_micros": 5990000,
+          "currency": "USD"
+        },
+        "CL": {
+          "amount_micros": 5990000000,
+          "currency": "CLP"
+        },
+        "CM": {
+          "amount_micros": 5990000,
+          "currency": "USD"
+        },
+        "CN": {
+          "amount_micros": 38000000,
+          "currency": "CNY"
+        },
+        "CO": {
+          "amount_micros": 24900000000,
+          "currency": "COP"
+        },
+        "CR": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "CV": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "CY": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "CZ": {
+          "amount_micros": 129000000,
+          "currency": "CZK"
+        },
+        "DE": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "DK": {
+          "amount_micros": 39000000,
+          "currency": "DKK"
+        },
+        "DM": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "DO": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "DZ": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "EC": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "EE": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "EG": {
+          "amount_micros": 249990000,
+          "currency": "EGP"
+        },
+        "ES": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "FI": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "FJ": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "FM": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "FR": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "GA": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "GB": {
+          "amount_micros": 4990000,
+          "currency": "GBP"
+        },
+        "GD": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "GE": {
+          "amount_micros": 5990000,
+          "currency": "USD"
+        },
+        "GH": {
+          "amount_micros": 5990000,
+          "currency": "USD"
+        },
+        "GM": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "GR": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "GT": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "GW": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "GY": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "HK": {
+          "amount_micros": 38000000,
+          "currency": "HKD"
+        },
+        "HN": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "HR": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "HU": {
+          "amount_micros": 1990000000,
+          "currency": "HUF"
+        },
+        "ID": {
+          "amount_micros": 89000000000,
+          "currency": "IDR"
+        },
+        "IE": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "IL": {
+          "amount_micros": 17900000,
+          "currency": "ILS"
+        },
+        "IN": {
+          "amount_micros": 499000000,
+          "currency": "INR"
+        },
+        "IQ": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "IS": {
+          "amount_micros": 5990000,
+          "currency": "USD"
+        },
+        "IT": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "JM": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "JO": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "JP": {
+          "amount_micros": 800000000,
+          "currency": "JPY"
+        },
+        "KE": {
+          "amount_micros": 5990000,
+          "currency": "USD"
+        },
+        "KG": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "KH": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "KN": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "KR": {
+          "amount_micros": 7700000000,
+          "currency": "KRW"
+        },
+        "KW": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "KY": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "KZ": {
+          "amount_micros": 2990000000,
+          "currency": "KZT"
+        },
+        "LA": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "LB": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "LC": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "LK": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "LR": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "LT": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "LU": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "LV": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "LY": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "MA": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "MD": {
+          "amount_micros": 5990000,
+          "currency": "USD"
+        },
+        "ME": {
+          "amount_micros": 4990000,
+          "currency": "EUR"
+        },
+        "MG": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "MK": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "ML": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "MM": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "MN": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "MO": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "MR": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "MS": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "MT": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "MU": {
+          "amount_micros": 5990000,
+          "currency": "USD"
+        },
+        "MV": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "MW": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "MX": {
+          "amount_micros": 99000000,
+          "currency": "MXN"
+        },
+        "MY": {
+          "amount_micros": 22900000,
+          "currency": "MYR"
+        },
+        "MZ": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "NA": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "NE": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "NG": {
+          "amount_micros": 7900000000,
+          "currency": "NGN"
+        },
+        "NI": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "NL": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "NO": {
+          "amount_micros": 59000000,
+          "currency": "NOK"
+        },
+        "NP": {
+          "amount_micros": 5990000,
+          "currency": "USD"
+        },
+        "NR": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "NZ": {
+          "amount_micros": 9990000,
+          "currency": "NZD"
+        },
+        "OM": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "PA": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "PE": {
+          "amount_micros": 22900000,
+          "currency": "PEN"
+        },
+        "PG": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "PH": {
+          "amount_micros": 299000000,
+          "currency": "PHP"
+        },
+        "PK": {
+          "amount_micros": 1300000000,
+          "currency": "PKR"
+        },
+        "PL": {
+          "amount_micros": 24990000,
+          "currency": "PLN"
+        },
+        "PT": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "PW": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "PY": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "QA": {
+          "amount_micros": 19990000,
+          "currency": "QAR"
+        },
+        "RO": {
+          "amount_micros": 29990000,
+          "currency": "RON"
+        },
+        "RS": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "RU": {
+          "amount_micros": 449000000,
+          "currency": "RUB"
+        },
+        "RW": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "SA": {
+          "amount_micros": 19990000,
+          "currency": "SAR"
+        },
+        "SB": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "SC": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "SE": {
+          "amount_micros": 69000000,
+          "currency": "SEK"
+        },
+        "SG": {
+          "amount_micros": 6980000,
+          "currency": "SGD"
+        },
+        "SI": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "SK": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "SL": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "SN": {
+          "amount_micros": 5990000,
+          "currency": "USD"
+        },
+        "SR": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "ST": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "SV": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "SZ": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "TC": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "TD": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "TH": {
+          "amount_micros": 199000000,
+          "currency": "THB"
+        },
+        "TJ": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "TM": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "TN": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "TO": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "TR": {
+          "amount_micros": 249990000,
+          "currency": "TRY"
+        },
+        "TT": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "TW": {
+          "amount_micros": 150000000,
+          "currency": "TWD"
+        },
+        "TZ": {
+          "amount_micros": 14900000000,
+          "currency": "TZS"
+        },
+        "UA": {
+          "amount_micros": 5990000,
+          "currency": "USD"
+        },
+        "UG": {
+          "amount_micros": 5990000,
+          "currency": "USD"
+        },
+        "US": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "UY": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "UZ": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "VC": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "VE": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "VG": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "VN": {
+          "amount_micros": 149000000000,
+          "currency": "VND"
+        },
+        "VU": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "XK": {
+          "amount_micros": 5990000,
+          "currency": "EUR"
+        },
+        "YE": {
+          "amount_micros": 4990000,
+          "currency": "USD"
+        },
+        "ZA": {
+          "amount_micros": 99990000,
+          "currency": "ZAR"
+        },
+        "ZM": {
+          "amount_micros": 5990000,
+          "currency": "USD"
+        },
+        "ZW": {
+          "amount_micros": 5990000,
+          "currency": "USD"
+        }
+      }
+    },
+    "availability": {
+      "territories": {
+        "AE": true,
+        "AF": true,
+        "AG": true,
+        "AI": true,
+        "AL": true,
+        "AM": true,
+        "AO": true,
+        "AR": true,
+        "AT": true,
+        "AU": true,
+        "AZ": true,
+        "BA": true,
+        "BB": true,
+        "BE": true,
+        "BF": true,
+        "BG": true,
+        "BH": true,
+        "BJ": true,
+        "BM": true,
+        "BN": true,
+        "BO": true,
+        "BR": true,
+        "BS": true,
+        "BT": true,
+        "BW": true,
+        "BY": true,
+        "BZ": true,
+        "CA": true,
+        "CD": true,
+        "CG": true,
+        "CH": true,
+        "CI": true,
+        "CL": true,
+        "CM": true,
+        "CN": true,
+        "CO": true,
+        "CR": true,
+        "CV": true,
+        "CY": true,
+        "CZ": true,
+        "DE": true,
+        "DK": true,
+        "DM": true,
+        "DO": true,
+        "DZ": true,
+        "EC": true,
+        "EE": true,
+        "EG": true,
+        "ES": true,
+        "FI": true,
+        "FJ": true,
+        "FM": true,
+        "FR": true,
+        "GA": true,
+        "GB": true,
+        "GD": true,
+        "GE": true,
+        "GH": true,
+        "GM": true,
+        "GR": true,
+        "GT": true,
+        "GW": true,
+        "GY": true,
+        "HK": true,
+        "HN": true,
+        "HR": true,
+        "HU": true,
+        "ID": true,
+        "IE": true,
+        "IL": true,
+        "IN": true,
+        "IQ": true,
+        "IS": true,
+        "IT": true,
+        "JM": true,
+        "JO": true,
+        "JP": true,
+        "KE": true,
+        "KG": true,
+        "KH": true,
+        "KN": true,
+        "KR": true,
+        "KW": true,
+        "KY": true,
+        "KZ": true,
+        "LA": true,
+        "LB": true,
+        "LC": true,
+        "LK": true,
+        "LR": true,
+        "LT": true,
+        "LU": true,
+        "LV": true,
+        "LY": true,
+        "MA": true,
+        "MD": true,
+        "ME": true,
+        "MG": true,
+        "MK": true,
+        "ML": true,
+        "MM": true,
+        "MN": true,
+        "MO": true,
+        "MR": true,
+        "MS": true,
+        "MT": true,
+        "MU": true,
+        "MV": true,
+        "MW": true,
+        "MX": true,
+        "MY": true,
+        "MZ": true,
+        "NA": true,
+        "NE": true,
+        "NG": true,
+        "NI": true,
+        "NL": true,
+        "NO": true,
+        "NP": true,
+        "NR": true,
+        "NZ": true,
+        "OM": true,
+        "PA": true,
+        "PE": true,
+        "PG": true,
+        "PH": true,
+        "PK": true,
+        "PL": true,
+        "PT": true,
+        "PW": true,
+        "PY": true,
+        "QA": true,
+        "RO": true,
+        "RS": true,
+        "RU": true,
+        "RW": true,
+        "SA": true,
+        "SB": true,
+        "SC": true,
+        "SE": true,
+        "SG": true,
+        "SI": true,
+        "SK": true,
+        "SL": true,
+        "SN": true,
+        "SR": true,
+        "ST": true,
+        "SV": true,
+        "SZ": true,
+        "TC": true,
+        "TD": true,
+        "TH": true,
+        "TJ": true,
+        "TM": true,
+        "TN": true,
+        "TO": true,
+        "TR": true,
+        "TT": true,
+        "TW": true,
+        "TZ": true,
+        "UA": true,
+        "UG": true,
+        "US": true,
+        "UY": true,
+        "UZ": true,
+        "VC": true,
+        "VE": true,
+        "VG": true,
+        "VN": true,
+        "VU": true,
+        "XK": true,
+        "YE": true,
+        "ZA": true,
+        "ZM": true,
+        "ZW": true
+      },
+      "available_in_new_territories": true
+    },
+    "localizations": {
+      "en-US": {
+        "name": "Premium Monthly",
+        "description": "All premium features monthly."
+      }
+    },
+    "title": "Premium Monthly",
+    "duration": "ONE_MONTH"
+  },
+  "store_state": {
+    "subscription_group_localizations": {
+      "en-US": {
+        "name": "Nanobeasts Premium"
+      }
+    },
+    "subscription_group_name": "Nanobeasts Premium",
+    "trial_offer": null,
+    "preserve_current_subscription_price": false,
+    "privacy_policy_url": "https://nanobeasts.app/privacy",
+    "review_information": {
+      "screenshot": {
+        "screenshot_id": "d8952965-fe5f-44b0-a245-3acb52680b9f",
+        "filename": "SOURCE",
+        "file_size": 2275873,
+        "source_file_checksum": "f1edcd7b2104974479e1df6215682ec4"
+      },
+      "notes": "Nanobeasts Native is a freemium walking app. This one-month subscription unlocks Nanobeasts Pro: unlimited hatch and evolution progress beyond the free 2,500-step daily progression cap, Apple Health progress, weekly creature drops, and deeper walking insights. No account is required. Open Settings and tap App Store Paywall Preview to display the paywall. Apple Health access is optional. Restore is available on the paywall."
+    }
+  },
+  "store_fetched_at": "2026-10-05T07:50:35Z"
+}

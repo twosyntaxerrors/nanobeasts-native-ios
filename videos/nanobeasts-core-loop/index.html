@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=1080, height=1666">
+<title>Nanobeasts · Core Loop</title>
+<script src="assets/gsap.min.js"></script>
+<style>
+@font-face{font-family:NanoDisplay;src:url('assets/SF-Pro-Display-Bold.otf')}@font-face{font-family:NanoText;src:url('assets/SF-Pro-Text-Regular.otf')}@font-face{font-family:Aldrich;src:url('assets/Aldrich.ttf')}@font-face{font-family:SpaceMono;src:url('assets/SpaceMono-Bold.ttf')}
+:root{--bg:#09090b;--surface:#171b1a;--surface-2:#202625;--ink:#f6faf9;--muted:#a1a1aa;--teal:#59e5d3;--cyan:#19cbe5;--gold:#f6c95d;--orange:#fb7716}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:NanoText}#root{position:relative;width:1080px;height:1666px;overflow:hidden;background:var(--bg)}
+.ground{position:absolute;inset:0;background:#09090b}.grid{position:absolute;inset:0;background-image:linear-gradient(#59e5d30f 1px,transparent 1px),linear-gradient(90deg,#59e5d30f 1px,transparent 1px);background-size:90px 90px;mask-image:radial-gradient(ellipse at 50% 53%,black,transparent 76%)}.glow{position:absolute;left:26px;top:210px;width:1028px;height:1230px;border-radius:50%;background:radial-gradient(ellipse,#59e5d322,transparent 68%)}.field-ring{position:absolute;left:82px;top:585px;width:916px;height:916px;border:1px solid #59e5d326;border-radius:50%;transform-origin:center}.field-ring:before{content:'';position:absolute;inset:56px;border:1px dashed #59e5d32d;border-radius:50%}.field-ring:after{content:'';position:absolute;top:27px;left:284px;width:12px;height:12px;border-radius:50%;background:var(--teal);box-shadow:0 0 24px #59e5d3}
+.brand{position:absolute;left:72px;top:43px;display:flex;gap:14px;align-items:center;font:26px Aldrich;letter-spacing:5px;color:var(--teal)}.brand-dot{width:10px;height:10px;background:var(--teal);border-radius:50%}.demo-label{position:absolute;right:72px;top:47px;font:21px Aldrich;letter-spacing:3px;color:#b2bfbc}
+.scene{position:absolute;inset:0;opacity:0}.scene-title{position:absolute;left:72px;top:122px;width:936px;font:76px/1.01 NanoDisplay;letter-spacing:-2px;margin:0}.scene-title span{display:block}.accent{color:var(--teal)}.scene-kicker{position:absolute;left:77px;top:1367px;color:var(--teal);font:22px Aldrich;writing-mode:vertical-rl;transform:rotate(180deg);letter-spacing:4px}.scene-footer{position:absolute;left:72px;top:1567px;width:936px;font:30px/1.25 NanoText;color:#c2d0cd;text-align:center}.scene-step{position:absolute;right:77px;top:1370px;font:22px Aldrich;color:#b2bfbc;letter-spacing:2px}.rail{position:absolute;left:72px;bottom:27px;width:936px;height:3px;background:#59e5d326}.rail-fill{width:100%;height:3px;background:var(--teal);transform-origin:left;transform:scaleX(0)}
+.panel{position:absolute;left:100px;top:312px;width:880px;height:940px;border:2px solid #59e5d354;border-radius:48px;background:linear-gradient(140deg,#15221f,#101514 72%);box-shadow:0 35px 80px #000b,0 0 70px #59e5d314;overflow:hidden}.panel:before{content:'';position:absolute;inset:24px;border:1px solid #59e5d31b;border-radius:32px;pointer-events:none}.panel-top{position:absolute;left:54px;right:54px;top:48px;display:flex;justify-content:space-between;align-items:center}.panel-label{font:23px Aldrich;letter-spacing:3px;color:var(--teal)}.panel-status{font:19px Aldrich;letter-spacing:1.5px;color:#b7c9c3}.panel-status:before{content:'';display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:11px;background:var(--teal);box-shadow:0 0 18px var(--teal)}
+.egg-stage{position:absolute;left:196px;top:132px;width:488px;height:488px;display:grid;place-items:center}.egg-orbit{position:absolute;inset:26px;border:3px solid #59e5d331;border-radius:50%;transform:rotate(-28deg)}.egg-orbit:before,.egg-orbit:after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:var(--teal);box-shadow:0 0 28px #59e5d3}.egg-orbit:before{left:55px;top:62px}.egg-orbit:after{right:47px;bottom:80px;background:var(--cyan)}.egg-halo{position:absolute;width:346px;height:346px;border-radius:50%;background:radial-gradient(circle,#59e5d329,transparent 70%);filter:blur(2px)}.egg-art{position:relative;width:330px;height:330px;object-fit:contain;filter:drop-shadow(0 25px 22px #0009)}.step-pulse{position:absolute;width:64px;height:64px;border:3px solid var(--teal);border-radius:50%;opacity:0}.egg-caption{position:absolute;top:638px;left:0;width:100%;text-align:center;font:25px Aldrich;letter-spacing:2px;color:#d9e6e1}.egg-caption strong{display:block;color:var(--ink);font:48px SpaceMono;letter-spacing:-2px;margin-top:12px}.egg-caption strong span{font:24px Aldrich;color:var(--muted);letter-spacing:0}.meter{position:absolute;left:72px;right:72px;top:787px}.meter-head{display:flex;justify-content:space-between;font:18px Aldrich;letter-spacing:1.5px;color:var(--muted)}.meter-head span:last-child{color:var(--teal)}.meter-bar{height:17px;margin-top:15px;border:1px solid #59e5d35e;border-radius:20px;background:#59e5d313;overflow:hidden}.meter-fill{height:100%;width:0;transform-origin:left;background:linear-gradient(90deg,var(--cyan),var(--teal));border-radius:20px}.panel-note{position:absolute;left:72px;right:72px;top:854px;padding-top:22px;border-top:1px solid #59e5d32e;display:flex;justify-content:space-between;font:16px Aldrich;letter-spacing:1px;color:#9eafa9}.panel-note strong{color:var(--ink);font:20px SpaceMono}
+.hatch-panel{top:310px;height:944px;background:radial-gradient(ellipse at 50% 44%,#183c35,#101514 67%)}.hatch-panel .panel-top{top:46px}.hatch-kicker{position:absolute;top:142px;left:0;width:100%;text-align:center;font:22px Aldrich;color:var(--teal);letter-spacing:4px}.hatch-title{position:absolute;top:186px;left:0;width:100%;text-align:center;font:49px NanoDisplay}.hatch-title span{display:block;color:var(--teal)}.hatch-stage{position:absolute;top:286px;left:0;width:100%;height:420px;display:flex;align-items:center;justify-content:center;gap:18px}.hatch-stage:before{content:'+';font:52px NanoText;color:#59e5d377;position:absolute;top:177px;left:381px}.hatch-egg{width:228px;height:228px;object-fit:contain;filter:drop-shadow(0 20px 16px #0008)}.hatch-arrow{width:80px;height:3px;background:var(--teal);position:relative}.hatch-arrow:after{content:'';position:absolute;right:0;top:-8px;border-left:16px solid var(--teal);border-top:9px solid transparent;border-bottom:9px solid transparent}.hatch-creature{width:330px;height:330px;object-fit:contain;filter:drop-shadow(0 24px 19px #0009);opacity:0}.spark{position:absolute;width:11px;height:11px;background:var(--teal);border-radius:50%;opacity:0;box-shadow:0 0 18px var(--teal)}.spark.s1{top:313px;left:222px}.spark.s2{top:385px;left:710px;background:var(--gold);box-shadow:0 0 18px var(--gold)}.spark.s3{top:532px;left:192px;background:var(--cyan);box-shadow:0 0 18px var(--cyan)}.spark.s4{top:566px;left:753px}.hatch-meta{position:absolute;left:72px;right:72px;top:767px;display:flex;justify-content:center;gap:70px;font:18px Aldrich;letter-spacing:1.5px;color:#b3c3be}.hatch-meta strong{display:block;margin-top:8px;text-align:center;color:var(--ink);font:24px SpaceMono}.hatch-note{position:absolute;left:72px;right:72px;top:850px;border-top:1px solid #59e5d32e;padding-top:23px;text-align:center;font:21px NanoText;color:#b7c9c3}.hatch-note span{color:var(--teal)}
+.dex-panel{top:310px;height:944px;background:#111515}.dex-header{position:absolute;left:54px;right:54px;top:45px;display:flex;justify-content:space-between;align-items:flex-start}.dex-header h2{margin:0;font:38px Aldrich;letter-spacing:3px}.dex-header p{margin:8px 0 0;color:var(--muted);font:18px Aldrich;letter-spacing:1px}.dex-count{font:20px Aldrich;letter-spacing:1px;color:var(--teal);text-align:right}.dex-card{position:absolute;left:54px;right:54px;top:181px;height:514px;border-radius:34px;background:linear-gradient(140deg,#1a2623,#111515 80%);border:2px solid #59e5d35e;padding:31px}.dex-card:before{content:'';position:absolute;inset:18px;border:1px solid #59e5d321;border-radius:24px}.dex-card-top{position:relative;display:flex;justify-content:space-between;font:17px Aldrich;letter-spacing:2px;color:var(--muted)}.dex-card-top span:last-child{color:var(--teal)}.dex-creature{position:absolute;left:196px;top:66px;width:360px;height:280px;object-fit:contain;filter:drop-shadow(0 24px 21px #0009)}.dex-name{position:absolute;left:0;right:0;top:352px;text-align:center;font:45px NanoDisplay}.dex-type{position:absolute;left:0;right:0;top:414px;text-align:center;font:17px Aldrich;letter-spacing:3px;color:var(--teal)}.unlock-pill{position:absolute;left:54px;right:54px;top:737px;height:69px;display:flex;align-items:center;justify-content:center;gap:16px;border-radius:19px;background:#59e5d321;border:1px solid #59e5d35e;color:var(--teal);font:20px Aldrich;letter-spacing:2px}.unlock-pill:before{content:'✓';display:grid;place-items:center;width:31px;height:31px;border-radius:50%;background:var(--teal);color:#0b1715;font:24px NanoDisplay}.dex-note{position:absolute;left:72px;right:72px;top:852px;border-top:1px solid #59e5d32e;padding-top:22px;text-align:center;font:21px NanoText;color:#b7c9c3}.dex-note span{color:var(--teal)}
+.badge-panel{top:310px;height:944px;background:radial-gradient(ellipse at 50% 42%,#24291b,#111515 70%)}.badge-kicker{position:absolute;left:0;right:0;top:57px;text-align:center;font:22px Aldrich;color:var(--gold);letter-spacing:4px}.badge-panel h2{position:absolute;left:0;right:0;top:105px;text-align:center;margin:0;font:51px NanoDisplay}.badge-panel h2 span{display:block;color:var(--teal)}.badge-stage{position:absolute;top:230px;left:0;width:100%;height:420px;display:grid;place-items:center}.badge-halo{position:absolute;width:395px;height:395px;border-radius:50%;background:radial-gradient(circle,#f6c95d26,transparent 66%);filter:blur(3px)}.badge-art{position:relative;width:340px;height:340px;object-fit:contain;filter:drop-shadow(0 24px 18px #0009);opacity:0}.badge-ring{position:absolute;width:425px;height:425px;border:2px solid #f6c95d65;border-radius:50%;transform:rotate(-20deg);opacity:0}.badge-ring:before{content:'';position:absolute;inset:24px;border:1px dashed #f6c95d61;border-radius:50%}.badge-meta{position:absolute;top:683px;left:0;right:0;text-align:center}.badge-meta strong{display:block;font:39px Aldrich;letter-spacing:2px}.badge-meta span{display:block;margin-top:13px;font:19px NanoText;color:#c3cfc6}.badge-rule{position:absolute;left:72px;right:72px;top:806px;height:1px;background:#f6c95d4c}.badge-loop{position:absolute;left:90px;right:90px;top:853px;display:flex;justify-content:space-between;align-items:center;color:#b7c9c3;font:15px Aldrich;letter-spacing:1px;text-align:center}.badge-loop:before{content:'';position:absolute;left:54px;right:54px;top:17px;height:2px;background:linear-gradient(90deg,var(--teal),var(--gold));z-index:0}.loop-node{position:relative;z-index:1;width:98px}.loop-icon{width:36px;height:36px;margin:0 auto 10px;object-fit:contain;filter:drop-shadow(0 5px 5px #0008)}.loop-node:last-child .loop-icon{width:42px;height:42px;margin-bottom:4px}
+.particle{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--teal);box-shadow:0 0 20px var(--teal);opacity:0}.p1{left:140px;top:520px}.p2{left:902px;top:470px;background:var(--gold);box-shadow:0 0 20px var(--gold)}.p3{left:184px;top:882px;background:var(--cyan);box-shadow:0 0 20px var(--cyan)}.p4{left:868px;top:1004px}.p5{left:118px;top:1177px;background:var(--gold);box-shadow:0 0 20px var(--gold)}
+</style>
+</head>
+<body><div id="root" data-composition-id="main" data-width="1080" data-height="1666" data-start="0" data-duration="15.8" data-fps="30">
+<div id="ground" class="ground clip" data-start="0" data-duration="15.8" data-track-index="0"></div><div class="grid"></div><div class="glow"></div><div class="field-ring" data-layout-allow-overflow></div>
+<div class="brand"><span class="brand-dot"></span>NANOBEASTS</div><div class="demo-label">HOW IT WORKS</div><div class="rail"><div class="rail-fill" id="rail-fill"></div></div>
+
+<section id="scene-steps" class="scene clip" data-start="0" data-duration="15.8" data-track-index="1" data-layout-allow-overlap>
+  <h1 id="title-steps" class="scene-title"><span>WALK TO</span><span class="accent">HATCH.</span></h1>
+  <div class="scene-kicker" id="kicker-steps">01 / WALK</div><div class="scene-step">STEPS BECOME RESEARCH ENERGY</div>
+  <div class="panel" id="incubation-panel">
+    <div class="panel-top"><span class="panel-label">TUTORIA EGG</span><span class="panel-status">INCUBATING</span></div>
+    <div class="egg-stage"><div id="egg-orbit" class="egg-orbit"></div><div class="egg-halo"></div><img id="egg-art" class="egg-art" src="assets/tutorial-egg.png" alt="Tutoria egg"><div id="step-pulse" class="step-pulse"></div></div>
+    <div class="egg-caption">TODAY’S STEPS<strong><span id="step-count">0</span> <span>/ 2,000</span></strong></div>
+    <div class="meter"><div class="meter-head"><span>HATCH ENERGY</span><span id="energy-label">0%</span></div><div class="meter-bar"><div id="egg-progress" class="meter-fill"></div></div></div>
+    <div class="panel-note"><span>REAL STEPS IN</span><strong>NEW COMPANION OUT</strong></div>
+  </div>
+  <div id="footer-steps" class="scene-footer">Every step gives your next companion a little more life.</div>
+</section>
+
+<section id="scene-hatch" class="scene clip" data-start="3.35" data-duration="15.8" data-track-index="2" data-layout-allow-overlap>
+  <h1 id="title-hatch" class="scene-title"><span>STEPS BECOME</span><span class="accent">LIFE.</span></h1>
+  <div class="scene-kicker">02 / HATCH</div><div class="scene-step">MILESTONE REACHED</div>
+  <div class="panel hatch-panel" id="hatch-panel">
+    <div class="panel-top"><span class="panel-label">FIELD RESEARCH</span><span class="panel-status">MILESTONE REACHED</span></div>
+    <div class="hatch-kicker">YOUR WALK MADE THIS HAPPEN</div><div class="hatch-title">TUTORIA<span>HATCHED</span></div>
+    <div class="hatch-stage"><img id="hatch-egg" class="hatch-egg" src="assets/tutorial-egg.png" alt="Tutoria egg"><div class="hatch-arrow"></div><img id="hatch-creature" class="hatch-creature" src="assets/tutoria.png" alt="Tutoria Nanobeast"></div>
+    <div class="spark s1"></div><div class="spark s2"></div><div class="spark s3"></div><div class="spark s4"></div>
+    <div class="hatch-meta"><div>STAGE<strong>01</strong></div><div>FORM<strong>DISCOVERED</strong></div></div><div class="hatch-note">Your steps turn an <span>egg</span> into a living companion.</div>
+  </div>
+  <div id="footer-hatch" class="scene-footer">The more you walk, the more of the world comes alive.</div>
+</section>
+
+<section id="scene-dex" class="scene clip" data-start="6.95" data-duration="15.8" data-track-index="3" data-layout-allow-overlap>
+  <h1 id="title-dex" class="scene-title"><span>UNLOCK THE</span><span class="accent">FIELD DEX.</span></h1>
+  <div class="scene-kicker">03 / DISCOVER</div><div class="scene-step">A NEW ENTRY IS WAITING</div>
+  <div class="panel dex-panel" id="dex-panel">
+    <div class="dex-header"><div><h2>FIELD DEX</h2><p>Catalog what your steps uncover.</p></div><div class="dex-count">01 / 73<br><span>DISCOVERED</span></div></div>
+    <div class="dex-card" id="dex-card"><div class="dex-card-top"><span>#001 · NORMAL</span><span>NEW ENTRY</span></div><img id="dex-creature" class="dex-creature" src="assets/tutoria.png" alt="Tutoria field Dex entry"><div class="dex-name">Tutoria</div><div class="dex-type">THE FIRST COMPANION</div></div>
+    <div class="unlock-pill" id="unlock-pill">FIELD DEX ENTRY UNLOCKED</div><div class="dex-note">Every creature you hatch becomes part of your <span>living Pokédex.</span></div>
+  </div>
+  <div id="footer-dex" class="scene-footer">Walk farther. Discover more.</div>
+</section>
+
+<section id="scene-badge" class="scene clip" data-start="10.55" data-duration="15.8" data-track-index="4" data-layout-allow-overlap>
+  <h1 id="title-badge" class="scene-title"><span>KEEP WALKING.</span><span class="accent">EARN THE NEXT BADGE.</span></h1>
+  <div class="scene-kicker">04 / ACHIEVE</div><div class="scene-step">CONSISTENCY BECOMES PROGRESS</div>
+  <div class="panel badge-panel" id="badge-panel">
+    <div class="badge-kicker">ACHIEVEMENT UNLOCKED</div><h2>5-DAY<span>WALKING STREAK</span></h2>
+    <div class="badge-stage"><div id="badge-ring" class="badge-ring"></div><div class="badge-halo"></div><img id="badge-art" class="badge-art" src="assets/streak-5.png" alt="Five-day walking streak badge"></div>
+    <div class="badge-meta"><strong>+1 BADGE</strong><span>Small steps add up to a collection worth keeping.</span></div><div class="badge-rule"></div>
+    <div class="badge-loop"><div class="loop-node"><img class="loop-icon" src="assets/tutorial-egg.png" alt="Egg"><span>WALK</span></div><div class="loop-node"><img class="loop-icon" src="assets/tutoria.png" alt="Tutoria"><span>HATCH</span></div><div class="loop-node"><img class="loop-icon" src="assets/tutoria.png" alt="Dex entry"><span>DISCOVER</span></div><div class="loop-node"><img class="loop-icon" src="assets/streak-5.png" alt="Badge"><span>ACHIEVE</span></div></div>
+  </div>
+  <div id="footer-badge" class="scene-footer">Walk. Discover. Repeat.</div>
+</section>
+
+<div class="particle p1"></div><div class="particle p2"></div><div class="particle p3"></div><div class="particle p4"></div><div class="particle p5"></div>
+</div>
+<script>
+window.__timelines=window.__timelines||{};
+const tl=gsap.timeline({paused:true});
+const progress={steps:0};
+function updateProgress(){const steps=Math.round(progress.steps);document.getElementById('step-count').textContent=steps.toLocaleString('en-US');const pct=Math.round(steps/20);document.getElementById('energy-label').textContent=`${pct}%`;}
+function sceneIn(selector,title,footer,t){tl.fromTo(selector,{opacity:0},{opacity:1,duration:.42,ease:'power2.out',immediateRender:false},t);tl.fromTo([title,footer],{opacity:0,y:22},{opacity:1,y:0,duration:.48,ease:'power3.out',immediateRender:false},t+.08);}
+function sceneOut(selector,title,footer,t){tl.to([title,footer],{opacity:0,y:-18,duration:.3,ease:'power2.in'},t);tl.to(selector,{opacity:0,duration:.36,ease:'power2.inOut'},t+.04);}
+tl.to('.field-ring',{rotation:360,duration:15.8,ease:'none'},0);
+tl.fromTo('.glow',{scale:.96,opacity:.72},{scale:1.12,opacity:1,duration:7.9,yoyo:true,repeat:1,ease:'sine.inOut'},0);
+tl.fromTo('.rail-fill',{scaleX:0},{scaleX:1,duration:15.35,ease:'none'},0);
+tl.to('#scene-steps',{opacity:1,duration:0},0);
+tl.fromTo('#title-steps',{opacity:0,y:26},{opacity:1,y:0,duration:.55,ease:'power3.out'},.12);
+tl.fromTo('#footer-steps',{opacity:0,y:18},{opacity:1,y:0,duration:.48,ease:'power3.out'},.3);
+tl.fromTo('#incubation-panel',{opacity:0,y:55,scale:.96},{opacity:1,y:0,scale:1,duration:.7,ease:'back.out(1.15)'},.2);
+tl.fromTo('#egg-art',{opacity:0,scale:.72,rotation:-8},{opacity:1,scale:1,rotation:0,duration:.72,ease:'back.out(1.4)'},.45);
+tl.fromTo('#egg-progress',{scaleX:0},{scaleX:1,duration:2.75,ease:'power2.inOut'},.62);
+tl.to(progress,{steps:2000,duration:2.75,ease:'power2.inOut',onUpdate:updateProgress},.62);
+tl.to('#egg-art',{y:-11,duration:.6,yoyo:true,repeat:4,ease:'sine.inOut'},.72);
+tl.to('#egg-orbit',{rotation:332,duration:3.1,ease:'none'},.55);
+tl.fromTo('#step-pulse',{scale:.35,opacity:0},{scale:1.5,opacity:.75,duration:.56,yoyo:true,repeat:4,ease:'sine.out'},.9);
+tl.fromTo('.p1,.p2,.p3,.p4,.p5',{opacity:0,scale:.2},{opacity:.8,scale:1,duration:.45,stagger:.18,ease:'back.out(2)'},.6);
+
+sceneIn('#scene-hatch','#title-hatch','#footer-hatch',3.35);sceneOut('#scene-steps','#title-steps','#footer-steps',3.35);
+tl.fromTo('#hatch-panel',{opacity:0,y:42,scale:.97},{opacity:1,y:0,scale:1,duration:.65,ease:'power3.out'},3.45);
+tl.to('#hatch-egg',{opacity:0,scale:.35,rotation:18,duration:.55,ease:'power2.in'},4.18);
+tl.fromTo('#hatch-creature',{opacity:0,scale:.35,y:28},{opacity:1,scale:1,y:0,duration:.8,ease:'back.out(1.5)'},4.45);
+tl.fromTo('.spark',{opacity:0,scale:.2},{opacity:1,scale:1,duration:.36,stagger:.12,ease:'back.out(2)'},4.3);
+tl.to('.spark',{opacity:0,scale:.3,duration:.4,stagger:.08,ease:'power2.in'},5.65);
+tl.fromTo('.hatch-note',{opacity:0,y:14},{opacity:1,y:0,duration:.45,ease:'power3.out'},5.1);
+
+sceneIn('#scene-dex','#title-dex','#footer-dex',6.95);sceneOut('#scene-hatch','#title-hatch','#footer-hatch',6.95);
+tl.fromTo('#dex-panel',{opacity:0,x:48,scale:.97},{opacity:1,x:0,scale:1,duration:.62,ease:'power3.out'},7.05);
+tl.fromTo('#dex-card',{opacity:0,y:34},{opacity:1,y:0,duration:.52,ease:'power3.out'},7.35);
+tl.fromTo('#dex-creature',{opacity:0,scale:.74,rotation:-8},{opacity:1,scale:1,rotation:0,duration:.65,ease:'back.out(1.3)'},7.58);
+tl.fromTo('#unlock-pill',{opacity:0,y:18,scale:.96},{opacity:1,y:0,scale:1,duration:.48,ease:'back.out(1.35)'},8.45);
+tl.fromTo('.dex-note',{opacity:0,y:12},{opacity:1,y:0,duration:.42,ease:'power3.out'},8.82);
+
+sceneIn('#scene-badge','#title-badge','#footer-badge',10.55);sceneOut('#scene-dex','#title-dex','#footer-dex',10.55);
+tl.fromTo('#badge-panel',{opacity:0,y:44,scale:.97},{opacity:1,y:0,scale:1,duration:.62,ease:'power3.out'},10.65);
+tl.fromTo('#badge-ring',{opacity:0,scale:.55,rotation:-70},{opacity:1,scale:1,rotation:0,duration:.75,ease:'back.out(1.2)'},10.92);
+tl.fromTo('#badge-art',{opacity:0,scale:.42,rotation:-16},{opacity:1,scale:1,rotation:0,duration:.9,ease:'back.out(1.25)'},11.06);
+tl.fromTo('.badge-meta',{opacity:0,y:18},{opacity:1,y:0,duration:.5,ease:'power3.out'},12.05);
+tl.fromTo('.badge-loop',{opacity:0,y:15},{opacity:1,y:0,duration:.5,ease:'power3.out'},12.65);
+tl.to('.badge-ring',{rotation:340,duration:2.1,ease:'none'},11.05);
+tl.to('.p1,.p2,.p3,.p4,.p5',{x:24,y:-18,opacity:.4,duration:2.4,stagger:.08,ease:'sine.inOut'},11.15);
+tl.to('#scene-badge',{opacity:0,duration:.35,ease:'power2.inOut'},15.42);
+tl.to('#scene-steps',{opacity:1,duration:.35,ease:'power2.inOut'},15.42);
+tl.to('#title-steps,#footer-steps',{opacity:1,y:0,duration:.35,ease:'power2.out'},15.42);
+tl.to('#rail-fill',{scaleX:0,duration:.35,ease:'power2.inOut'},15.42);
+tl.to(progress,{steps:0,duration:0,onUpdate:updateProgress},15.42);
+tl.to('#egg-progress',{scaleX:0,duration:0},15.42);
+window.__timelines.main=tl;
+</script>
+</body></html>

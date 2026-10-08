@@ -1,0 +1,20 @@
+[
+  {
+    "bundle": "com.twosyntaxerrors.nanobeasts.native",
+    "id": "Z9KTG6NW37",
+    "uuid": "77218d44-2715-421f-a364-ff1d0e71ad7b",
+    "name": "Nanobeasts Native App Store 2026-09-07"
+  },
+  {
+    "bundle": "com.twosyntaxerrors.nanobeasts.native.watchkitapp",
+    "id": "S4Q9HCKD8Q",
+    "uuid": "a46be292-19f6-4d3f-a135-630bdd9e1a1b",
+    "name": "Nanobeasts Native Watch App Store 2026-09-07"
+  },
+  {
+    "bundle": "com.twosyntaxerrors.nanobeasts.native.widgets",
+    "id": "76R5592XUY",
+    "uuid": "6d88fcfc-d062-421c-a848-5a8b04d77627",
+    "name": "Nanobeasts Native Widgets App Store 2026-09-07"
+  }
+]

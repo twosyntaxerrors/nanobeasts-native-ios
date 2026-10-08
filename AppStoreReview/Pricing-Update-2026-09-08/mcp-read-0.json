@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\n  \"store\": \"test_store\",\n  \"project_id\": \"proj83b947c7\",\n  \"product_id\": \"prodbbddb1a876\",\n  \"store_status\": {\n    \"status\": \"ok\",\n    \"raw_store_status\": null\n  },\n  \"common\": {\n    \"pricing\": {\n      \"currency_prices\": {\n        \"USD\": {\n          \"amount_micros\": 32990000\n        }\n      }\n    }\n  },\n  \"store_state\": {},\n  \"store_fetched_at\": \"2026-09-08T22:23:40Z\"\n}"
+    }
+  ],
+  "isError": false
+}

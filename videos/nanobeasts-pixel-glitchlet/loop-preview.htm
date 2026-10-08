@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Glitchlet splash preview</title>
+  <style>
+    @font-face { font-family: Aldrich; src: url("assets/Aldrich_400Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; min-height: 100%; background: #000; }
+    body { min-height: 100dvh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .phone-canvas { --phone-width: min(100vw, 390px, calc(100dvh * 6 / 13)); width: var(--phone-width); aspect-ratio: 6 / 13; display: flex; flex-direction: column; gap: calc(var(--phone-width) * 24 / 390); align-items: center; justify-content: center; background-color: #000; background-image: linear-gradient(rgba(134,240,171,.035) 0.7px, transparent 0.7px), linear-gradient(90deg, rgba(134,240,171,.035) 0.7px, transparent 0.7px); background-size: calc(var(--phone-width) * 24 / 390) calc(var(--phone-width) * 24 / 390); }
+    .sprite-window { width: 26.666666667%; aspect-ratio: 1; overflow: hidden; }
+    .sprite-sheet { display: block; width: 800%; height: auto; max-width: none; image-rendering: pixelated; animation: run 0.8s steps(8, end) infinite; }
+    .wordmark { font: 400 calc(var(--phone-width) * 24 / 390)/1.2 Aldrich; display: flex; gap: calc(var(--phone-width) * 3 / 390); color: #fff; white-space: nowrap; }
+    .wordmark-letter { display: inline-block; opacity: 0; animation-duration: 2.4s; animation-timing-function: cubic-bezier(0,0,.58,1); animation-iteration-count: infinite; }
+    .wordmark-letter:nth-child(1) { animation-name: reveal-0; }
+    @keyframes reveal-0 { 0%, 5.000000% { opacity: 0; transform: translateY(calc(var(--phone-width) * 4 / 390)); } 12.500000%, 100% { opacity: 1; transform: translateY(0); } }
+    .wordmark-letter:nth-child(2) { animation-name: reveal-1; }
+    @keyframes reveal-1 { 0%, 8.541667% { opacity: 0; transform: translateY(calc(var(--phone-width) * 4 / 390)); } 16.041667%, 100% { opacity: 1; transform: translateY(0); } }
+    .wordmark-letter:nth-child(3) { animation-name: reveal-2; }
+    @keyframes reveal-2 { 0%, 12.083333% { opacity: 0; transform: translateY(calc(var(--phone-width) * 4 / 390)); } 19.583333%, 100% { opacity: 1; transform: translateY(0); } }
+    .wordmark-letter:nth-child(4) { animation-name: reveal-3; }
+    @keyframes reveal-3 { 0%, 15.625000% { opacity: 0; transform: translateY(calc(var(--phone-width) * 4 / 390)); } 23.125000%, 100% { opacity: 1; transform: translateY(0); } }
+    .wordmark-letter:nth-child(5) { animation-name: reveal-4; }
+    @keyframes reveal-4 { 0%, 19.166667% { opacity: 0; transform: translateY(calc(var(--phone-width) * 4 / 390)); } 26.666667%, 100% { opacity: 1; transform: translateY(0); } }
+    .wordmark-letter:nth-child(6) { animation-name: reveal-5; }
+    @keyframes reveal-5 { 0%, 22.708333% { opacity: 0; transform: translateY(calc(var(--phone-width) * 4 / 390)); } 30.208333%, 100% { opacity: 1; transform: translateY(0); } }
+    .wordmark-letter:nth-child(7) { animation-name: reveal-6; }
+    @keyframes reveal-6 { 0%, 26.250000% { opacity: 0; transform: translateY(calc(var(--phone-width) * 4 / 390)); } 33.750000%, 100% { opacity: 1; transform: translateY(0); } }
+    .wordmark-letter:nth-child(8) { animation-name: reveal-7; }
+    @keyframes reveal-7 { 0%, 29.791667% { opacity: 0; transform: translateY(calc(var(--phone-width) * 4 / 390)); } 37.291667%, 100% { opacity: 1; transform: translateY(0); } }
+    .wordmark-letter:nth-child(9) { animation-name: reveal-8; }
+    @keyframes reveal-8 { 0%, 33.333333% { opacity: 0; transform: translateY(calc(var(--phone-width) * 4 / 390)); } 40.833333%, 100% { opacity: 1; transform: translateY(0); } }
+    .wordmark-letter:nth-child(10) { animation-name: reveal-9; }
+    @keyframes reveal-9 { 0%, 36.875000% { opacity: 0; transform: translateY(calc(var(--phone-width) * 4 / 390)); } 44.375000%, 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes run { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+    @media (prefers-reduced-motion: reduce) { .sprite-sheet { animation: none; } .wordmark-letter { animation: none; opacity: 1; transform: none; } }
+  </style>
+</head>
+<body>
+  <main class="phone-canvas" aria-label="Nanobeasts splash preview">
+    <div class="sprite-window" role="img" aria-label="Pixel Glitchlet jogging in place">
+      <img class="sprite-sheet" src="assets/glitchlet-run-sheet.png" width="768" height="96" alt="" draggable="false" />
+    </div>
+    <div class="wordmark" aria-label="NANOBEASTS"><span class="wordmark-letter" aria-hidden="true">N</span><span class="wordmark-letter" aria-hidden="true">A</span><span class="wordmark-letter" aria-hidden="true">N</span><span class="wordmark-letter" aria-hidden="true">O</span><span class="wordmark-letter" aria-hidden="true">B</span><span class="wordmark-letter" aria-hidden="true">E</span><span class="wordmark-letter" aria-hidden="true">A</span><span class="wordmark-letter" aria-hidden="true">S</span><span class="wordmark-letter" aria-hidden="true">T</span><span class="wordmark-letter" aria-hidden="true">S</span></div>
+  </main>
+</body>
+</html>

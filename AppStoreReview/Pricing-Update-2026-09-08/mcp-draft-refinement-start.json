@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Paywall AI Editor edit started.\nTask: Nm0Altq3ZMzqOA4CJ3AJtIQr5fu3ZS33\nStatus: queued\nMessage: Paywall AI Editor edit task queued. Image-heavy edits can take 1-5 minutes.\nTiming: Paywall edits usually finish sooner, but image-generation edits can take several minutes.\nDo not retry or start another edit for this request unless this task fails.\nPoll: call get-paywall-ai-task with task_id \"Nm0Altq3ZMzqOA4CJ3AJtIQr5fu3ZS33\" in about 15 seconds, then keep polling until the status is succeeded or failed."
+    }
+  ],
+  "isError": false
+}

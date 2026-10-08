@@ -408,7 +408,7 @@ private struct DailyGoalCompletionCard: View {
 
                 Text("\(goal.formatted()) steps reached")
                     .font(.system(size: 27, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(NanoTheme.text)
                     .multilineTextAlignment(.center)
 
                 Text(
@@ -442,7 +442,7 @@ private struct DailyGoalCompletionCard: View {
             RoundedRectangle(cornerRadius: 26, style: .continuous)
                 .fill(NanoTheme.surface.opacity(0.97))
                 .stroke(NanoTheme.teal.opacity(0.62), lineWidth: 1)
-                .shadow(color: .black.opacity(0.55), radius: 30, y: 14)
+                .shadow(color: NanoTheme.shadow.opacity(0.55), radius: 30, y: 14)
         )
         .accessibilityElement(children: .combine)
     }
@@ -507,7 +507,7 @@ struct LabHeader: View {
                         Text(streak.formatted())
                             .font(NanoFont.spaceMono(16, bold: true))
                             .monospacedDigit()
-                            .foregroundStyle(.white)
+                            .foregroundStyle(NanoTheme.text)
 
                         Text(streak == 1 ? "DAY" : "DAYS")
                             .font(NanoFont.aldrich(8))
@@ -850,7 +850,7 @@ struct TodayStepsSection: View {
                     energy: animationEnergy
                 )
                     .font(.system(size: 52, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(.white)
+                    .foregroundStyle(NanoTheme.text)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
                 Text("/ \(dailyGoal.formatted())")

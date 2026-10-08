@@ -1,0 +1,55 @@
+{
+  "appId": "6794927950",
+  "appInfoId": "bb97207d-3181-4a4c-a942-2faa1a09d1dd",
+  "version": "1.0",
+  "versionId": "32278c73-aaf4-41a9-b5c4-d168047ab1d1",
+  "dir": "AppStoreReview/Metadata-2026-09-07",
+  "dryRun": false,
+  "applied": true,
+  "includes": [
+    "localizations"
+  ],
+  "adds": [],
+  "updates": [
+    {
+      "key": "version:1.0:en-US:description",
+      "scope": "version",
+      "locale": "en-US",
+      "version": "1.0",
+      "field": "description",
+      "reason": "field value differs",
+      "from": "Nanobeasts turns walking into a creature collection game.\n\nEvery step helps hatch new eggs, evolve Nanobeasts, and grow your research lab. Set a daily step goal, build streaks, unlock badges, and watch your collection expand as you move.\n\nInside Nanobeasts you can:\n- Hatch and evolve creatures by walking\n- Track steps, streaks, distance, calories, and active minutes\n- Explore your growing Dex and revisit discoveries\n- Review progress in a stats dashboard with badges and history\n- Use reminders to stay consistent with your walking habit\n\nPremium unlocks deeper collection progress, new weekly creature drops, custom lab colors, and Apple Health syncing for more complete tracking, including Apple Watch activity.\n\nNanobeasts is built to make walking feel more rewarding, more consistent, and a lot more fun.\n\nPrivacy Policy: https://nanobeasts.app/privacy\nTerms of Use: https://nanobeasts.app/terms",
+      "to": "Turn your daily steps into a growing creature collection.\n\nWalk to hatch eggs, evolve Nanobeasts, and discover new companions. Set a daily step goal, build streaks, collect badges, and explore your Field Dex.\n\nYOUR MOVEMENT, AT A GLANCE\nTrack steps and activity with Apple Health. Review your progress, history, and milestones on iPhone.\n\nTAKE YOUR COMPANION ON A WALK\nThe Apple Watch app puts your current creature or egg beside your step progress. See your weekly steps, hourly activity, distance, active energy, and exercise time. Swipe to choose a workout and follow live stats as you move.\n\nREMEMBER THE JOURNEY\nRecord outdoor walks and other supported workouts. Review your workout time, steps, distance, pace, and active energy on iPhone. With location and route recording enabled, see where you went and share a workout summary.\n\nMAKE IT YOURS\nChoose your daily goal and reminders, and find privacy information and subscription management in Settings.\n\nNanobeasts Pro removes the free daily creature-progression limit. Apple Health activity tracking remains available without Pro. Subscriptions renew automatically unless canceled through your App Store account.\n\nPrivacy Policy: https://nanobeasts.app/privacy\nTerms of Use: https://nanobeasts.app/terms"
+    },
+    {
+      "key": "version:1.0:en-US:promotionalText",
+      "scope": "version",
+      "locale": "en-US",
+      "version": "1.0",
+      "field": "promotionalText",
+      "reason": "field value differs",
+      "from": "Walk to hatch creatures, build streaks, unlock badges, and make your daily steps feel like progress.",
+      "to": "Walk with your Nanobeast. Hatch and evolve creatures with your steps, track workouts on Apple Watch, and revisit your adventures on iPhone."
+    }
+  ],
+  "deletes": [],
+  "apiCalls": [
+    {
+      "operation": "update_localization",
+      "scope": "version",
+      "count": 1
+    }
+  ],
+  "actions": [
+    {
+      "scope": "version",
+      "locale": "en-US",
+      "version": "1.0",
+      "action": "update",
+      "status": "succeeded",
+      "localizationId": "a1235984-ab7f-4aa2-b5fe-aae317136b3a"
+    }
+  ],
+  "total": 1,
+  "succeeded": 1
+}

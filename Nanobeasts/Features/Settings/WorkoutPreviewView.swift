@@ -14,6 +14,10 @@ struct WorkoutView: View {
     @StateObject private var workoutTracker = WorkoutSessionTracker.shared
     @StateObject private var historyStore = WorkoutHistoryStore()
 
+    @StateObject private var exploration = WorkoutExplorationProgress()
+    @State private var completedExploration = WorkoutExplorationRecap()
+    @StateObject private var zoneCelebrations = WorkoutZoneCelebrations.shared
+    @State private var setupSheet: WorkoutSetupSheet?
     @State private var phase: WorkoutPreviewPhase = .setup
     @State private var hubSection: WorkoutHubSection = .start
     @State private var selectedHistoryWorkout: WorkoutHistoryRecord?
@@ -51,24 +55,41 @@ struct WorkoutView: View {
     @State private var locationStartMessage = ""
     private let simulatesTerritory: Bool
     private let resumingSessionID: String?
+    /// Simulator screenshot fixture: opens straight on a finished walk's summary.
+    private let previewsSummary: Bool
+    /// Simulator screenshot fixture: the start screen's map over the same walks.
+    private let previewsMap: Bool
 
     init(
         simulatesTerritory: Bool = false,
-        resumingSessionID: String? = nil
+        resumingSessionID: String? = nil,
+        previewsSummary: Bool = false,
+        previewsMap: Bool = false
     ) {
-        let tracker = simulatesTerritory
+        let tracker = simulatesTerritory || previewsSummary || previewsMap
             ? WorkoutLocationTracker()
             : WorkoutLocationTracker.shared
-#if targetEnvironment(simulator)
-        if simulatesTerritory {
+#if targetEnvironment(simulator) && DEBUG
+        if previewsSummary || previewsMap {
+            tracker.seedSummaryDemo(route: GoldieWalkFixture.route, earlierWalks: GoldieWalkFixture.earlierWalks)
+        } else if simulatesTerritory {
             tracker.seedTerritoryDemo()
         }
 #endif
         _locationTracker = StateObject(wrappedValue: tracker)
-        _phase = State(initialValue: simulatesTerritory ? .active : .setup)
+        _phase = State(initialValue: previewsSummary ? .summary : simulatesTerritory ? .active : .setup)
+        self.previewsSummary = previewsSummary
+        self.previewsMap = previewsMap
+        if previewsSummary {
+            _elapsedSeconds = State(initialValue: 1_190)
+            _steps = State(initialValue: 1_980)
+            _workoutEndedAt = State(initialValue: Calendar.current.date(bySettingHour: 18, minute: 18, second: 0, of: Date()))
+        }
         _showsMap = State(initialValue: true)
-        _elapsedSeconds = State(initialValue: simulatesTerritory ? 1_847 : 0)
-        _steps = State(initialValue: simulatesTerritory ? 4_286 : 0)
+        if !previewsSummary {
+            _elapsedSeconds = State(initialValue: simulatesTerritory ? 1_847 : 0)
+            _steps = State(initialValue: simulatesTerritory ? 4_286 : 0)
+        }
         _workoutBeganAt = State(
             initialValue: simulatesTerritory
                 ? Date().addingTimeInterval(-1_847)
@@ -196,6 +217,7 @@ struct WorkoutView: View {
                     case .start:
                         WorkoutSetupScreen(
                             locationTracker: locationTracker,
+                            exploration: exploration,
                             creature: store.currentStage,
                             workout: workout,
                             goalKind: goalKind,
@@ -203,8 +225,8 @@ struct WorkoutView: View {
                             liveActivityAvailable: liveActivityController.isAvailable,
                             isAcquiringLocation: isAcquiringWorkoutLocation,
                             goalVibrationEnabled: $goalVibrationEnabled,
-                            chooseWorkout: { phase = .workoutPicker },
-                            chooseGoal: { phase = .goalPicker },
+                            chooseWorkout: { setupSheet = .activity },
+                            chooseGoal: { setupSheet = .goal },
                             showHelp: showWorkoutTour,
                             tourFocus: workoutTourStep,
                             start: startWorkout,
@@ -217,26 +239,12 @@ struct WorkoutView: View {
                             selectWorkout: { selectedHistoryWorkout = $0 }
                         )
                     }
-                case .workoutPicker:
-                    WorkoutPickerScreen(
-                        environment: $environment,
-                        selection: $workout,
-                        done: { phase = .setup }
-                    )
-                case .goalPicker:
-                    WorkoutGoalScreen(
-                        selection: $goalKind,
-                        stepGoal: $stepGoal,
-                        calorieGoal: $calorieGoal,
-                        durationGoal: $durationGoal,
-                        distanceGoalHundredths: $distanceGoalHundredths,
-                        done: { phase = .setup }
-                    )
                 case .countdown:
                     WorkoutCountdownScreen(value: countdown)
                 case .active, .paused:
                     WorkoutLiveScreen(
                         locationTracker: locationTracker,
+                        exploration: exploration,
                         creature: store.workoutCompanionStage,
                         evolution: store.workoutCompanionProgress.duringWorkout(steps: steps, anchor: evolutionAnchor),
                         workout: workout,
@@ -268,13 +276,15 @@ struct WorkoutView: View {
                         calories: calories,
                         route: locationTracker.route,
                         routeBreakIndices: locationTracker.routeBreakIndices,
-                        territoryTiles: locationTracker.clearedTerritory.count,
+                        territoryTiles: completedExploration.newTiles,
+                        exploration: completedExploration,
+                        date: workoutEndedAt ?? Date(),
+                        exploredRoutes: locationTracker.exploredRoutes,
                         companion: workoutCompanion ?? store.currentStage,
                         rewards: workoutRewards,
                         savedToHealth: workoutTracker.savedToHealth,
                         totalsSourceLabel: completedHistoryRecord?.totalsSourceLabel ?? "Syncing Apple Health totals…",
                         saveError: workoutTracker.saveError,
-                        repeatWorkout: startWorkout,
                         done: finishWorkout
                     )
                 }
@@ -332,10 +342,21 @@ struct WorkoutView: View {
         .animation(WorkoutMotion.screen(reduceMotion: reduceMotion), value: phase.screenIdentity)
         .toolbar(phase.showsTabBar ? .visible : .hidden, for: .tabBar)
         .toolbar(.hidden, for: .navigationBar)
-        .preferredColorScheme(.dark)
+
         .interactiveDismissDisabled(phase.isSessionInProgress)
         .task(id: phase) {
             await runPhaseLoop()
+        }
+        .task {
+            guard previewsSummary else { return }
+            // The fixture's zone streets and name arrive over the network; keep the
+            // summary's exploration line current until they have.
+            for _ in 0..<20 {
+                exploration.update(route: locationTracker.route, breaks: [], explored: locationTracker.exploredRoutes,
+                                   location: locationTracker.currentLocation)
+                completedExploration = exploration.recap
+                try? await Task.sleep(for: .milliseconds(500))
+            }
         }
         .task {
             await restoreLiveActivitySessionIfNeeded()
@@ -412,6 +433,24 @@ struct WorkoutView: View {
         .onDisappear {
             locationTracker.stopPreparingForWorkout()
         }
+        .onReceive(locationTracker.$route.combineLatest(locationTracker.$routeBreakIndices, locationTracker.$exploredRoutes)) { route, breaks, explored in
+            exploration.update(route: route, breaks: breaks, explored: explored, location: locationTracker.currentLocation)
+        }
+        .onReceive(locationTracker.$currentLocation) { location in
+            exploration.update(route: locationTracker.route, breaks: locationTracker.routeBreakIndices,
+                               explored: locationTracker.exploredRoutes, location: location)
+        }
+        .sheet(item: $setupSheet) { sheet in
+            switch sheet {
+            case .activity:
+                WorkoutPickerScreen(environment: $environment, selection: $workout)
+                    .presentationDetents([.medium, .large]).presentationDragIndicator(.visible)
+            case .goal:
+                WorkoutGoalScreen(selection: $goalKind, stepGoal: $stepGoal, calorieGoal: $calorieGoal,
+                    durationGoal: $durationGoal, distanceGoalHundredths: $distanceGoalHundredths)
+                    .presentationDetents([.medium, .large]).presentationDragIndicator(.visible)
+            }
+        }
         .sheet(item: $selectedHistoryWorkout) { workout in
             WorkoutHistoryDetailView(
                 workout: workout,
@@ -425,6 +464,12 @@ struct WorkoutView: View {
                 historyStore.reload()
                 hubSection = .history
             })
+        }
+        // A zone reaching 100% gets its own shareable moment over the summary.
+        .fullScreenCover(item: zoneCelebrations.binding(
+            when: (phase == .summary || phase == .setup) && !showsWatchWorkout && setupSheet == nil
+        )) { completion in
+            WorkoutZoneCelebrationView(completion: completion)
         }
         .alert("No movement recorded", isPresented: $showsEmptyWorkoutAlert) {
             Button("Discard Workout", role: .destructive, action: discardWorkout)
@@ -488,7 +533,7 @@ struct WorkoutView: View {
             if locationTracker.isDenied {
                 locationStartMessage = "Location access is off. Enable Location and Precise Location for Nanobeasts in iPhone Settings before starting an outdoor workout."
             } else if locationTracker.needsPreciseLocation {
-                locationStartMessage = "Precise Location is off. Turn it on for Nanobeasts so the route and cleared fog match where you walk."
+                locationStartMessage = "Precise Location is off. Turn it on for Nanobeasts so the tiles you paint match where you walk."
             } else {
                 locationStartMessage = "Nanobeasts could not get an accurate GPS fix. Move to an open area, keep the app visible for a moment, and try Start Workout again."
             }
@@ -530,7 +575,7 @@ struct WorkoutView: View {
 
     private func presentWorkoutTourIfNeeded() {
         guard !didCompleteWorkoutTour,
-              !simulatesTerritory,
+              !simulatesTerritory, !previewsSummary, !previewsMap,
               resumingSessionID == nil
         else { return }
 
@@ -806,6 +851,11 @@ struct WorkoutView: View {
             activeIntervals: workoutTracker.activeIntervals(endingAt: endedAt)
         )
         completedRecordID = recordID
+        // Capture before the saved route becomes part of previously explored territory.
+        exploration.update(route: completedRoute, breaks: completedRouteBreaks,
+                           explored: locationTracker.exploredRoutes, location: locationTracker.currentLocation)
+        completedExploration = exploration.recap
+        if !commitTerritory { completedExploration.newTiles = 0 }
         locationTracker.stopWorkout(commitRoute: commitTerritory)
         workoutTracker.pause()
         let completedActivityState = liveActivityState
@@ -1044,10 +1094,13 @@ struct WorkoutView: View {
     }
 }
 
+private enum WorkoutSetupSheet: String, Identifiable {
+    case activity, goal
+    var id: Self { self }
+}
+
 private enum WorkoutPreviewPhase: Hashable {
     case setup
-    case workoutPicker
-    case goalPicker
     case countdown
     case active
     case paused
@@ -1062,7 +1115,7 @@ private enum WorkoutPreviewPhase: Hashable {
 
     var showsTabBar: Bool {
         switch self {
-        case .setup, .workoutPicker, .goalPicker: true
+        case .setup: true
         case .countdown, .active, .paused, .summary: false
         }
     }
@@ -1071,7 +1124,7 @@ private enum WorkoutPreviewPhase: Hashable {
         switch self {
         case .countdown, .active, .paused:
             true
-        case .setup, .workoutPicker, .goalPicker, .summary:
+        case .setup, .summary:
             false
         }
     }
@@ -1083,7 +1136,7 @@ private enum WorkoutTourStep: Int, CaseIterable, Identifiable {
     var next: Self? { Self(rawValue: rawValue + 1) }
     var title: String {
         switch self {
-        case .map: "Walk to reveal the map"
+        case .map: "Paint your streets"
         case .activity: "Choose your adventure"
         case .goal: "Give this walk a target"
         case .start: "Take your Nanobeast along"
@@ -1092,11 +1145,11 @@ private enum WorkoutTourStep: Int, CaseIterable, Identifiable {
     }
     var detail: String {
         switch self {
-        case .map: "Outdoor walks clear the pink fog as you move, including walks started on Apple Watch. Tap Show map or swipe the menu handle down to watch your route. Tap the handle again to bring the menu back."
+        case .map: "Outdoor walks paint tiles in your color, including walks started on Apple Watch. Each dashed hexagon is a zone: walk 90% of its streets to master it and earn a shareable card. Faint tiles show the streets you have left."
         case .activity: "Tap here to choose a walk, run, hike, or another activity. Pick indoor tracking when you don’t need a GPS route."
         case .goal: "Choose steps, time, distance, calories, or an open goal. Goal alerts can give you a haptic when you get there."
-        case .start: "Choose your recording device below. Both Start on Apple Watch and Start on iPhone stay visible. Your current egg or creature comes with you while your stats update live."
-        case .history: "Completed workouts live in History. Open one with a recorded route to watch your creature clear the fog, then share the replay video with your stats."
+        case .start: "Tap Start to record on iPhone, or use the Apple Watch button beside it. Your current egg or creature comes with you while your stats update live."
+        case .history: "Completed workouts live in History. Open one with a recorded route to watch your creature paint the map, then share the replay video with your stats."
         }
     }
 }
@@ -1278,7 +1331,6 @@ struct PreviewWorkout: Identifiable, Hashable {
         PreviewWorkout(id: "outdoor-walk", name: "Outdoor Walk", symbol: "figure.walk", environment: .outdoor, milesPerStep: 0.00045, caloriesPerStep: 0.040, caloriesPerMile: 85),
         PreviewWorkout(id: "japanese-walk-outdoor", name: "Japanese Walking", symbol: "figure.walk.motion", environment: .outdoor, milesPerStep: 0.00046, caloriesPerStep: 0.047, caloriesPerMile: 92, detail: "3 min brisk · 3 min recovery"),
         PreviewWorkout(id: "outdoor-run", name: "Outdoor Run", symbol: "figure.run", environment: .outdoor, milesPerStep: 0.00062, caloriesPerStep: 0.055, caloriesPerMile: 110),
-        PreviewWorkout(id: "nordic-walk", name: "Nordic Walking", symbol: "figure.hiking", environment: .outdoor, milesPerStep: 0.00047, caloriesPerStep: 0.050, caloriesPerMile: 95),
         PreviewWorkout(id: "hiking", name: "Hiking", symbol: "figure.hiking", environment: .outdoor, milesPerStep: 0.00044, caloriesPerStep: 0.060, caloriesPerMile: 120)
     ]
 
@@ -1286,10 +1338,10 @@ struct PreviewWorkout: Identifiable, Hashable {
         PreviewWorkout(id: "indoor-walk", name: "Indoor Walk", symbol: "figure.walk", environment: .indoor, milesPerStep: 0.00043, caloriesPerStep: 0.038, caloriesPerMile: 85),
         PreviewWorkout(id: "japanese-walk-indoor", name: "Japanese Walking", symbol: "figure.walk.motion", environment: .indoor, milesPerStep: 0.00044, caloriesPerStep: 0.045, caloriesPerMile: 90, detail: "3 min brisk · 3 min recovery"),
         PreviewWorkout(id: "indoor-run", name: "Indoor Run", symbol: "figure.run", environment: .indoor, milesPerStep: 0.00060, caloriesPerStep: 0.052, caloriesPerMile: 110),
-        PreviewWorkout(id: "hiit", name: "HIIT", symbol: "figure.highintensity.intervaltraining", environment: .indoor, milesPerStep: 0.00048, caloriesPerStep: 0.070, caloriesPerMile: 135, detail: "High-intensity interval training"),
-        PreviewWorkout(id: "elliptical", name: "Elliptical", symbol: "figure.elliptical", environment: .indoor, milesPerStep: 0.00050, caloriesPerStep: 0.058, caloriesPerMile: 100),
-        PreviewWorkout(id: "stair-stepper", name: "Stair Stepper", symbol: "figure.stair.stepper", environment: .indoor, milesPerStep: 0.00032, caloriesPerStep: 0.065, caloriesPerMile: 130)
+        PreviewWorkout(id: "hiit", name: "HIIT", symbol: "figure.highintensity.intervaltraining", environment: .indoor, milesPerStep: 0.00048, caloriesPerStep: 0.070, caloriesPerMile: 135, detail: "High-intensity interval training")
     ]
+    // Nordic Walking, Elliptical and Stair Stepper were retired from the picker
+    // (Oct 2026); their IDs stay mapped elsewhere so past workouts keep their labels.
 
     static var outdoorWalk: PreviewWorkout {
         outdoor.first { $0.id == "outdoor-walk" }!
@@ -1398,13 +1450,321 @@ private enum WorkoutGoalKind: String, CaseIterable, Identifiable {
     }
 }
 
+struct WorkoutExplorationRecap {
+    var newTiles = 0
+    /// Street-based progress for the focused zone; nil until its street map loads.
+    var progress: WorkoutZoneProgress?
+    var isLoadingStreets = false
+    /// Several fetches failed in a row; streets fill in once the phone is back online.
+    var isOffline = false
+    /// The zone's own name: the street at its center, so neighbours differ.
+    var neighborhood = "This zone"
+    /// The wider area it belongs to, e.g. "Brooklyn".
+    var area = ""
+
+    var percentText: String {
+        guard let progress else { return isOffline ? "Streets load when you're online" : "Mapping streets…" }
+        if progress.total == 0 { return "No streets here" }
+        let percent = "\(progress.percent.formatted(.number.precision(.fractionLength(1))))%"
+        return progress.isMastered ? "\(percent) · Mastered" : "\(percent) of streets"
+    }
+}
+
+@MainActor
+final class WorkoutExplorationProgress: ObservableObject {
+    @Published private(set) var recap = WorkoutExplorationRecap()
+    /// A mastered zone's card, reopened from its badge.
+    @Published var pendingCelebration: WorkoutZoneCompletion?
+    private let overlay = WorkoutTerritoryOverlay()
+    private var district: WorkoutHexKey?
+    private var nameTask: Task<Void, Never>?
+    private var focus: CLLocationCoordinate2D?
+    private var lastInputs: ([CLLocationCoordinate2D], [Int], [[CLLocationCoordinate2D]], CLLocation?) = ([], [], [], nil)
+    private var streetsObserver: NSObjectProtocol?
+    private var streetsTask: Task<Void, Never>?
+    private var streetsTaskZone: WorkoutHexKey?
+
+    init() {
+        streetsObserver = NotificationCenter.default.addObserver(
+            forName: WorkoutZoneStreets.didLoad, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refresh() }
+        }
+    }
+
+    /// Pins the badge to a zone the user panned to; nil follows the walker again.
+    func setFocus(_ coordinate: CLLocationCoordinate2D?) {
+        focus = coordinate
+        refresh()
+    }
+
+    /// Fetches the focused zone's streets, retrying on its own after a short pause
+    /// so the badge never gets stuck while the phone is briefly offline or busy.
+    private func loadStreets(_ zone: WorkoutHexKey) {
+        if streetsTaskZone == zone, streetsTask != nil { return }
+        streetsTask?.cancel()
+        streetsTaskZone = zone
+        streetsTask = Task { [weak self] in
+            if let wait = WorkoutZoneStreets.shared.retryDelay(zone), wait > 0 {
+                try? await Task.sleep(for: .seconds(wait))
+            }
+            guard !Task.isCancelled else { return }
+            let loaded = await WorkoutZoneStreets.shared.load(zone)
+            guard let self, !Task.isCancelled else { return }
+            self.streetsTask = nil
+            if loaded == nil, self.district == zone {
+                self.recap.isOffline = WorkoutZoneStreets.shared.seemsOffline(zone)
+                self.loadStreets(zone)
+            }
+        }
+    }
+
+    /// The share card for the focused zone if it is mastered: reopens a celebration
+    /// any time, so skipping "Share" the first time never loses the moment.
+    func masteryCard() -> WorkoutZoneCompletion? {
+        guard let district, let streets = WorkoutZoneStreets.shared.cached(district),
+              let progress = recap.progress, progress.isMastered else { return nil }
+        let snapshot = overlay.snapshot
+        return WorkoutZoneCompletion(
+            zone: district, name: recap.neighborhood, area: recap.area, streetTiles: streets,
+            walkedTiles: snapshot.oldTiles.union(snapshot.currentTiles).filter { $0.district == district },
+            percent: progress.percent, completedAt: Date(), ordinal: WorkoutZoneLedger.markCompleted(district))
+    }
+
+    /// Tiles from earlier walks, and tiles from the walk in progress.
+    var tileSets: (earlier: Set<WorkoutHexKey>, walk: Set<WorkoutHexKey>) {
+        let snapshot = overlay.snapshot
+        return (snapshot.oldTiles, snapshot.currentTiles)
+    }
+
+    private func refresh() {
+        let (route, breaks, explored, location) = lastInputs
+        update(route: route, breaks: breaks, explored: explored, location: location)
+    }
+
+    func update(route: [CLLocationCoordinate2D], breaks: [Int], explored: [[CLLocationCoordinate2D]], location: CLLocation?) {
+        lastInputs = (route, breaks, explored, location)
+        if !explored.elementsEqual(overlay.exploredRoutes, by: { a, b in
+            a.elementsEqual(b, by: { $0.latitude == $1.latitude && $0.longitude == $1.longitude })
+        }) { overlay.exploredRoutes = explored }
+        overlay.updateRoute(route, breakIndices: breaks)
+        let snapshot = overlay.snapshot
+        recap.newTiles = snapshot.newTileCount
+        guard let coordinate = focus ?? route.last ?? location?.coordinate else { return }
+        let next = WorkoutHexGrid.key(coordinate).district
+        if let streets = WorkoutZoneStreets.shared.cached(next) {
+            recap.progress = WorkoutZoneProgress(streets: streets) {
+                snapshot.oldTiles.contains($0) || snapshot.currentTiles.contains($0)
+            }
+            recap.isLoadingStreets = false
+            recap.isOffline = false
+        } else {
+            recap.progress = nil
+            recap.isLoadingStreets = true
+            recap.isOffline = WorkoutZoneStreets.shared.seemsOffline(next)
+            loadStreets(next)
+        }
+        guard next != district else { return }
+        district = next
+        WorkoutZoneStreets.shared.prefetchNeighbors(of: next)
+        let cached = WorkoutZoneNames.cached(next)
+        recap.neighborhood = cached?.name ?? "This zone"
+        recap.area = cached?.area ?? ""
+        nameTask?.cancel()
+        guard cached == nil else { return }
+        nameTask = Task { [weak self] in
+            let label = await WorkoutZoneNames.name(for: next)
+            guard let self, !Task.isCancelled, self.district == next else { return }
+            self.recap.neighborhood = label.name
+            self.recap.area = label.area
+            self.refresh()
+        }
+    }
+}
+
+struct WorkoutNeighborhoodBadge: View {
+    @ObservedObject var exploration: WorkoutExplorationProgress
+    /// When set, tapping a mastered zone's badge reopens its shareable card.
+    var openMastery: (() -> Void)? = nil
+    @ViewBuilder var body: some View {
+        // Only a mastered badge is a button, so others never look dimmed or tappable.
+        if let openMastery, exploration.recap.progress?.isMastered == true {
+            Button(action: openMastery) { content(showsShareHint: true) }
+                .buttonStyle(.plain)
+                .accessibilityHint("Opens this zone's mastery card to share")
+        } else {
+            content(showsShareHint: false)
+        }
+    }
+
+    private func content(showsShareHint: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(spacing: 7) {
+                Text(exploration.recap.neighborhood)
+                    .lineLimit(2).minimumScaleFactor(0.75)
+                if exploration.recap.progress?.isMastered == true {
+                    // Mastered zones wear a seal for good.
+                    Image(systemName: "checkmark.seal.fill")
+                        .foregroundStyle(NanoTheme.teal)
+                        .accessibilityLabel("Mastered")
+                }
+            }
+                .font(.system(size: 25, weight: .heavy, design: .rounded))
+                .foregroundStyle(Color.black)
+                .padding(.horizontal, 12).padding(.vertical, 7)
+                .background(.white, in: RoundedRectangle(cornerRadius: 5))
+                .rotationEffect(.degrees(-2))
+                .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
+            HStack(spacing: 8) {
+                if let progress = exploration.recap.progress, progress.total > 0 {
+                    ProgressView(value: progress.fraction)
+                        .tint(NanoTheme.teal)
+                        .frame(width: 44)
+                }
+                Text([exploration.recap.area, exploration.recap.percentText]
+                    .filter { !$0.isEmpty }.joined(separator: " · "))
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .foregroundStyle(exploration.recap.progress?.isMastered == true ? NanoTheme.teal : NanoTheme.text)
+                    .contentTransition(.numericText())
+                if showsShareHint {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(NanoTheme.teal)
+                }
+            }
+            .padding(.horizontal, 13).padding(.vertical, 9)
+            .background(NanoTheme.surface, in: Capsule())
+            .animation(.snappy, value: exploration.recap.progress)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+struct WorkoutTileChip: View {
+    let recap: WorkoutExplorationRecap
+    var body: some View {
+        Label("+\(recap.newTiles) new this walk · \(recap.percentText)", systemImage: "hexagon.fill")
+            .font(.system(size: 12, weight: .semibold, design: .rounded))
+            .foregroundStyle(NanoTheme.text)
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .background(NanoTheme.surface, in: Capsule())
+            .accessibilityElement(children: .combine)
+    }
+}
+
+struct WorkoutFloatingStats: View {
+    let title: String
+    let creature: CreatureStage
+    let evolution: WorkoutEvolutionProgress
+    let elapsedSeconds: TimeInterval
+    let distance: String
+    let steps: Int
+    var heartRate: String? = nil
+    var goalLabel: String? = nil
+    var goalProgress: Double = 0
+    var paused = false
+    var expanded = false
+    var expand: (() -> Void)? = nil
+
+    var body: some View {
+        VStack(spacing: 14) {
+            HStack(spacing: 12) {
+                WorkoutCreatureProgressView(stage: creature, progress: evolution, diameter: 56, isPlaying: !paused)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(paused ? "Workout paused" : title)
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .foregroundStyle(NanoTheme.text)
+                    Text(evolution.caption)
+                        .font(.caption).foregroundStyle(NanoTheme.secondaryText)
+                        .lineLimit(2)
+                }
+                Spacer(minLength: 0)
+                if let expand {
+                    Button(action: expand) {
+                        Image(systemName: expanded ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(NanoTheme.teal)
+                            .frame(width: 44, height: 44)
+                    }
+                    .accessibilityLabel(expanded ? "Collapse workout numbers" : "Expand workout numbers")
+                }
+            }
+            if expanded {
+                stat(steps.formatted(), label: "Steps", large: true)
+            }
+            HStack(alignment: .top, spacing: 12) {
+                stat(WorkoutMetricsFormat.time(elapsedSeconds), label: "Time")
+                stat(distance, label: "Distance")
+                if let heartRate { stat(heartRate, label: "Heart rate") }
+                else if !expanded { stat(steps.formatted(), label: "Steps") }
+            }
+            if heartRate != nil && !expanded {
+                Text("\(steps.formatted()) steps")
+                    .font(.caption.weight(.semibold)).foregroundStyle(NanoTheme.secondaryText)
+            }
+            if let goalLabel {
+                VStack(alignment: .leading, spacing: 7) {
+                    ProgressView(value: min(1, max(0, goalProgress))).tint(NanoTheme.teal)
+                    Text(goalLabel).font(.caption).foregroundStyle(NanoTheme.secondaryText)
+                }
+            }
+        }
+        .padding(18)
+        .background(NanoTheme.surface, in: RoundedRectangle(cornerRadius: 26))
+        .overlay(RoundedRectangle(cornerRadius: 26).stroke(NanoTheme.border.opacity(0.6), lineWidth: 1))
+        .shadow(color: NanoTheme.shadow.opacity(0.12), radius: 18, y: 6)
+    }
+
+    private func stat(_ value: String, label: String, large: Bool = false) -> some View {
+        VStack(alignment: large ? .center : .leading, spacing: 5) {
+            Text(value)
+                .font(.system(size: large ? 58 : 21, weight: .semibold, design: .rounded))
+                .monospacedDigit().lineLimit(1).minimumScaleFactor(0.5)
+                .foregroundStyle(NanoTheme.text)
+            Text(label).font(.caption).foregroundStyle(NanoTheme.secondaryText)
+        }
+        .frame(maxWidth: .infinity, alignment: large ? .center : .leading)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+struct WorkoutHoldToFinishButton: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var pressing = false
+    let action: () -> Void
+    var body: some View {
+        Text("Hold to finish")
+            .font(.system(size: 16, weight: .semibold, design: .rounded))
+            .foregroundStyle(NanoTheme.danger)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background {
+                GeometryReader { geometry in
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(NanoTheme.danger.opacity(pressing ? 0.28 : 0.10))
+                        .frame(width: pressing ? geometry.size.width : 0)
+                        .animation(reduceMotion ? nil : .linear(duration: pressing ? 1.2 : 0.15), value: pressing)
+                }
+            }
+            .background(NanoTheme.surface, in: RoundedRectangle(cornerRadius: 18))
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .contentShape(RoundedRectangle(cornerRadius: 18))
+            .onLongPressGesture(minimumDuration: 1.2, maximumDistance: 24, pressing: { pressing = $0 }, perform: action)
+            .accessibilityElement()
+            .accessibilityLabel("Finish workout")
+            .accessibilityHint("Touch and hold to finish and save")
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction { action() }
+    }
+}
+
 private struct WorkoutSetupScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var watchBridge = WorkoutWatchBridge.shared
-    @State private var isMenuCollapsed = false
+    @StateObject private var watchExploration = WorkoutExplorationProgress()
     @State private var recenterID = 0
+    @State private var showsSettings = false
     @AppStorage("nanobeasts.workouts.saveToHealth") private var saveToHealth = true
     @ObservedObject var locationTracker: WorkoutLocationTracker
+    @ObservedObject var exploration: WorkoutExplorationProgress
     let creature: CreatureStage
     let workout: PreviewWorkout
     let goalKind: WorkoutGoalKind
@@ -1420,555 +1780,170 @@ private struct WorkoutSetupScreen: View {
     let startOnWatch: () -> Void
 
     private var supportsWatchWorkout: Bool {
-        ["outdoor-walk", "indoor-walk", "outdoor-run", "indoor-run", "hiking", "nordic-walk",
+        ["outdoor-walk", "indoor-walk", "outdoor-run", "indoor-run", "hiking",
          "japanese-walk-outdoor", "japanese-walk-indoor"].contains(workout.id)
     }
 
-    private var recordingDeviceButtons: some View {
-        VStack(spacing: 10) {
-            if watchBridge.isActive {
-                WorkoutPrimaryButton(title: "View Watch Workout", symbol: "applewatch", action: start)
-            } else {
-                if watchBridge.isPaired && supportsWatchWorkout {
-                    WorkoutPrimaryButton(title: "Start on Apple Watch", symbol: "applewatch", action: startOnWatch)
-                        .disabled(isAcquiringLocation)
-                    Button(action: start) {
-                        Label(isAcquiringLocation ? "Acquiring GPS…" : "Start on iPhone",
-                              systemImage: "iphone")
-                            .frame(maxWidth: .infinity, minHeight: 44)
-                    }
-                    .font(WorkoutFont.ui(14))
-                    .foregroundStyle(NanoTheme.teal)
-                    .buttonStyle(WorkoutPressButtonStyle())
-                    .disabled(isAcquiringLocation)
-                } else {
-                    WorkoutPrimaryButton(
-                        title: isAcquiringLocation ? "Acquiring GPS…" : "Start on iPhone",
-                        symbol: "iphone", action: start)
-                        .disabled(isAcquiringLocation)
-                    if supportsWatchWorkout {
-                        Button(action: startOnWatch) {
-                            Label("Start on Apple Watch", systemImage: "applewatch")
-                                .frame(maxWidth: .infinity, minHeight: 44)
-                        }
-                        .font(WorkoutFont.ui(14))
-                        .foregroundStyle(NanoTheme.teal)
-                        .buttonStyle(WorkoutPressButtonStyle())
-                        .disabled(isAcquiringLocation)
-                    }
-                }
-            }
-        }
-        .anchorPreference(key: WorkoutTourAnchors.self, value: .bounds) { [.start: $0] }
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
-        .padding(.bottom, 16)
-        .background(NanoTheme.surface)
-    }
-
-    private var watchSession: WatchWorkoutSnapshot? {
-        guard let state = watchBridge.displaySnapshot, state.isActive else { return nil }
-        return state
-    }
-
-    private var showsLiveWatchMap: Bool {
-        watchSession.map { !$0.indoor } ?? false
-    }
-
     var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .bottom) {
-                if showsLiveWatchMap {
-                    WorkoutTerritoryMap(
-                        route: watchBridge.liveRoute.locations.map { $0.location.coordinate },
-                        routeBreakIndices: watchBridge.liveRoute.breakIndices,
-                        exploredRoutes: locationTracker.exploredRoutes,
-                        currentLocation: watchBridge.liveRoute.locations.last?.location ?? locationTracker.currentLocation,
-                        showsFog: true,
-                        followsUser: true,
-                        reduceMotion: reduceMotion,
-                        recenterID: recenterID,
-                        companionImageKey: creature.imageKey
-                    )
+        ZStack(alignment: .topLeading) {
+            if watchBridge.isActive, watchBridge.displaySnapshot?.indoor == false {
+                WorkoutTerritoryMap(
+                    route: watchBridge.liveRoute.locations.map { $0.location.coordinate },
+                    routeBreakIndices: watchBridge.liveRoute.breakIndices,
+                    exploredRoutes: locationTracker.exploredRoutes,
+                    currentLocation: watchBridge.liveRoute.locations.last?.location ?? locationTracker.currentLocation,
+                    showsFog: true, followsUser: true, reduceMotion: reduceMotion,
+                    recenterID: recenterID, companionImageKey: creature.imageKey)
                     .ignoresSafeArea()
-                } else {
-                    WorkoutActualMap(locationTracker: locationTracker, recenterID: recenterID,
-                                     showsRecenterControl: false, companionImageKey: creature.imageKey)
-                        .ignoresSafeArea()
-                }
-                Color.clear
-                    .frame(height: geometry.size.height * 0.18)
+            } else {
+                WorkoutActualMap(locationTracker: locationTracker, recenterID: recenterID,
+                                 showsRecenterControl: false, companionImageKey: creature.imageKey,
+                                 onZoneFocus: { exploration.setFocus($0) })
+                    .ignoresSafeArea()
+                    // Live screens follow the walker again, not wherever the map was panned.
+                    .onDisappear { exploration.setFocus(nil) }
+            }
+            HStack(alignment: .top) {
+                WorkoutNeighborhoodBadge(exploration: watchBridge.isActive ? watchExploration : exploration,
+                                         openMastery: watchBridge.isActive ? nil : {
+                                             exploration.pendingCelebration = exploration.masteryCard()
+                                         })
                     .anchorPreference(key: WorkoutTourAnchors.self, value: .bounds) { [.map: $0] }
-                    .frame(maxHeight: .infinity, alignment: .top)
-                    .padding(.top, 60)
-                    .allowsHitTesting(false)
-
-                VStack {
-                    HStack {
-                        WorkoutCircleButton(symbol: "questionmark.circle.fill", action: showHelp)
-                            .accessibilityLabel("Show workout walkthrough")
-                        Spacer()
-                        WorkoutCircleButton(
-                            symbol: "location.fill",
-                            action: {
-                                locationTracker.requestAccess()
-                                recenterID += 1
-                                isMenuCollapsed = true
-                            }
-                        )
-                        .accessibilityLabel("Zoom to my location")
-                        .accessibilityHint("Centers the map on you and zooms in to nearby streets")
+                Spacer(minLength: 8)
+                VStack(spacing: 10) {
+                    WorkoutCircleButton(symbol: "location.fill") {
+                        locationTracker.requestAccess(); recenterID += 1
                     }
-                    .padding(.horizontal, 18)
-                    .padding(.top, 70)
-                    Spacer()
+                    .accessibilityLabel("Center map on my location")
+                    WorkoutCircleButton(symbol: "questionmark", action: showHelp)
+                        .accessibilityLabel("Show workout walkthrough")
                 }
-
-                if isMenuCollapsed {
-                    Button {
-                        isMenuCollapsed = false
-                    } label: {
-                        Label("Workout", systemImage: "slider.horizontal.3")
-                            .font(WorkoutFont.ui(12))
-                            .foregroundStyle(NanoTheme.teal)
-                            .padding(.horizontal, 18)
-                            .frame(minHeight: 48)
-                            .background(Capsule().fill(NanoTheme.surface.opacity(0.97)))
-                            .overlay(Capsule().stroke(NanoTheme.teal.opacity(0.3), lineWidth: 1))
+            }
+            .padding(.horizontal, 20).padding(.top, 76)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 14) {
+                if let state = watchBridge.displaySnapshot, state.isActive {
+                    TimelineView(.periodic(from: .now, by: 1)) { timeline in
+                        Button(action: start) {
+                            HStack {
+                                Image(systemName: "applewatch")
+                                Text("Watch workout")
+                                Text(WorkoutMetricsFormat.time(state.elapsed(at: timeline.date))).monospacedDigit()
+                                Spacer()
+                                Text("View").foregroundStyle(NanoTheme.teal)
+                                Image(systemName: "chevron.right")
+                            }
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundStyle(NanoTheme.text)
+                            .frame(minHeight: 54)
+                        }
                     }
-                    .buttonStyle(WorkoutPressButtonStyle())
-                    .accessibilityLabel("Open workout menu")
-                    .padding(.trailing, 18)
-                    .padding(.bottom, 16)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
                 } else {
-                VStack(spacing: 0) {
-                    menuHandle
-                    ScrollViewReader { reader in
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 20) {
-                            HStack(alignment: .center, spacing: 14) {
-                                WorkoutCreatureArtwork(creature: creature)
-                                    .frame(width: 78, height: 78)
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("YOUR NEXT ADVENTURE")
-                                        .font(WorkoutFont.ui(10))
-                                        .foregroundStyle(NanoTheme.teal)
-                                    Text("Let's get moving.")
-                                        .font(WorkoutFont.ui(23))
-                                        .foregroundStyle(.white)
-                                    Text("Every step grows \(creature.name).")
-                                        .font(WorkoutFont.ui(11))
-                                        .foregroundStyle(NanoTheme.secondaryText)
-                                }
-                                Spacer(minLength: 0)
-                            }
-
-                            Button(action: chooseWorkout) {
-                                HStack(spacing: 12) {
-                                    Image(systemName: workout.symbol)
-                                        .font(.system(size: 24, weight: .medium))
-                                        .foregroundStyle(NanoTheme.teal)
-                                        .frame(width: 44, height: 44)
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(workout.environment.rawValue.uppercased())
-                                            .font(WorkoutFont.ui(9))
-                                            .foregroundStyle(NanoTheme.secondaryText)
-                                        Text(workout.name)
-                                            .font(WorkoutFont.ui(19))
-                                            .foregroundStyle(.white)
-                                    }
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundStyle(NanoTheme.secondaryText)
-                                }
-                                .padding(14)
-                                .background(RoundedRectangle(cornerRadius: 20).fill(NanoTheme.background.opacity(0.65)))
-                            }
-                            .buttonStyle(WorkoutPressButtonStyle())
-                            .accessibilityHint("Choose your activity and indoor or outdoor tracking")
-                            .id(WorkoutTourStep.activity)
+                    HStack(spacing: 8) {
+                        chip(workout.name, symbol: workout.symbol, action: chooseWorkout)
                             .anchorPreference(key: WorkoutTourAnchors.self, value: .bounds) { [.activity: $0] }
-
-                            Button(action: chooseGoal) {
-                                HStack {
-                                    WorkoutSetupOption(symbol: goalKind.symbol, eyebrow: "WORKOUT GOAL", title: goalDescription, tint: NanoTheme.teal)
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundStyle(NanoTheme.secondaryText)
-                                        .padding(.trailing, 14)
-                                }
-                                .background(RoundedRectangle(cornerRadius: 17).fill(NanoTheme.background.opacity(0.65)))
-                            }
-                            .buttonStyle(WorkoutPressButtonStyle())
-                            .id(WorkoutTourStep.goal)
+                        chip(goalKind == .open ? "Open goal" : goalDescription, symbol: goalKind.symbol, action: chooseGoal)
                             .anchorPreference(key: WorkoutTourAnchors.self, value: .bounds) { [.goal: $0] }
-
-                            HStack(spacing: 6) {
-                                Image(systemName: workout.environment == .indoor ? "figure.walk" : "location.fill")
-                                Text(workout.environment == .indoor ? "Indoor tracking" : locationTracker.hasWorkoutQualityLocation ? "GPS ready" : "GPS connects when you start")
-                                if liveActivityAvailable {
-                                    Text("·")
-                                    Image(systemName: "lock.iphone")
-                                    Text("Lock Screen ready")
-                                }
-                            }
-                            .font(WorkoutFont.ui(10))
-                            .foregroundStyle(NanoTheme.secondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                            VStack(spacing: 16) {
-                                Toggle("Haptic alert at your goal", isOn: $goalVibrationEnabled)
-                                Toggle("Save to Apple Health", isOn: $saveToHealth)
-                            }
-                            .font(WorkoutFont.ui(12))
-                            .tint(NanoTheme.teal)
-                            .foregroundStyle(.white)
-
-
+                        Button { showsSettings = true } label: {
+                            Image(systemName: "gearshape").font(.system(size: 18))
+                                .frame(width: 44, height: 44).foregroundStyle(NanoTheme.text)
                         }
-                        .padding(20)
+                        .accessibilityLabel("Workout settings")
                     }
-                    .scrollIndicators(.hidden)
-                    .onChange(of: tourFocus) { _, step in
-                        if let step, step == .activity || step == .goal {
-                            reader.scrollTo(step, anchor: .bottom)
+                    HStack(spacing: 10) {
+                        WorkoutPrimaryButton(title: isAcquiringLocation ? "Acquiring GPS…" : "Start", symbol: "play.fill", action: start)
+                        if supportsWatchWorkout {
+                            Button(action: startOnWatch) {
+                                Image(systemName: "applewatch").font(.system(size: 23, weight: .medium))
+                                    .foregroundStyle(NanoTheme.teal)
+                                    .frame(width: 58, height: 58)
+                                    .background(NanoTheme.teal.opacity(0.12), in: RoundedRectangle(cornerRadius: 20))
+                            }
+                            .accessibilityLabel("Start on Apple Watch")
                         }
                     }
-                    }
-
-                    recordingDeviceButtons
-                }
-                .frame(height: max(280, geometry.size.height * 0.74))
-                .background(NanoTheme.surface.opacity(0.97))
-                .clipShape(UnevenRoundedRectangle(topLeadingRadius: 30, topTrailingRadius: 30))
-                .overlay(alignment: .top) {
-                    UnevenRoundedRectangle(topLeadingRadius: 30, topTrailingRadius: 30)
-                        .stroke(NanoTheme.teal.opacity(0.16), lineWidth: 1)
-                        .allowsHitTesting(false)
-                }
+                    .disabled(isAcquiringLocation)
+                    .anchorPreference(key: WorkoutTourAnchors.self, value: .bounds) { [.start: $0] }
                 }
             }
-            .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: isMenuCollapsed)
-            .onAppear {
-                if showsLiveWatchMap, tourFocus == nil { isMenuCollapsed = true }
-            }
-            .task(id: watchSession?.id) {
-                watchBridge.requestLiveRoute()
-            }
-            .onChange(of: watchBridge.isReachable) { _, reachable in
-                if reachable { watchBridge.requestLiveRoute() }
-            }
-            .onChange(of: showsLiveWatchMap) { _, active in
-                if active, tourFocus == nil { isMenuCollapsed = true }
-            }
-            .onChange(of: tourFocus) { _, step in
-                if step != nil { isMenuCollapsed = false }
-                else if showsLiveWatchMap { isMenuCollapsed = true }
-            }
+            .padding(18)
+            .background(NanoTheme.surface, in: RoundedRectangle(cornerRadius: 28))
+            .shadow(color: NanoTheme.shadow.opacity(0.12), radius: 18, y: 6)
+            .padding(.horizontal, 12).padding(.bottom, 10)
         }
-    }
-
-    private var menuHandle: some View {
-        Button {
-            isMenuCollapsed.toggle()
-        } label: {
-            VStack(spacing: 7) {
-                Capsule().fill(NanoTheme.secondaryText.opacity(0.6))
-                    .frame(width: 36, height: 4)
-                HStack(spacing: 8) {
-                    Image(systemName: isMenuCollapsed ? "chevron.up" : "chevron.down")
-                    Text(isMenuCollapsed ? (watchSession == nil ? "Workout options" : "Watch workout") : "Show map")
+        .onReceive(watchBridge.$liveRoute) { live in
+            watchExploration.update(route: live.locations.map { $0.location.coordinate }, breaks: live.breakIndices,
+                                    explored: locationTracker.exploredRoutes, location: live.locations.last?.location)
+        }
+        .fullScreenCover(item: $exploration.pendingCelebration) { completion in
+            WorkoutZoneCelebrationView(completion: completion)
+        }
+        .sheet(isPresented: $showsSettings) {
+            NavigationStack {
+                Form {
+                    Toggle("Haptic goal alerts", isOn: $goalVibrationEnabled)
+                    Toggle("Save to Apple Health", isOn: $saveToHealth)
+                    Text("Your iPhone and Apple Watch save Health workouts using their own settings.")
+                        .font(.footnote).foregroundStyle(NanoTheme.secondaryText)
                 }
-                .font(WorkoutFont.ui(12))
-                .foregroundStyle(NanoTheme.teal)
+                .tint(NanoTheme.teal)
+                .navigationTitle("Workout settings").navigationBarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showsSettings = false } } }
             }
-            .frame(maxWidth: .infinity, minHeight: 54)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(isMenuCollapsed ? "Expand workout menu" : "Collapse workout menu to show map")
-        .simultaneousGesture(DragGesture(minimumDistance: 20).onEnded { value in
-            guard abs(value.translation.height) > abs(value.translation.width) else { return }
-            isMenuCollapsed = value.translation.height > 0
-        })
-    }
-
-
-}
-
-private struct WorkoutFogWalkthroughVisual: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var revealProgress: CGFloat = 0.12
-
-    var body: some View {
-        GeometryReader { proxy in
-            let route = walkthroughRoute(in: proxy.size)
-
-            ZStack {
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(Color(red: 0.055, green: 0.09, blue: 0.13))
-
-                WorkoutMiniMapRoads()
-
-                ZStack {
-                    RoundedRectangle(cornerRadius: 24)
-                        .fill(Color(red: 0.82, green: 0.12, blue: 0.66).opacity(0.72))
-                    route
-                        .trimmedPath(from: 0, to: revealProgress)
-                        .stroke(
-                            Color.black,
-                            style: StrokeStyle(lineWidth: 64, lineCap: .round, lineJoin: .round)
-                        )
-                        .blendMode(.destinationOut)
-                }
-                .compositingGroup()
-
-                route
-                    .trimmedPath(from: 0, to: revealProgress)
-                    .stroke(
-                        NanoTheme.teal,
-                        style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round)
-                    )
-                    .shadow(color: NanoTheme.teal.opacity(0.65), radius: 7)
-
-                VStack {
-                    HStack {
-                        Label("FOG", systemImage: "cloud.fog.fill")
-                            .font(WorkoutFont.ui(9))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 10)
-                            .frame(height: 30)
-                            .background(Capsule().fill(NanoTheme.pink.opacity(0.88)))
-                        Spacer()
-                    }
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        Label("WALK TO REVEAL", systemImage: "figure.walk")
-                            .font(WorkoutFont.ui(9))
-                            .foregroundStyle(NanoTheme.background)
-                            .padding(.horizontal, 10)
-                            .frame(height: 30)
-                            .background(Capsule().fill(NanoTheme.teal))
-                    }
-                }
-                .padding(12)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 24))
-            .overlay(RoundedRectangle(cornerRadius: 24).stroke(.white.opacity(0.10), lineWidth: 1))
-        }
-        .frame(height: 218)
-        .onAppear {
-            guard !reduceMotion else {
-                revealProgress = 0.86
-                return
-            }
-            withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
-                revealProgress = 0.88
-            }
+            .presentationDetents([.medium]).presentationDragIndicator(.visible)
         }
     }
-
-    private func walkthroughRoute(in size: CGSize) -> Path {
-        Path { path in
-            path.move(to: CGPoint(x: size.width * 0.13, y: size.height * 0.77))
-            path.addCurve(
-                to: CGPoint(x: size.width * 0.52, y: size.height * 0.50),
-                control1: CGPoint(x: size.width * 0.26, y: size.height * 0.78),
-                control2: CGPoint(x: size.width * 0.30, y: size.height * 0.48)
-            )
-            path.addCurve(
-                to: CGPoint(x: size.width * 0.86, y: size.height * 0.24),
-                control1: CGPoint(x: size.width * 0.70, y: size.height * 0.54),
-                control2: CGPoint(x: size.width * 0.73, y: size.height * 0.25)
-            )
+    private func chip(_ title: String, symbol: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: symbol)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .lineLimit(1).minimumScaleFactor(0.75)
+                .foregroundStyle(NanoTheme.text)
+                .padding(.horizontal, 12).frame(maxWidth: .infinity, minHeight: 44)
+                .background(NanoTheme.elevated.opacity(0.65), in: Capsule())
         }
-    }
-}
-
-private struct WorkoutMiniMapRoads: View {
-    var body: some View {
-        Canvas { context, size in
-            context.opacity = 0.74
-            let roadColor = Color(red: 0.25, green: 0.32, blue: 0.39)
-            let minorRoadColor = Color(red: 0.17, green: 0.23, blue: 0.29)
-
-            for index in 1...5 {
-                let y = size.height * CGFloat(index) / 6
-                var road = Path()
-                road.move(to: CGPoint(x: 0, y: y))
-                road.addLine(to: CGPoint(x: size.width, y: y - 8))
-                context.stroke(road, with: .color(minorRoadColor), lineWidth: 7)
-                context.stroke(road, with: .color(roadColor), lineWidth: 1)
-            }
-
-            for index in 1...4 {
-                let x = size.width * CGFloat(index) / 5
-                var road = Path()
-                road.move(to: CGPoint(x: x, y: 0))
-                road.addLine(to: CGPoint(x: x + 16, y: size.height))
-                context.stroke(road, with: .color(minorRoadColor), lineWidth: 8)
-                context.stroke(road, with: .color(roadColor), lineWidth: 1)
-            }
-        }
-    }
-}
-
-private struct WorkoutSetupWalkthroughVisual: View {
-    let creature: CreatureStage
-
-    var body: some View {
-        HStack(spacing: 14) {
-            CreatureArtworkView(stage: creature)
-                .frame(width: 92, height: 92)
-
-            VStack(alignment: .leading, spacing: 10) {
-                walkthroughRow(number: "1", title: "Walk and earn steps")
-                walkthroughRow(number: "2", title: "Reach its growth target")
-                walkthroughRow(number: "3", title: "Hatch or evolve")
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, minHeight: 174)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(NanoTheme.background.opacity(0.72))
-                .stroke(NanoTheme.orange.opacity(0.30), lineWidth: 1)
-        )
-    }
-
-    private func walkthroughRow(number: String, title: String) -> some View {
-        HStack(spacing: 9) {
-            Text(number)
-                .font(WorkoutFont.metric(11))
-                .foregroundStyle(NanoTheme.background)
-                .frame(width: 25, height: 25)
-                .background(Circle().fill(NanoTheme.orange))
-            Text(title.uppercased())
-                .font(WorkoutFont.ui(10))
-                .foregroundStyle(.white)
-        }
-    }
-}
-
-private struct WorkoutControlsWalkthroughVisual: View {
-    @State private var showsMap = true
-
-    var body: some View {
-        VStack(spacing: 15) {
-            HStack {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("00:12:48")
-                        .font(WorkoutFont.metric(22))
-                        .foregroundStyle(NanoTheme.teal)
-                    Text("TRACKING ON LOCK SCREEN")
-                        .font(WorkoutFont.ui(8))
-                        .foregroundStyle(NanoTheme.secondaryText)
-                }
-                Spacer()
-                WorkoutDisplayPicker(showsMap: $showsMap)
-            }
-
-            HStack(spacing: 10) {
-                Label("MAP FIRST", systemImage: "map.fill")
-                Spacer()
-                Label("PAUSE ANYTIME", systemImage: "pause.fill")
-            }
-            .font(WorkoutFont.ui(9))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 13)
-            .frame(height: 44)
-            .background(RoundedRectangle(cornerRadius: 15).fill(NanoTheme.elevated))
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, minHeight: 174)
-        .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(NanoTheme.background.opacity(0.72))
-                .stroke(NanoTheme.cyan.opacity(0.30), lineWidth: 1)
-        )
+        .buttonStyle(WorkoutPressButtonStyle())
     }
 }
 
 private struct WorkoutPickerScreen: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dismiss) private var dismiss
     @Binding var environment: WorkoutEnvironment
     @Binding var selection: PreviewWorkout
-    let done: () -> Void
-
     var body: some View {
-        VStack(spacing: 18) {
-            WorkoutModalHeader(title: "Choose Workout", done: done)
-
-            Picker("Workout environment", selection: $environment) {
-                ForEach(WorkoutEnvironment.allCases) { option in
-                    Text(option.rawValue).tag(option)
-                }
-            }
-            .pickerStyle(.segmented)
-            .onChange(of: environment) { _, newValue in
-                if !PreviewWorkout.options(for: newValue).contains(selection) {
-                    selection = PreviewWorkout.options(for: newValue)[0]
-                }
-            }
-
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 10) {
-                    Text(environment == .outdoor ? "WALKING, RUNNING & CYCLING" : "INDOOR TRAINING")
-                        .font(WorkoutFont.ui(11))
-                        .foregroundStyle(NanoTheme.secondaryText)
-                        .padding(.vertical, 8)
-
-                    ForEach(PreviewWorkout.options(for: environment)) { option in
-                        Button {
-                            selection = option
-                        } label: {
-                            HStack(spacing: 15) {
-                                Circle()
-                                    .fill(selection == option ? NanoTheme.teal : NanoTheme.elevated)
-                                    .frame(width: 12, height: 12)
-                                    .shadow(color: selection == option ? NanoTheme.teal : .clear, radius: 6)
-
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(option.name)
-                                        .font(WorkoutFont.ui(18))
-                                        .foregroundStyle(.white)
-                                    if let detail = option.detail {
-                                        Text(detail.uppercased())
-                                            .font(WorkoutFont.ui(9))
-                                            .foregroundStyle(NanoTheme.secondaryText)
+        NavigationStack {
+            List {
+                ForEach(WorkoutEnvironment.allCases) { group in
+                    Section(group.rawValue) {
+                        ForEach(PreviewWorkout.options(for: group)) { option in
+                            Button {
+                                environment = option.environment
+                                selection = option
+                                dismiss()
+                            } label: {
+                                HStack(spacing: 14) {
+                                    Image(systemName: option.symbol).font(.system(size: 22))
+                                        .foregroundStyle(NanoTheme.teal).frame(width: 32)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(option.name).font(.body.weight(.medium)).foregroundStyle(NanoTheme.text)
+                                        if let detail = option.detail {
+                                            Text(detail).font(.caption).foregroundStyle(NanoTheme.secondaryText)
+                                        }
                                     }
+                                    Spacer()
+                                    if selection == option { Image(systemName: "checkmark").foregroundStyle(NanoTheme.teal) }
                                 }
-                                Spacer()
-                                Image(systemName: option.symbol)
-                                    .font(.system(size: 22, weight: .medium))
-                                    .foregroundStyle(selection == option ? NanoTheme.background : NanoTheme.secondaryText)
-                                    .frame(width: 46, height: 46)
-                                    .background(
-                                        Circle().fill(selection == option ? NanoTheme.teal : NanoTheme.elevated)
-                                    )
+                                .padding(.vertical, 6)
                             }
-                            .padding(16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 20)
-                                    .fill(NanoTheme.surface)
-                                    .stroke(selection == option ? NanoTheme.teal : NanoTheme.elevated, lineWidth: selection == option ? 2 : 1)
-                            )
+                            .accessibilityAddTraits(selection == option ? .isSelected : [])
                         }
-                        .buttonStyle(WorkoutPressButtonStyle())
-                        .accessibilityAddTraits(selection == option ? .isSelected : [])
                     }
                 }
-                .animation(WorkoutMotion.state(reduceMotion: reduceMotion), value: selection)
-                .padding(.bottom, 24)
             }
-            .scrollIndicators(.hidden)
+            .navigationTitle("Choose activity").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
-        .padding(.horizontal, 18)
-        .padding(.top, 10)
     }
 }
 
@@ -1979,11 +1954,11 @@ private struct WorkoutGoalScreen: View {
     @Binding var calorieGoal: Int
     @Binding var durationGoal: Int
     @Binding var distanceGoalHundredths: Int
-    let done: () -> Void
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(spacing: 18) {
-            WorkoutModalHeader(title: "Workout Goal", done: done)
+            WorkoutModalHeader(title: "Workout Goal", done: { dismiss() })
 
             ScrollView(.horizontal) {
                 HStack(spacing: 8) {
@@ -2016,7 +1991,7 @@ private struct WorkoutGoalScreen: View {
                     VStack(alignment: .leading, spacing: 5) {
                         Text("SET A GOAL")
                             .font(WorkoutFont.ui(12))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(NanoTheme.text)
                         Text("Choose a target for this workout. Turn on goal alerts in workout setup for a haptic when you reach it.")
                             .font(WorkoutFont.ui(11))
                             .foregroundStyle(NanoTheme.secondaryText)
@@ -2095,7 +2070,9 @@ private struct WorkoutGoalScreen: View {
 
 private struct WorkoutLiveScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(AppStore.self) private var store
     @ObservedObject var locationTracker: WorkoutLocationTracker
+    @ObservedObject var exploration: WorkoutExplorationProgress
     let creature: CreatureStage
     let evolution: WorkoutEvolutionProgress
     let workout: PreviewWorkout
@@ -2116,133 +2093,53 @@ private struct WorkoutLiveScreen: View {
     let resume: () -> Void
     let end: () -> Void
 
+    private var expanded: Bool { workout.environment == .indoor || !showsMap }
+    private var distance: String {
+        let value = store.distanceUnit == .miles ? distanceMiles : distanceMiles * 1.609344
+        return String(format: "%.2f %@", value, store.distanceUnit.abbreviation.lowercased())
+    }
     var body: some View {
-        ZStack {
-            VStack(spacing: 0) {
-                HStack {
-                    WorkoutCreatureProgressView(stage: creature, progress: evolution,
-                                                diameter: 60, isPlaying: !isPaused)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(workoutTime(elapsedSeconds))
-                            .lineLimit(1).minimumScaleFactor(0.75)
-                            .font(WorkoutFont.metric(22))
-                            .monospacedDigit()
-                            .foregroundStyle(NanoTheme.teal)
-                        Text(workout.name.uppercased())
-                            .lineLimit(1).minimumScaleFactor(0.75)
-                            .font(WorkoutFont.ui(9))
-                            .foregroundStyle(NanoTheme.secondaryText)
-                        Text(evolution.caption)
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(NanoTheme.teal)
-                            .lineLimit(1).minimumScaleFactor(0.8)
-                    }
-                    Spacer()
-                    WorkoutDisplayPicker(showsMap: $showsMap)
-                        .layoutPriority(1)
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 10)
-
-                WorkoutMilestoneAction(source: .phone(paused: isPaused))
-                    .padding(.horizontal, 20)
-                    .padding(.top, 10)
-
-                Capsule()
-                    .fill(NanoTheme.elevated)
-                    .frame(width: 62, height: 5)
-                    .padding(.bottom, 10)
-
-                if let japaneseWalkingTempo, let tempoSecondsRemaining {
-                    JapaneseWalkingTempoStrip(
-                        tempo: japaneseWalkingTempo,
-                        secondsRemaining: tempoSecondsRemaining
-                    )
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 10)
-                }
-
-                if showsMap {
-                    WorkoutActualMap(
-                        locationTracker: locationTracker,
-                        title: "LIVE ROUTE",
-                        growthLabel: creature.isEgg
-                            ? "EACH STEP POWERS \(creature.name.uppercased()) TOWARD HATCHING"
-                            : "EACH STEP POWERS \(creature.name.uppercased()) TOWARD EVOLUTION",
-                        companionImageKey: creature.imageKey
-                    )
-                        .transition(.opacity)
-                } else {
-                    WorkoutMetricsPanel(
-                        goalKind: goalKind,
-                        goalDescription: goalDescription,
-                        goalProgress: goalProgress,
-                        didReachGoal: didReachGoal,
-                        steps: steps,
-                        distanceMiles: distanceMiles,
-                        paceMinutesPerMile: paceMinutesPerMile,
-                        calories: calories
-                    )
-                    .transition(.opacity)
-                }
-
-                WorkoutPrimaryButton(
-                    title: "Pause",
-                    symbol: "pause.fill",
-                    action: pause
-                )
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
-            }
-
-            if isPaused {
-                Color.black.opacity(0.72)
+        ZStack(alignment: .topLeading) {
+            if workout.environment == .outdoor {
+                WorkoutActualMap(locationTracker: locationTracker, showsRecenterControl: false, companionImageKey: creature.imageKey)
                     .ignoresSafeArea()
-                    .transition(.opacity)
-                VStack(spacing: 18) {
-                    Image(systemName: "pause.fill")
-                        .font(.system(size: 30, weight: .bold))
-                        .foregroundStyle(NanoTheme.orange)
-                        .frame(width: 68, height: 68)
-                        .background(Circle().fill(NanoTheme.orange.opacity(0.12)))
-
-                    Text("WORKOUT PAUSED")
-                        .font(WorkoutFont.ui(16))
-                        .foregroundStyle(.white)
-                    Text("Metrics and route recording are paused.")
-                        .font(WorkoutFont.ui(12))
-                        .foregroundStyle(NanoTheme.secondaryText)
-
-                    WorkoutPrimaryButton(title: "Resume", symbol: "play.fill", action: resume)
-
-                    Button(action: end) {
-                        Text("End Workout")
-                            .lineLimit(1).minimumScaleFactor(0.75)
-                            .font(WorkoutFont.ui(15))
-                            .foregroundStyle(NanoTheme.danger)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                            .background(RoundedRectangle(cornerRadius: 17).fill(NanoTheme.danger.opacity(0.10)))
-                    }
-                    .buttonStyle(WorkoutPressButtonStyle())
-                }
-                .padding(22)
-                .background(
-                    RoundedRectangle(cornerRadius: 28)
-                        .fill(NanoTheme.surface)
-                        .stroke(NanoTheme.elevated, lineWidth: 1)
-                )
-                .padding(.horizontal, 28)
-                .transition(
-                    reduceMotion
-                        ? .opacity
-                        : .opacity.combined(with: .scale(scale: 0.96)).combined(with: .offset(y: 8))
-                )
+                    .overlay { if isPaused { Color.black.opacity(0.25).ignoresSafeArea().allowsHitTesting(false) } }
+                WorkoutNeighborhoodBadge(exploration: exploration)
+                    .padding(.horizontal, 20).padding(.top, 18)
+            } else {
+                NanoTheme.backgroundGradient.ignoresSafeArea()
             }
         }
-        .animation(WorkoutMotion.state(reduceMotion: reduceMotion), value: showsMap)
-        .animation(WorkoutMotion.screen(reduceMotion: reduceMotion), value: isPaused)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 12) {
+                if workout.environment == .outdoor { WorkoutTileChip(recap: exploration.recap) }
+                ScrollView {
+                    VStack(spacing: 12) {
+                        WorkoutFloatingStats(title: workout.name, creature: creature, evolution: evolution,
+                            elapsedSeconds: Double(elapsedSeconds), distance: distance, steps: steps,
+                            goalLabel: goalKind == .open ? nil : (didReachGoal ? "Goal reached · \(goalDescription)" : "Goal · \(goalDescription)"),
+                            goalProgress: goalProgress, paused: isPaused, expanded: expanded,
+                            expand: workout.environment == .indoor ? nil : { showsMap.toggle() })
+                        WorkoutMilestoneAction(source: .phone(paused: isPaused))
+                        if let japaneseWalkingTempo, let tempoSecondsRemaining {
+                            JapaneseWalkingTempoStrip(tempo: japaneseWalkingTempo, secondsRemaining: tempoSecondsRemaining)
+                        }
+                        if expanded {
+                            Text("\(Int(calories)) kcal · \(workoutPace(paceMinutesPerMile)) /mi")
+                                .font(.caption).foregroundStyle(NanoTheme.secondaryText)
+                        }
+                    }
+                }
+                .scrollIndicators(.hidden)
+                .frame(maxHeight: expanded ? 420 : 270)
+                .fixedSize(horizontal: false, vertical: true)
+                WorkoutPrimaryButton(title: isPaused ? "Resume" : "Pause", symbol: isPaused ? "play.fill" : "pause.fill", action: isPaused ? resume : pause)
+                if isPaused { WorkoutHoldToFinishButton(action: end) }
+            }
+            .padding(.horizontal, 16).padding(.bottom, 14)
+        }
+        .animation(WorkoutMotion.state(reduceMotion: reduceMotion), value: expanded)
+        .animation(WorkoutMotion.state(reduceMotion: reduceMotion), value: isPaused)
     }
 }
 
@@ -2279,7 +2176,7 @@ private struct WorkoutMetricsPanel: View {
                             Text(steps.formatted())
                                 .font(WorkoutFont.metric(goalKind == .open ? 64 : 48))
                                 .monospacedDigit()
-                                .foregroundStyle(.white)
+                                .foregroundStyle(NanoTheme.text)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.55)
                             Text("STEPS")
@@ -2337,7 +2234,7 @@ private struct JapaneseWalkingTempoStrip: View {
                 Text(tempo.title)
                     .lineLimit(1).minimumScaleFactor(0.75)
                     .font(WorkoutFont.ui(12))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(NanoTheme.text)
                 Text(tempo.instruction)
                     .font(WorkoutFont.ui(10))
                     .foregroundStyle(NanoTheme.secondaryText)
@@ -2377,7 +2274,6 @@ private struct WorkoutSummaryScreen: View {
     @Environment(AppStore.self) private var store
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("nanobeasts.workouts.saveToHealth") private var saveToHealth = true
-    @State private var heroVisible = false
     let workout: PreviewWorkout
     let goalDescription: String
     let didReachGoal: Bool
@@ -2388,225 +2284,107 @@ private struct WorkoutSummaryScreen: View {
     let route: [CLLocationCoordinate2D]
     let routeBreakIndices: [Int]
     let territoryTiles: Int
+    let exploration: WorkoutExplorationRecap
+    let date: Date
+    let exploredRoutes: [[CLLocationCoordinate2D]]
     let companion: CreatureStage
     let rewards: [CreatureDiscoveryEvent]
     let savedToHealth: Bool
     let totalsSourceLabel: String
     let saveError: String?
-    let repeatWorkout: () -> Void
     let done: () -> Void
     @State private var sharePayload: WorkoutSharePayload?
     @State private var replayPayload: WorkoutSharePayload?
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 22) {
+            VStack(alignment: .leading, spacing: 20) {
                 HStack {
-                    Text("ADVENTURE COMPLETE")
-                        .font(WorkoutFont.ui(11))
-                        .tracking(1)
-                        .foregroundStyle(NanoTheme.teal)
+                    Label("Adventure complete", systemImage: "checkmark.circle.fill")
+                        .font(.subheadline.weight(.semibold)).foregroundStyle(NanoTheme.teal)
                     Spacer()
-                    Button("Done", action: done)
-                        .font(WorkoutFont.ui(14))
-                        .foregroundStyle(NanoTheme.teal)
-                        .padding(.horizontal, 14)
-                        .frame(minHeight: 44)
-                        .background(Capsule().fill(NanoTheme.surface))
-                        .buttonStyle(WorkoutPressButtonStyle())
+                    Button("Done", action: done).tint(NanoTheme.teal).frame(minHeight: 44)
                 }
-
-                VStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(NanoTheme.teal.opacity(0.07))
-                            .frame(width: 170, height: 170)
-                        Circle()
-                            .stroke(NanoTheme.teal.opacity(0.18), lineWidth: 1)
-                            .frame(width: 170, height: 170)
-                        CreatureArtworkView(stage: companion)
-                            .frame(width: 138, height: 138)
-                    }
-                    .padding(.top, 6)
-
-                    Text(steps.formatted())
-                        .font(WorkoutFont.metric(56))
-                        .monospacedDigit()
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.55)
-                    Text("STEPS TOGETHER")
-                        .font(WorkoutFont.ui(11))
-                        .tracking(2)
-                        .foregroundStyle(NanoTheme.teal)
-                    Text(didReachGoal ? "You reached your goal." : "A little stronger, together.")
-                        .font(WorkoutFont.ui(20))
-                        .foregroundStyle(.white)
-                        .multilineTextAlignment(.center)
-                        .padding(.top, 6)
-                    Text("\(workout.name) · \(goalDescription)")
-                        .font(WorkoutFont.ui(11))
-                        .foregroundStyle(NanoTheme.secondaryText)
-                        .multilineTextAlignment(.center)
+                if workout.environment == .outdoor, !route.isEmpty {
+                    WorkoutTerritoryMap(route: route, routeBreakIndices: routeBreakIndices, exploredRoutes: exploredRoutes,
+                        currentLocation: route.last.map { CLLocation(latitude: $0.latitude, longitude: $0.longitude) },
+                        showsFog: true, followsUser: false, reduceMotion: reduceMotion, fitsRoute: true)
+                        .frame(height: 250).clipShape(RoundedRectangle(cornerRadius: 26))
+                        .accessibilityLabel("Completed route with revealed hexagon tiles")
                 }
-                .frame(maxWidth: .infinity)
-                .opacity(heroVisible ? 1 : 0)
-                .scaleEffect(heroVisible || reduceMotion ? 1 : 0.97)
-                .offset(y: heroVisible || reduceMotion ? 0 : 8)
-
-                Text(totalsSourceLabel)
-                    .font(WorkoutFont.ui(11))
-                    .foregroundStyle(NanoTheme.secondaryText)
-                    .multilineTextAlignment(.center)
-
-                HStack(spacing: 10) {
-                    WorkoutMetricTile(symbol: "clock", value: workoutTime(elapsedSeconds), unit: "TIME")
-                    WorkoutMetricTile(symbol: "arrow.right", value: String(format: "%.2f", distanceMiles), unit: "MI")
-                    WorkoutMetricTile(symbol: "flame", value: "\(Int(calories))", unit: "KCAL")
-                }
-                if territoryTiles > 0 {
-                    Label("\(territoryTiles) territory tiles explored", systemImage: "map")
-                        .font(WorkoutFont.ui(11))
-                        .foregroundStyle(NanoTheme.secondaryText)
-                }
-
-                if workout.environment != .indoor,
-                   WorkoutRouteReplayTrack(route: route, breakIndices: routeBreakIndices).canReplay {
-                    WorkoutRouteReplayButton { replayPayload = makeWorkoutPayload() }
-                }
-
-                WorkoutRewardRecap(
-                    companion: companion,
-                    steps: steps,
-                    rewards: rewards
-                )
-
                 VStack(alignment: .leading, spacing: 8) {
-                    Label(savedToHealth ? "SAVED TO APPLE HEALTH" : "APPLE HEALTH", systemImage: savedToHealth ? "checkmark.circle.fill" : "heart")
-                        .font(WorkoutFont.ui(11))
-                        .foregroundStyle(savedToHealth ? NanoTheme.teal : NanoTheme.cyan)
-                    Text(saveError ?? (savedToHealth
-                        ? "Your workout is in your Health and Fitness history."
-                        : saveToHealth
-                            ? "Health has not confirmed a saved workout yet. You can review Health access in Settings."
-                            : "Health sharing is off. You can turn it on in workout setup for your next adventure."))
-                        .font(WorkoutFont.ui(11))
-                        .foregroundStyle(NanoTheme.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
+                    Text(workout.name).font(.system(size: 30, weight: .bold, design: .rounded)).foregroundStyle(NanoTheme.text)
+                    Text(date.formatted(date: .abbreviated, time: .shortened))
+                        .font(.subheadline).foregroundStyle(NanoTheme.secondaryText)
+                    if workout.environment == .outdoor {
+                        Text("+\(exploration.newTiles) new tiles · \(exploration.neighborhood): \(exploration.percentText)")
+                            .font(.system(size: 17, weight: .semibold, design: .rounded)).foregroundStyle(NanoTheme.teal)
+                    }
+                    if didReachGoal { Label("Goal reached · \(goalDescription)", systemImage: "checkmark").font(.caption).foregroundStyle(NanoTheme.teal) }
                 }
-                .nanoHUDCard(tint: NanoTheme.cyan, padding: 15)
-
-                Button(action: repeatWorkout) {
-                    Label("Do It Again", systemImage: "arrow.clockwise")
-                        .font(WorkoutFont.ui(14))
-                        .foregroundStyle(NanoTheme.teal)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 54)
-                        .background(
-                            RoundedRectangle(cornerRadius: 18)
-                                .fill(NanoTheme.teal.opacity(0.10))
-                                .stroke(NanoTheme.teal.opacity(0.48), lineWidth: 1)
-                        )
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                    summaryStat(steps.formatted(), "Steps")
+                    summaryStat(workoutTime(elapsedSeconds), "Active time")
+                    summaryStat(distance, "Distance")
+                    summaryStat("\(Int(calories)) kcal", "Energy")
                 }
-                .buttonStyle(WorkoutPressButtonStyle())
+                Text(totalsSourceLabel).font(.caption).foregroundStyle(NanoTheme.secondaryText)
+                HStack(spacing: 14) {
+                    CreatureArtworkView(stage: companion).frame(width: 58, height: 58)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("\(steps.formatted()) steps with \(companion.name)")
+                            .font(.subheadline.weight(.semibold)).foregroundStyle(NanoTheme.text)
+                        Text(rewards.isEmpty ? "Every step brings a new form closer." : rewards.prefix(3).map { "\($0.kind.title): \($0.name)" }.joined(separator: " · "))
+                            .font(.caption).foregroundStyle(NanoTheme.secondaryText)
+                    }
+                }
+                .padding(14).frame(maxWidth: .infinity, alignment: .leading)
+                .background(NanoTheme.surface, in: RoundedRectangle(cornerRadius: 20))
+                Label(saveError ?? (savedToHealth ? "Saved to Apple Health" : saveToHealth ? "Apple Health save pending" : "Apple Health sharing is off"),
+                      systemImage: savedToHealth ? "checkmark.circle" : "heart")
+                    .font(.caption).foregroundStyle(saveError == nil ? NanoTheme.secondaryText : NanoTheme.orange)
             }
             .padding(20)
         }
         .scrollIndicators(.hidden)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            WorkoutPrimaryButton(title: "Share your workout", symbol: "square.and.arrow.up") {
-                    sharePayload = makeWorkoutPayload()
+            VStack(spacing: 8) {
+                WorkoutPrimaryButton(title: "Share workout", symbol: "square.and.arrow.up") { sharePayload = makeWorkoutPayload() }
+                if workout.environment == .outdoor,
+                   WorkoutRouteReplayTrack(route: route, breakIndices: routeBreakIndices).canReplay {
+                    Button { replayPayload = makeWorkoutPayload() } label: {
+                        Label("Replay route", systemImage: "play.circle").font(.subheadline.weight(.semibold))
+                            .foregroundStyle(NanoTheme.teal).frame(maxWidth: .infinity, minHeight: 44)
+                    }
                 }
-                .padding(.horizontal, 20).padding(.vertical, 12)
-                .background(NanoTheme.background)
-        }
-        .onAppear {
-            withAnimation(WorkoutMotion.celebration(reduceMotion: reduceMotion)) {
-                heroVisible = true
             }
+            .padding(.horizontal, 20).padding(.vertical, 12).background(NanoTheme.background)
         }
         .fullScreenCover(item: $replayPayload) { payload in
             WorkoutRouteReplayView(payload: payload, distanceUnit: store.distanceUnit)
         }
         .sheet(item: $sharePayload) { payload in
-            WorkoutShareComposer(payload: payload)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.hidden)
+            WorkoutShareComposer(payload: payload).presentationDetents([.large]).presentationDragIndicator(.hidden)
         }
     }
-
+    private var distance: String {
+        let value = store.distanceUnit == .miles ? distanceMiles : distanceMiles * 1.609344
+        return String(format: "%.2f %@", value, store.distanceUnit.abbreviation.lowercased())
+    }
+    private func summaryStat(_ value: String, _ label: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(value).font(.system(size: 26, weight: .semibold, design: .rounded))
+                .monospacedDigit().lineLimit(1).minimumScaleFactor(0.65).foregroundStyle(NanoTheme.text)
+            Text(label).font(.caption).foregroundStyle(NanoTheme.secondaryText)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading).padding(16)
+        .background(NanoTheme.surface, in: RoundedRectangle(cornerRadius: 20))
+        .accessibilityElement(children: .combine)
+    }
     private func makeWorkoutPayload() -> WorkoutSharePayload {
-        WorkoutSharePayload(
-            workoutName: workout.name,
-            workoutSymbol: workout.symbol,
-            elapsedSeconds: elapsedSeconds,
-            steps: steps,
-            distanceMiles: distanceMiles,
-            calories: calories,
-            isIndoor: workout.environment == .indoor,
-            route: route,
-            territoryTiles: territoryTiles,
-            companion: companion,
-            rewards: rewards,
-            routeBreakIndices: routeBreakIndices
-        )
-    }
-}
-
-private struct WorkoutRewardRecap: View {
-    let companion: CreatureStage
-    let steps: Int
-    let rewards: [CreatureDiscoveryEvent]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("YOUR COMPANION’S PROGRESS")
-                    .font(WorkoutFont.ui(11))
-                    .foregroundStyle(NanoTheme.orange)
-                Spacer()
-                Text(rewards.isEmpty ? "GROWING" : "\(rewards.count) UNLOCKED")
-                    .font(WorkoutFont.ui(9))
-                    .foregroundStyle(NanoTheme.secondaryText)
-            }
-
-            if rewards.isEmpty {
-                HStack(spacing: 12) {
-                    CreatureArtworkView(stage: companion)
-                        .frame(width: 54, height: 54)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("\(steps.formatted()) steps grew \(companion.name)")
-                            .font(WorkoutFont.ui(13))
-                            .foregroundStyle(.white)
-                        Text("Every step adds up. Your next adventure brings a new form closer.")
-                            .font(WorkoutFont.ui(10))
-                            .foregroundStyle(NanoTheme.secondaryText)
-                    }
-                }
-            } else {
-                ForEach(rewards.prefix(3)) { reward in
-                    HStack(spacing: 12) {
-                        CreatureArtworkView(stage: reward.creatureStage)
-                            .frame(width: 54, height: 54)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(reward.kind.title)
-                                .font(WorkoutFont.ui(9))
-                                .foregroundStyle(NanoTheme.orange)
-                            Text(reward.name)
-                                .font(WorkoutFont.ui(15))
-                                .foregroundStyle(.white)
-                            Text("DEX ENTRY UNLOCKED")
-                                .font(WorkoutFont.ui(8))
-                                .foregroundStyle(NanoTheme.teal)
-                        }
-                        Spacer()
-                        Image(systemName: reward.kind.symbol)
-                            .foregroundStyle(NanoTheme.teal)
-                    }
-                }
-            }
-        }
-        .nanoHUDCard(tint: NanoTheme.orange, padding: 15)
+        WorkoutSharePayload(workoutName: workout.name, workoutSymbol: workout.symbol, elapsedSeconds: elapsedSeconds,
+            steps: steps, distanceMiles: distanceMiles, calories: calories, isIndoor: workout.environment == .indoor,
+            route: route, territoryTiles: territoryTiles, companion: companion, rewards: rewards, routeBreakIndices: routeBreakIndices)
     }
 }
 
@@ -2686,7 +2464,9 @@ private struct WorkoutActualMap: View {
     var recenterID: Int = 0
     var showsRecenterControl = true
     var companionImageKey: String? = nil
+    var onZoneFocus: ((CLLocationCoordinate2D) -> Void)? = nil
     @State private var localRecenterID = 0
+    @State private var isBrowsing = false
 
     var body: some View {
         ZStack {
@@ -2699,7 +2479,9 @@ private struct WorkoutActualMap: View {
                 followsUser: locationTracker.isTracking,
                 reduceMotion: reduceMotion,
                 recenterID: recenterID + localRecenterID,
-                companionImageKey: companionImageKey
+                companionImageKey: companionImageKey,
+                onZoneFocus: onZoneFocus,
+                onBrowsingChange: { isBrowsing = $0 }
             )
 
             VStack {
@@ -2715,7 +2497,7 @@ private struct WorkoutActualMap: View {
                                 systemImage: "sparkles"
                             )
                             .font(WorkoutFont.ui(9))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(NanoTheme.text)
                             .contentTransition(reduceMotion ? .identity : .numericText())
                             .animation(
                                 reduceMotion ? nil : WorkoutMotion.state(reduceMotion: false),
@@ -2739,7 +2521,7 @@ private struct WorkoutActualMap: View {
                     Text(growthLabel ?? "EVERY STEP POWERS CREATURE GROWTH")
                         .font(WorkoutFont.ui(8))
                         .tracking(0.5)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(NanoTheme.text)
                         .padding(.horizontal, 13)
                         .frame(height: 34)
                         .background(Capsule().fill(NanoTheme.background.opacity(0.82)))
@@ -2757,7 +2539,7 @@ private struct WorkoutActualMap: View {
                         .foregroundStyle(NanoTheme.teal)
                     Text(locationPromptTitle)
                         .font(WorkoutFont.ui(14))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(NanoTheme.text)
                     Text(
                         locationPromptMessage
                     )
@@ -2792,6 +2574,9 @@ private struct WorkoutActualMap: View {
                 .accessibilityLabel("Zoom to my location")
                 .padding(.trailing, 18)
                 .padding(.top, title == nil ? 14 : 58)
+            } else if isBrowsing, locationTracker.isTracking {
+                WorkoutRecenterPill { localRecenterID += 1 }
+                    .padding(.trailing, 18).padding(.top, 14)
             }
         }
         .animation(WorkoutMotion.state(reduceMotion: reduceMotion), value: locationTracker.needsPermission)
@@ -2815,7 +2600,7 @@ private struct WorkoutActualMap: View {
 
     private var locationPromptMessage: String {
         if locationTracker.needsPreciseLocation {
-            return "Turn on Precise Location so your route and cleared fog match the path you actually took."
+            return "Turn on Precise Location so the tiles you paint match the path you actually took."
         }
         return locationTracker.needsPermission
             ? "Use your position to clear territory as you move."
@@ -2823,7 +2608,8 @@ private struct WorkoutActualMap: View {
     }
 }
 
-private struct WorkoutTerritoryMap: UIViewRepresentable {
+struct WorkoutTerritoryMap: UIViewRepresentable {
+    @Environment(\.colorScheme) private var colorScheme
     let route: [CLLocationCoordinate2D]
     let routeBreakIndices: [Int]
     let exploredRoutes: [[CLLocationCoordinate2D]]
@@ -2833,6 +2619,11 @@ private struct WorkoutTerritoryMap: UIViewRepresentable {
     let reduceMotion: Bool
     var recenterID: Int = 0
     var companionImageKey: String? = nil
+    var fitsRoute = false
+    /// Browsing mode: the highlighted zone is whichever one sits at the map's center.
+    var onZoneFocus: ((CLLocationCoordinate2D) -> Void)? = nil
+    /// True once the user drags the map: following pauses until they recenter.
+    var onBrowsingChange: ((Bool) -> Void)? = nil
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -2846,7 +2637,7 @@ private struct WorkoutTerritoryMap: UIViewRepresentable {
         mapView.showsScale = true
         mapView.pointOfInterestFilter = .includingAll
 
-        let configuration = MKStandardMapConfiguration(elevationStyle: .realistic)
+        let configuration = MKStandardMapConfiguration(elevationStyle: .flat)
         configuration.emphasisStyle = .muted
         mapView.preferredConfiguration = configuration
 
@@ -2865,12 +2656,16 @@ private struct WorkoutTerritoryMap: UIViewRepresentable {
             reduceMotion: reduceMotion,
             recenterID: recenterID,
             companionImageKey: companionImageKey,
+            isDark: colorScheme == .dark,
+            accent: UIColor(NanoTheme.teal).resolvedColor(with: UITraitCollection(userInterfaceStyle: colorScheme == .dark ? .dark : .light)),
+            fitsRoute: fitsRoute,
+            onZoneFocus: onZoneFocus,
+            onBrowsingChange: onBrowsingChange,
             on: mapView
         )
     }
 
     static func dismantleUIView(_ mapView: MKMapView, coordinator: Coordinator) {
-        coordinator.stopAnimating()
         mapView.delegate = nil
     }
 
@@ -2878,20 +2673,30 @@ private struct WorkoutTerritoryMap: UIViewRepresentable {
         private let territoryOverlay = WorkoutTerritoryOverlay()
         private weak var territoryRenderer: WorkoutTerritoryRenderer?
         private weak var mapView: MKMapView?
-        private var targetRoute: [CLLocationCoordinate2D] = []
-        private var animationStartCoordinate: CLLocationCoordinate2D?
-        private var animationStartTime: CFTimeInterval = 0
-        private var displayLink: CADisplayLink?
         private var hasPositionedCamera = false
         private var lastCenteredLocation: CLLocation?
         private var lastRecenterID = 0
+        private var streetsObserver: NSObjectProtocol?
+        private var reducesMotion = false
+        private var onZoneFocus: ((CLLocationCoordinate2D) -> Void)?
+        private var onBrowsingChange: ((Bool) -> Void)?
+        private var centerZone: WorkoutHexKey?
+        /// Set when the user drags or zooms; live maps stop following until recentered.
+        private var isBrowsing = false
         #if DEBUG
         private let companionExperiment = WorkoutMapCompanionExperiment()
         #endif
 
         func install(on mapView: MKMapView) {
             self.mapView = mapView
-            mapView.addOverlay(territoryOverlay, level: .aboveLabels)
+            // Street names stay readable on top of the fog and tiles.
+            mapView.addOverlay(territoryOverlay, level: .aboveRoads)
+
+            // Repaint when a zone's street map arrives, so its "left to walk" hint appears.
+            streetsObserver = NotificationCenter.default.addObserver(
+                forName: WorkoutZoneStreets.didLoad, object: nil, queue: .main) { [weak self] _ in
+                self?.redrawVisibleMap()
+            }
         }
 
         func update(
@@ -2904,27 +2709,52 @@ private struct WorkoutTerritoryMap: UIViewRepresentable {
             reduceMotion: Bool,
             recenterID: Int,
             companionImageKey: String?,
+            isDark: Bool,
+            accent: UIColor,
+            fitsRoute: Bool,
+            onZoneFocus: ((CLLocationCoordinate2D) -> Void)?,
+            onBrowsingChange: ((Bool) -> Void)?,
             on mapView: MKMapView
         ) {
+            self.onZoneFocus = onZoneFocus
+            self.onBrowsingChange = onBrowsingChange
             #if DEBUG
             companionExperiment.update(on: mapView, imageKey: companionImageKey,
                                        location: currentLocation, reduceMotion: reduceMotion)
             #endif
+            reducesMotion = reduceMotion
+            let district = onZoneFocus != nil && centerZone != nil
+                ? centerZone
+                : (route.last ?? currentLocation?.coordinate).map { WorkoutHexGrid.key($0).district }
+            let previous = territoryOverlay.snapshot
+            let needsFullRedraw = previous.showsFog != showsFog || previous.isDark != isDark
+                || previous.district != district || !previous.accent.isEqual(accent)
             territoryOverlay.showsFog = showsFog
-            territoryOverlay.routeBreakIndices = routeBreakIndices
+            territoryOverlay.setAppearance(isDark: isDark, accent: accent, district: district)
+            mapView.overrideUserInterfaceStyle = isDark ? .dark : .light
             updateExploredRoutes(exploredRoutes)
-            updateRoute(route, reduceMotion: reduceMotion)
+            redraw(territoryOverlay.updateRoute(route, breakIndices: routeBreakIndices))
+            if needsFullRedraw { redrawVisibleMap() }
 
+            if fitsRoute, !route.isEmpty {
+                if !hasPositionedCamera {
+                    hasPositionedCamera = true
+                    mapView.setVisibleMapRect(WorkoutReplayMapBounds.rect(for: route, padding: 0.15),
+                        edgePadding: UIEdgeInsets(top: 30, left: 25, bottom: 30, right: 25), animated: false)
+                }
+                return
+            }
             let requestedRecenter = recenterID != lastRecenterID
             let phoneLocation = mapView.userLocation.location.flatMap {
                 abs($0.timestamp.timeIntervalSinceNow) < 15 ? $0 : nil
             }
             let targetLocation = requestedRecenter ? (phoneLocation ?? currentLocation) : currentLocation
-            guard let currentLocation = targetLocation else {
-                redrawVisibleMap()
-                return
-            }
+            guard let currentLocation = targetLocation else { return }
 
+            if requestedRecenter, isBrowsing {
+                isBrowsing = false
+                onBrowsingChange?(false)
+            }
             if requestedRecenter || !hasPositionedCamera {
                 hasPositionedCamera = true
                 lastRecenterID = recenterID
@@ -2935,13 +2765,11 @@ private struct WorkoutTerritoryMap: UIViewRepresentable {
                     longitudinalMeters: requestedRecenter ? 450 : 850
                 )
                 mapView.setRegion(region, animated: requestedRecenter && !reduceMotion)
-            } else if followsUser,
+            } else if followsUser, !isBrowsing,
                       lastCenteredLocation?.distance(from: currentLocation) ?? .greatestFiniteMagnitude > 8 {
                 lastCenteredLocation = currentLocation
                 mapView.setCenter(currentLocation.coordinate, animated: !reduceMotion)
             }
-
-            redrawVisibleMap()
         }
 
         #if DEBUG
@@ -2962,6 +2790,29 @@ private struct WorkoutTerritoryMap: UIViewRepresentable {
         }
         #endif
 
+        func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
+            // Only a finger on the map counts; our own follow/recenter moves never do.
+            let touched = mapView.subviews.first?.gestureRecognizers?.contains {
+                $0.state == .began || $0.state == .changed || $0.state == .ended
+            } ?? false
+            guard touched, !isBrowsing else { return }
+            isBrowsing = true
+            DispatchQueue.main.async { self.onBrowsingChange?(true) }
+        }
+
+        func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+            guard let onZoneFocus, hasPositionedCamera else { return }
+            let center = mapView.centerCoordinate
+            guard CLLocationCoordinate2DIsValid(center) else { return }
+            let zone = WorkoutHexGrid.key(center).district
+            guard zone != centerZone else { return }
+            centerZone = zone
+            let snapshot = territoryOverlay.snapshot
+            territoryOverlay.setAppearance(isDark: snapshot.isDark, accent: snapshot.accent, district: zone)
+            redrawVisibleMap()
+            onZoneFocus(center)
+        }
+
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             guard let territoryOverlay = overlay as? WorkoutTerritoryOverlay else {
                 return MKOverlayRenderer(overlay: overlay)
@@ -2970,32 +2821,6 @@ private struct WorkoutTerritoryMap: UIViewRepresentable {
             let renderer = WorkoutTerritoryRenderer(overlay: territoryOverlay)
             territoryRenderer = renderer
             return renderer
-        }
-
-        private func updateRoute(_ route: [CLLocationCoordinate2D], reduceMotion: Bool) {
-            guard routeChanged(route) else { return }
-            targetRoute = route
-
-            guard !reduceMotion,
-                  route.count > 1,
-                  !territoryOverlay.routeBreakIndices.contains(route.count - 1),
-                  let target = route.last
-            else {
-                stopAnimating()
-                territoryOverlay.route = route
-                redrawVisibleMap()
-                return
-            }
-
-            animationStartCoordinate = territoryOverlay.route.last ?? route.dropLast().last ?? target
-            animationStartTime = CACurrentMediaTime()
-
-            if displayLink == nil {
-                let link = CADisplayLink(target: self, selector: #selector(animateRoute))
-                link.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 120, preferred: 60)
-                link.add(to: .main, forMode: .common)
-                displayLink = link
-            }
         }
 
         private func updateExploredRoutes(
@@ -3012,47 +2837,18 @@ private struct WorkoutTerritoryMap: UIViewRepresentable {
             redrawVisibleMap()
         }
 
-        private func routeChanged(_ route: [CLLocationCoordinate2D]) -> Bool {
-            guard route.count == targetRoute.count else { return true }
-            guard let incoming = route.last, let existing = targetRoute.last else {
-                return route.isEmpty != targetRoute.isEmpty
-            }
-            return abs(incoming.latitude - existing.latitude) > 0.000_000_1
-                || abs(incoming.longitude - existing.longitude) > 0.000_000_1
-        }
-
-        @objc private func animateRoute(_ link: CADisplayLink) {
-            guard let start = animationStartCoordinate,
-                  let target = targetRoute.last
-            else {
-                stopAnimating()
-                return
-            }
-
-            let rawProgress = min(1, max(0, (link.timestamp - animationStartTime) / 0.34))
-            let progress = rawProgress * rawProgress * (3 - 2 * rawProgress)
-            let interpolated = CLLocationCoordinate2D(
-                latitude: start.latitude + (target.latitude - start.latitude) * progress,
-                longitude: start.longitude + (target.longitude - start.longitude) * progress
-            )
-            territoryOverlay.route = Array(targetRoute.dropLast()) + [interpolated]
-            redrawVisibleMap()
-
-            if rawProgress >= 1 {
-                territoryOverlay.route = targetRoute
-                stopAnimating()
-                redrawVisibleMap()
-            }
-        }
-
-        fileprivate func stopAnimating() {
-            displayLink?.invalidate()
-            displayLink = nil
-        }
-
         private func redrawVisibleMap() {
             guard let mapView else { return }
             territoryRenderer?.setNeedsDisplay(mapView.visibleMapRect)
+        }
+
+        /// Repaints only what changed; nil means the whole visible map.
+        private func redraw(_ changed: MKMapRect?) {
+            guard let mapView else { return }
+            guard let changed else { return redrawVisibleMap() }
+            guard !changed.isNull else { return }
+            let visible = changed.intersection(mapView.visibleMapRect)
+            if !visible.isNull { territoryRenderer?.setNeedsDisplay(visible) }
         }
     }
 }
@@ -3253,153 +3049,294 @@ private final class WorkoutMapCompanionExperiment {
 }
 #endif
 
+/// Map-space geometry for one route, prepared once so tiles never redo it.
+// Routes remain the persisted source of truth; this grid is derived in memory.
+struct WorkoutRouteLine {
+    let coordinates: [CLLocationCoordinate2D]
+}
+
+struct WorkoutHexKey: Hashable {
+    let band: Int
+    let q: Int
+    let r: Int
+
+    var radius: Double { WorkoutHexGrid.radius(band: band) }
+    var center: MKMapPoint { WorkoutHexGrid.center(q: q, r: r, radius: radius) }
+    var district: WorkoutHexKey {
+        let axial = WorkoutHexGrid.round(q: Double(q) / 20, r: Double(r) / 20)
+        return WorkoutHexKey(band: band, q: axial.0, r: axial.1)
+    }
+    var bounds: MKMapRect {
+        MKMapRect(x: center.x - radius, y: center.y - radius, width: 2 * radius, height: 2 * radius)
+    }
+    func vertices(scale: Double = 1) -> [MKMapPoint] {
+        let c = WorkoutHexGrid.center(q: q, r: r, radius: radius * scale)
+        return (0..<6).map { i in
+            let angle = (Double(i) * 60 - 30) * .pi / 180
+            return MKMapPoint(x: c.x + radius * scale * cos(angle), y: c.y + radius * scale * sin(angle))
+        }
+    }
+}
+
+enum WorkoutHexGrid {
+    static let radiusMeters = 20.0
+    static let districtCapacity = 400
+    static func radius(band: Int) -> Double {
+        radiusMeters * MKMapPointsPerMeterAtLatitude(Double(band) + 0.5)
+    }
+    static func center(q: Int, r: Int, radius: Double) -> MKMapPoint {
+        MKMapPoint(x: MKMapRect.world.width / 2 + radius * sqrt(3) * (Double(q) + Double(r) / 2),
+                   y: MKMapRect.world.height / 2 + radius * 1.5 * Double(r))
+    }
+    static func round(q: Double, r: Double) -> (Int, Int) {
+        var x = q.rounded(), z = r.rounded()
+        let y = (-q - r).rounded()
+        let dx = abs(x - q), dz = abs(z - r), dy = abs(y + q + r)
+        if dx > dy && dx > dz { x = -y - z }
+        else if dz > dy { z = -x - y }
+        return (Int(x), Int(z))
+    }
+    static func key(_ coordinate: CLLocationCoordinate2D) -> WorkoutHexKey {
+        let band = min(84, max(-85, Int(floor(coordinate.latitude))))
+        let p = MKMapPoint(coordinate), radius = radius(band: band)
+        let x = p.x - MKMapRect.world.width / 2, y = p.y - MKMapRect.world.height / 2
+        let axial = round(q: (sqrt(3) / 3 * x - y / 3) / radius, r: (2 * y / 3) / radius)
+        return WorkoutHexKey(band: band, q: axial.0, r: axial.1)
+    }
+    static func tiles(route: [CLLocationCoordinate2D], breaks: [Int] = [], startingAt start: Int = 0) -> Set<WorkoutHexKey> {
+        var result: Set<WorkoutHexKey> = []
+        let gaps = Set(breaks)
+        for i in max(0, start)..<max(start, route.count) {
+            let coordinate = route[i]
+            guard CLLocationCoordinate2DIsValid(coordinate) else { continue }
+            result.insert(key(coordinate))
+            guard i > 0, !gaps.contains(i), CLLocationCoordinate2DIsValid(route[i - 1]) else { continue }
+            let a = MKMapPoint(route[i - 1]), b = MKMapPoint(coordinate)
+            let meters = a.distance(to: b)
+            guard meters <= 1_500 else { continue }
+            let samples = max(1, Int(ceil(meters / (radiusMeters / 2))))
+            for step in 0...samples {
+                let t = Double(step) / Double(samples)
+                result.insert(key(MKMapPoint(x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t).coordinate))
+            }
+        }
+        return result
+    }
+    private static let cornerUnits: [(Double, Double)] = (0..<6).map { i in
+        let angle = (Double(i) * 60 - 30) * .pi / 180
+        return (cos(angle), sin(angle))
+    }
+
+    /// Appends one tile's outline in map points (the overlay renderer's own space).
+    static func addHexagon(_ tile: WorkoutHexKey, to path: CGMutablePath, scale: Double = 1) {
+        let radius = tile.radius * scale, center = tile.center
+        path.move(to: CGPoint(x: center.x + radius * cornerUnits[0].0, y: center.y + radius * cornerUnits[0].1))
+        for corner in cornerUnits.dropFirst() {
+            path.addLine(to: CGPoint(x: center.x + radius * corner.0, y: center.y + radius * corner.1))
+        }
+        path.closeSubpath()
+    }
+
+    /// Zones overlapping a map area, for the faint zone grid. Empty when zoomed
+    /// so far out that outlines would turn into noise.
+    static func districts(in rect: MKMapRect) -> [WorkoutHexKey] {
+        let zoneRadius = radius(band: key(MKMapPoint(x: rect.midX, y: rect.midY).coordinate).band) * 20
+        let area = rect.insetBy(dx: -zoneRadius, dy: -zoneRadius)
+        let step = zoneRadius * 0.75
+        guard (area.width / step) * (area.height / step) <= 400 else { return [] }
+        var found: Set<WorkoutHexKey> = []
+        var y = area.minY
+        while y <= area.maxY {
+            var x = area.minX
+            while x <= area.maxX {
+                found.insert(key(MKMapPoint(x: x, y: y).coordinate).district)
+                x += step
+            }
+            y += step
+        }
+        return Array(found)
+    }
+    static func tiles(routes: [[CLLocationCoordinate2D]]) -> Set<WorkoutHexKey> {
+        routes.reduce(into: []) { $0.formUnion(tiles(route: $1)) }
+    }
+}
+
 final class WorkoutTerritoryOverlay: NSObject, MKOverlay {
     let coordinate = CLLocationCoordinate2D(latitude: 0, longitude: 0)
     let boundingMapRect = MKMapRect.world
-
+    struct ChunkKey: Hashable { let band: Int; let q: Int; let r: Int }
+    /// Up to 16×16 tiles whose outlines are built once. With a world-sized overlay the
+    /// renderer draws in map points, so these paths are reused as-is on every
+    /// redraw instead of recomputing thousands of hexagons per map tile.
+    struct Chunk {
+        var tiles: Set<WorkoutHexKey> = []
+        var bounds = MKMapRect.null
+        var explored: CGPath = CGMutablePath()
+        var walking: CGPath = CGMutablePath()
+        /// Every tile grown by 12%: filled behind the tiles it becomes the trail's outline.
+        var outline: CGPath = CGMutablePath()
+    }
     struct Snapshot {
         var route: [CLLocationCoordinate2D] = []
         var routeBreakIndices: [Int] = []
         var exploredRoutes: [[CLLocationCoordinate2D]] = []
+        var oldTiles: Set<WorkoutHexKey> = []
+        var currentTiles: Set<WorkoutHexKey> = []
+        var chunks: [ChunkKey: Chunk] = [:]
+        var districtCounts: [WorkoutHexKey: Int] = [:]
+        var district: WorkoutHexKey?
         var showsFog = false
+        var isDark = false
+        var accent = UIColor(red: 0.2, green: 0.8, blue: 0.7, alpha: 1)
+        var newTileCount: Int { currentTiles.subtracting(oldTiles).count }
+        mutating func insert(_ tiles: Set<WorkoutHexKey>) {
+            var grouped: [ChunkKey: [WorkoutHexKey]] = [:]
+            for tile in tiles {
+                let key = ChunkKey(band: tile.band, q: Int(floor(Double(tile.q) / 16)), r: Int(floor(Double(tile.r) / 16)))
+                grouped[key, default: []].append(tile)
+            }
+            for (key, group) in grouped {
+                var chunk = chunks[key] ?? Chunk()
+                let explored = chunk.explored.mutableCopy() ?? CGMutablePath()
+                let walking = chunk.walking.mutableCopy() ?? CGMutablePath()
+                let outline = chunk.outline.mutableCopy() ?? CGMutablePath()
+                for tile in group where chunk.tiles.insert(tile).inserted {
+                    chunk.bounds = chunk.bounds.union(tile.bounds.insetBy(dx: -tile.radius * 0.4, dy: -tile.radius * 0.4))
+                    districtCounts[tile.district, default: 0] += 1
+                    WorkoutHexGrid.addHexagon(tile, to: currentTiles.contains(tile) && !oldTiles.contains(tile) ? walking : explored)
+                    WorkoutHexGrid.addHexagon(tile, to: outline, scale: 1.12)
+                }
+                // Immutable copies: MapKit draws on background threads while walks update.
+                chunk.explored = explored.copy() ?? explored
+                chunk.walking = walking.copy() ?? walking
+                chunk.outline = outline.copy() ?? outline
+                chunks[key] = chunk
+            }
+        }
+        mutating func rebuild() {
+            chunks = [:]; districtCounts = [:]
+            insert(oldTiles.union(currentTiles))
+        }
     }
     private let lock = NSLock()
     private var state = Snapshot()
-    // MapKit can draw on background threads while a replay advances on main.
-    // Each draw gets a coherent, immutable copy of the route and its gaps.
     var snapshot: Snapshot { lock.withLock { state } }
     var route: [CLLocationCoordinate2D] {
         get { snapshot.route }
-        set { lock.withLock { state.route = newValue } }
+        set { updateRoute(newValue, breakIndices: routeBreakIndices) }
     }
     var routeBreakIndices: [Int] {
         get { snapshot.routeBreakIndices }
-        set { lock.withLock { state.routeBreakIndices = newValue } }
+        set { updateRoute(route, breakIndices: newValue) }
     }
     var exploredRoutes: [[CLLocationCoordinate2D]] {
         get { snapshot.exploredRoutes }
-        set { lock.withLock { state.exploredRoutes = newValue } }
+        set {
+            let tiles = WorkoutHexGrid.tiles(routes: newValue)
+            lock.withLock { state.exploredRoutes = newValue; state.oldTiles = tiles; state.rebuild() }
+        }
     }
     var showsFog: Bool {
         get { snapshot.showsFog }
         set { lock.withLock { state.showsFog = newValue } }
     }
-    func updateRoute(_ route: [CLLocationCoordinate2D], breakIndices: [Int]) {
+    func setAppearance(isDark: Bool, accent: UIColor, district: WorkoutHexKey?) {
+        lock.withLock { state.isDark = isDark; state.accent = accent; state.district = district }
+    }
+    @discardableResult
+    func updateRoute(_ route: [CLLocationCoordinate2D], breakIndices: [Int]) -> MKMapRect? {
         lock.withLock {
-            state.route = route
-            state.routeBreakIndices = breakIndices
+            let continues = route.count >= state.route.count && breakIndices == state.routeBreakIndices
+                && zip(state.route, route).allSatisfy { $0.latitude == $1.latitude && $0.longitude == $1.longitude }
+            let incoming = WorkoutHexGrid.tiles(route: route, breaks: breakIndices, startingAt: continues ? state.route.count : 0)
+            let changed = incoming.subtracting(state.currentTiles)
+            state.route = route; state.routeBreakIndices = breakIndices
+            if continues { state.currentTiles.formUnion(incoming); state.insert(changed) }
+            else { state.currentTiles = incoming; state.rebuild() }
+            guard continues else { return nil }
+            return changed.reduce(MKMapRect.null) { $0.union($1.bounds.insetBy(dx: -$1.radius * 0.4, dy: -$1.radius * 0.4)) }
         }
     }
 }
 
 final class WorkoutTerritoryRenderer: MKOverlayRenderer {
-    private var territoryOverlay: WorkoutTerritoryOverlay? {
-        overlay as? WorkoutTerritoryOverlay
-    }
-
     override func draw(_ mapRect: MKMapRect, zoomScale: MKZoomScale, in context: CGContext) {
-        guard let snapshot = territoryOverlay?.snapshot else { return }
-
-        let drawingRect = rect(for: mapRect)
+        guard let snapshot = (overlay as? WorkoutTerritoryOverlay)?.snapshot, snapshot.showsFog else { return }
         context.saveGState()
+        defer { context.restoreGState() }
         context.setAllowsAntialiasing(true)
         context.setShouldAntialias(true)
-
-        if snapshot.showsFog {
-            context.setBlendMode(.normal)
-            context.setFillColor(
-                UIColor(red: 0.64, green: 0.10, blue: 0.56, alpha: 0.62).cgColor
-            )
-            context.fill(drawingRect)
+        let unit = 1 / max(zoomScale, 0.000001)
+        // Every zone is faintly outlined so there is always a next one to aim for.
+        let isWalked = { (tile: WorkoutHexKey) in
+            snapshot.oldTiles.contains(tile) || snapshot.currentTiles.contains(tile)
         }
-
-        if snapshot.showsFog {
-            let revealedRoutes = (
-                snapshot.exploredRoutes + WorkoutRouteSegments.split(
-                    snapshot.route, at: snapshot.routeBreakIndices
-                )
-            )
-            drawClearedCorridors(
-                revealedRoutes,
-                in: context
-            )
+        func isMastered(_ zone: WorkoutHexKey) -> Bool {
+            guard let streets = WorkoutZoneStreets.shared.cached(zone) else { return false }
+            return WorkoutZoneProgress(streets: streets, walked: isWalked).isMastered
         }
-
-        if let currentPath = currentRoutePath(snapshot) {
-            // The active route remains distinct from previously explored corridors.
-            context.setBlendMode(.normal)
-            context.addPath(currentPath)
-            context.setLineCap(.round)
-            context.setLineJoin(.round)
-            context.setStrokeColor(
-                UIColor(NanoTheme.teal).withAlphaComponent(0.82).cgColor
-            )
-            context.setLineWidth(4 / CGFloat(zoomScale))
-            context.setShadow(
-                offset: .zero,
-                blur: 5 / CGFloat(zoomScale),
-                color: UIColor(NanoTheme.teal).withAlphaComponent(0.45).cgColor
-            )
+        let grid = CGMutablePath(), mastered = CGMutablePath()
+        for zone in WorkoutHexGrid.districts(in: mapRect) {
+            if isMastered(zone) { mastered.addPath(path(vertices: zone.vertices(scale: 20))) }
+            else if zone != snapshot.district { grid.addPath(path(vertices: zone.vertices(scale: 20))) }
+        }
+        // Mastered zones keep a solid, softly filled outline: conquered ground at a glance.
+        context.addPath(mastered)
+        context.setFillColor(snapshot.accent.withAlphaComponent(0.10).cgColor)
+        context.fillPath()
+        context.addPath(mastered)
+        context.setStrokeColor(snapshot.accent.withAlphaComponent(0.9).cgColor)
+        context.setLineWidth(2.6 * unit)
+        context.strokePath()
+        context.addPath(grid)
+        context.setStrokeColor(snapshot.accent.withAlphaComponent(snapshot.isDark ? 0.22 : 0.3).cgColor)
+        context.setLineWidth(1.2 * unit)
+        context.setLineDash(phase: 0, lengths: [6 * unit, 5 * unit])
+        context.strokePath()
+        if let district = snapshot.district {
+            // The focused zone: a stronger dashed edge, and its unwalked streets as a
+            // faint accent hint, so you can see exactly what is left to explore.
+            if let streets = WorkoutZoneStreets.shared.cached(district) {
+                let remaining = CGMutablePath()
+                for tile in streets where tile.bounds.intersects(mapRect)
+                    && !isWalked(tile) && !tile.neighbors.contains(where: isWalked) {
+                    remaining.addPath(path(vertices: tile.vertices()))
+                }
+                context.addPath(remaining)
+                context.setFillColor(snapshot.accent.withAlphaComponent(snapshot.isDark ? 0.16 : 0.18).cgColor)
+                context.fillPath()
+            }
+            if !isMastered(district) {
+            context.addPath(path(vertices: district.vertices(scale: 20)))
+            context.setStrokeColor(snapshot.accent.withAlphaComponent(0.8).cgColor)
+            context.setLineWidth(2.2 * unit)
+            context.setLineDash(phase: 0, lengths: [8 * unit, 6 * unit])
             context.strokePath()
-        }
-        context.restoreGState()
-    }
-
-    private func drawClearedCorridors(
-        _ routes: [[CLLocationCoordinate2D]],
-        in context: CGContext
-    ) {
-        let corridors = routes.compactMap { route -> (path: CGPath, unitsPerMeter: Double)? in
-            guard let path = routePath(for: route), !route.isEmpty else { return nil }
-            return (path, MKMapPointsPerMeterAtLatitude(route[route.count / 2].latitude))
-        }
-        guard !corridors.isEmpty else { return }
-
-        // Widths are ground meters, not screen points. A 12m reveal on each
-        // side of a walk must not expand over unvisited blocks when zooming out.
-        let featherPasses: [(width: CGFloat, alpha: CGFloat)] = [
-            (40, 0.12),
-            (36, 0.20),
-            (32, 0.32),
-            (28, 0.50),
-            (24, 1.00),
-        ]
-        context.setBlendMode(.destinationOut)
-        context.setLineCap(.round)
-        context.setLineJoin(.round)
-        for pass in featherPasses {
-            for corridor in corridors {
-                context.addPath(corridor.path)
-                context.setStrokeColor(UIColor.white.withAlphaComponent(pass.alpha).cgColor)
-                context.setLineWidth(pass.width * corridor.unitsPerMeter)
-                context.strokePath()
             }
         }
+        context.setLineDash(phase: 0, lengths: [])
+        // Prebuilt chunk outlines; CoreGraphics clips anything outside this map tile.
+        let visible = snapshot.chunks.values.filter { $0.bounds.intersects(mapRect) }
+        guard !visible.isEmpty else { return }
+        let explored = CGMutablePath(), walking = CGMutablePath(), outline = CGMutablePath()
+        for chunk in visible {
+            explored.addPath(chunk.explored)
+            walking.addPath(chunk.walking)
+            outline.addPath(chunk.outline)
+        }
+        // Outlines only while tiles are big enough to see them; zoomed out, a plain
+        // fill looks the same and skips the offscreen layer.
+        let tileRadius = CGFloat(visible.first?.tiles.first?.radius ?? 0)
+        WorkoutTrailPainter.paint(explored: explored, walking: walking, accent: snapshot.accent,
+                                  isDark: snapshot.isDark, rimWidth: tileRadius * CGFloat(zoomScale) >= 6 ? 1 : 0,
+                                  outline: outline, in: context)
     }
-
-    private func currentRoutePath(_ snapshot: WorkoutTerritoryOverlay.Snapshot) -> CGPath? {
+    private func path(vertices: [MKMapPoint]) -> CGPath {
         let path = CGMutablePath()
-        for segment in WorkoutRouteSegments.split(
-            snapshot.route, at: snapshot.routeBreakIndices
-        ) {
-            if let segmentPath = routePath(for: segment) { path.addPath(segmentPath) }
+        for (i, vertex) in vertices.enumerated() {
+            if i == 0 { path.move(to: point(for: vertex)) } else { path.addLine(to: point(for: vertex)) }
         }
-        return path.isEmpty ? nil : path
-    }
-
-    private func routePath(for route: [CLLocationCoordinate2D]) -> CGPath? {
-        guard let first = route.first else { return nil }
-
-        let path = CGMutablePath()
-        path.move(to: point(for: MKMapPoint(first)))
-        for coordinate in route.dropFirst() {
-            path.addLine(to: point(for: MKMapPoint(coordinate)))
-        }
-
-        // A zero-length segment still renders a round cleared cap at workout start.
-        if route.count == 1 {
-            path.addLine(to: point(for: MKMapPoint(first)))
-        }
+        path.closeSubpath()
         return path
     }
 }
@@ -3426,7 +3363,7 @@ private struct WorkoutGoalRow: View {
                             .foregroundStyle(NanoTheme.secondaryText)
                         Text(value)
                             .font(WorkoutFont.metric(19))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(NanoTheme.text)
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
                     }
@@ -3467,7 +3404,7 @@ private struct WorkoutGoalAdjustButton: View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(NanoTheme.text)
                 .frame(width: 44, height: 44)
                 .background(Circle().fill(NanoTheme.elevated))
         }
@@ -3484,7 +3421,7 @@ private struct WorkoutModalHeader: View {
             Text(title.uppercased())
                 .lineLimit(1).minimumScaleFactor(0.8)
                 .font(WorkoutFont.ui(14))
-                .foregroundStyle(.white)
+                .foregroundStyle(NanoTheme.text)
             Spacer()
             Button("Done", action: done)
                 .fixedSize(horizontal: true, vertical: false)
@@ -3508,7 +3445,7 @@ private struct WorkoutPrimaryButton: View {
             Label(title, systemImage: symbol)
                 .lineLimit(1).minimumScaleFactor(0.85)
                 .font(WorkoutFont.ui(16))
-                .foregroundStyle(NanoTheme.background)
+                .foregroundStyle(NanoTheme.onAccent)
                 .frame(maxWidth: .infinity)
                 .frame(height: 58)
                 .background(
@@ -3521,6 +3458,24 @@ private struct WorkoutPrimaryButton: View {
     }
 }
 
+/// Shown on live maps after the user drags away; tapping resumes following.
+struct WorkoutRecenterPill: View {
+    let action: () -> Void
+    var body: some View {
+        Button(action: action) {
+            Label("Recenter", systemImage: "location.fill")
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .foregroundStyle(NanoTheme.onAccent)
+                .padding(.horizontal, 16).frame(height: 44)
+                .background(Capsule().fill(NanoTheme.teal))
+                .shadow(color: NanoTheme.shadow.opacity(0.25), radius: 8, y: 3)
+        }
+        .buttonStyle(.plain)
+        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+        .accessibilityHint("Follows your location on the map again")
+    }
+}
+
 private struct WorkoutCircleButton: View {
     let symbol: String
     let action: () -> Void
@@ -3529,7 +3484,7 @@ private struct WorkoutCircleButton: View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: 18, weight: .bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(NanoTheme.text)
                 .frame(width: 48, height: 48)
                 .background(Circle().fill(NanoTheme.surface.opacity(0.88)))
         }
@@ -3587,58 +3542,6 @@ private struct WorkoutDisplayPicker: View {
     }
 }
 
-private struct WorkoutCapabilityStrip: View {
-    let locationReady: Bool
-    let liveActivityReady: Bool
-    let alertReady: Bool
-
-    var body: some View {
-        HStack(spacing: 0) {
-            WorkoutCapabilityItem(
-                symbol: locationReady ? "location.fill" : "location.slash.fill",
-                title: "Location",
-                ready: locationReady
-            )
-            Divider().overlay(NanoTheme.elevated)
-            WorkoutCapabilityItem(
-                symbol: liveActivityReady ? "iphone.gen3.radiowaves.left.and.right" : "iphone.slash",
-                title: "Lock Screen",
-                ready: liveActivityReady
-            )
-            Divider().overlay(NanoTheme.elevated)
-            WorkoutCapabilityItem(
-                symbol: alertReady ? "waveform" : "speaker.slash.fill",
-                title: "Goal Alert",
-                ready: alertReady
-            )
-        }
-        .frame(height: 54)
-        .background(RoundedRectangle(cornerRadius: 17).fill(NanoTheme.background.opacity(0.48)))
-    }
-}
-
-private struct WorkoutCapabilityItem: View {
-    let symbol: String
-    let title: String
-    let ready: Bool
-
-    var body: some View {
-        VStack(spacing: 5) {
-            Image(systemName: symbol)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(ready ? NanoTheme.teal : NanoTheme.secondaryText)
-            Text(title.uppercased())
-
-                .font(WorkoutFont.ui(8))
-                .foregroundStyle(ready ? .white : NanoTheme.secondaryText)
-                .lineLimit(1)
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
-        .accessibilityValue(ready ? "Ready" : "Unavailable")
-    }
-}
-
 private struct WorkoutPressButtonStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -3647,19 +3550,6 @@ private struct WorkoutPressButtonStyle: ButtonStyle {
             .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
             .opacity(configuration.isPressed ? 0.88 : 1)
             .animation(.timingCurve(0.23, 1, 0.32, 1, duration: configuration.isPressed ? 0.10 : 0.16), value: configuration.isPressed)
-    }
-}
-
-private struct WorkoutCreatureBadge: View {
-    let creature: CreatureStage
-
-    var body: some View {
-        WorkoutCreatureArtwork(creature: creature)
-            .padding(5)
-            .frame(width: 64, height: 64)
-            .background(Circle().fill(NanoTheme.teal.opacity(0.13)))
-            .overlay(Circle().stroke(NanoTheme.teal.opacity(0.45), lineWidth: 1))
-            .shadow(color: NanoTheme.teal.opacity(0.35), radius: 10)
     }
 }
 
@@ -3684,19 +3574,6 @@ private struct WorkoutCreatureArtwork: View {
     }
 }
 
-private struct WorkoutMiniBadge: View {
-    let symbol: String
-    let active: Bool
-
-    var body: some View {
-        Image(systemName: symbol)
-            .font(.system(size: 22, weight: .semibold))
-            .foregroundStyle(active ? NanoTheme.background : NanoTheme.secondaryText)
-            .frame(width: 54, height: 54)
-            .background(Circle().fill(active ? NanoTheme.teal : NanoTheme.elevated.opacity(0.72)))
-    }
-}
-
 private struct WorkoutSetupOption: View {
     let symbol: String
     let eyebrow: String
@@ -3715,7 +3592,7 @@ private struct WorkoutSetupOption: View {
                     .foregroundStyle(NanoTheme.secondaryText)
                 Text(title)
                     .font(WorkoutFont.ui(12))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(NanoTheme.text)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             }
@@ -3741,7 +3618,7 @@ private struct WorkoutMetricTile: View {
 
                 .font(WorkoutFont.metric(18))
                 .monospacedDigit()
-                .foregroundStyle(.white)
+                .foregroundStyle(NanoTheme.text)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(unit)
@@ -3752,34 +3629,6 @@ private struct WorkoutMetricTile: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
         .background(RoundedRectangle(cornerRadius: 17).fill(NanoTheme.surface))
-    }
-}
-
-private struct WorkoutSummaryTile: View {
-    let label: String
-    let value: String
-    let symbol: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(label)
-                    .lineLimit(1).minimumScaleFactor(0.8)
-                    .font(WorkoutFont.ui(10))
-                    .foregroundStyle(NanoTheme.secondaryText)
-                Spacer()
-                Image(systemName: symbol)
-                    .foregroundStyle(NanoTheme.teal)
-            }
-            Text(value)
-
-                .font(WorkoutFont.metric(19))
-                .monospacedDigit()
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-        }
-        .nanoHUDCard(tint: NanoTheme.teal, padding: 15)
     }
 }
 

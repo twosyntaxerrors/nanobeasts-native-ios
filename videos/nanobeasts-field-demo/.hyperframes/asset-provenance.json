@@ -1,0 +1,9 @@
+{
+  "source": "https://assets.nanobeasts.app",
+  "creatures": "Nanobeasts/Resources/catalog.json and R2AssetManifest",
+  "evolution": "images/evolution-animations-optimized/glitchlet-devicore-evolution-onboarding-v1.webp",
+  "route": "Design/RouteReplayVideo-2026-09-08/Route-Replay-2x.mp4, existing in-app export using illustrative demo data",
+  "badge": "Design/BadgeAssets/approved/streak-5.png",
+  "screens": "Motion reconstruction of current Nanobeasts Home, Activity Stats, Step insights, and Field Dex, with illustrative demo progress. Stats follows Features/Stats/StatsView.swift, StatsSummaryComponents.swift, and StatsCalendarCard.swift.",
+  "art_changes": "None. Sprites arranged into seekable sheets, preserving their alpha."
+}

@@ -1,0 +1,37 @@
+{
+  "info" : {
+    "arguments" : [
+      "devicectl",
+      "device",
+      "install",
+      "app",
+      "--device",
+      "8BA04153-18F7-58B9-BC45-9495DB63F230",
+      "build/Device/Build/Products/Debug-iphoneos/Nanobeasts.app",
+      "--json-output",
+      "AppStoreReview/Pricing-Update-2026-09-08/iPhone-Install-Build9.json"
+    ],
+    "commandType" : "devicectl.device.install.app",
+    "environment" : {
+      "TERM" : "dumb"
+    },
+    "jsonVersion" : 3,
+    "outcome" : "success",
+    "version" : "518.31"
+  },
+  "result" : {
+    "deviceIdentifier" : "8BA04153-18F7-58B9-BC45-9495DB63F230",
+    "installedApplications" : [
+      {
+        "bundleID" : "com.twosyntaxerrors.nanobeasts.native",
+        "databaseSequenceNumber" : 4144,
+        "databaseUUID" : "9B1FF8F3-36B8-46C9-A293-1EEAB427A4FC",
+        "installationURL" : "file:///private/var/containers/Bundle/Application/B72BBE9B-ABC2-4BE2-BAB6-BF965A76AE6A/Nanobeasts.app/",
+        "launchServicesIdentifier" : "unknown",
+        "options" : {
+
+        }
+      }
+    ]
+  }
+}

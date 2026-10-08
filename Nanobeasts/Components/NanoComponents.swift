@@ -38,7 +38,7 @@ struct ProgressRing: View {
                         to: 0.75 * clampedProgress
                     )
                     .stroke(
-                        Color.white.opacity(0.68 + 0.22 * energy),
+                        NanoTheme.ink.opacity(0.68 + 0.22 * energy),
                         style: StrokeStyle(
                             lineWidth: 7 + 2 * energy,
                             lineCap: .round
@@ -115,7 +115,7 @@ struct StepMetricCard: View {
                 .foregroundStyle(NanoTheme.teal)
             Text(value)
                 .font(.title3.monospacedDigit().weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(NanoTheme.text)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(unit.uppercased())
@@ -224,7 +224,7 @@ struct HealthAccessView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Label("Your steps grow this egg", systemImage: "heart.fill")
                         .font(.title3.weight(.bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(NanoTheme.text)
                     Text("Every step can help hatch your egg. Connect Apple Health to add your walking steps to the ring automatically.")
                         .font(.subheadline)
                         .foregroundStyle(NanoTheme.secondaryText)
@@ -243,12 +243,12 @@ struct HealthAccessView: View {
 
             Button(action: connect) {
                 HStack {
-                    if isConnecting { ProgressView().tint(.black) }
+                    if isConnecting { ProgressView().tint(NanoTheme.onAccent) }
                     Text(isConnecting ? "Connecting…" : "Connect Apple Health")
                         .font(.headline)
                 }
                 .frame(maxWidth: .infinity, minHeight: 48)
-                .foregroundStyle(.black)
+                .foregroundStyle(NanoTheme.onAccent)
                 .background(NanoTheme.teal, in: Capsule())
             }
             .buttonStyle(.plain)

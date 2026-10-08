@@ -1,0 +1,49 @@
+{
+  "versionLocalizationId": "a1235984-ab7f-4aa2-b5fe-aae317136b3a",
+  "sets": [
+    {
+      "set": {
+        "type": "appPreviewSets",
+        "id": "4afbdabe-9b30-421c-8eb0-75a0e0240045",
+        "attributes": {
+          "previewType": "IPHONE_67"
+        },
+        "relationships": {
+          "appPreviews": {
+            "links": {
+              "self": "https://api.appstoreconnect.apple.com/v1/appPreviewSets/4afbdabe-9b30-421c-8eb0-75a0e0240045/relationships/appPreviews",
+              "related": "https://api.appstoreconnect.apple.com/v1/appPreviewSets/4afbdabe-9b30-421c-8eb0-75a0e0240045/appPreviews"
+            }
+          }
+        },
+        "links": {
+          "self": "https://api.appstoreconnect.apple.com/v1/appPreviewSets/4afbdabe-9b30-421c-8eb0-75a0e0240045"
+        }
+      },
+      "previews": [
+        {
+          "type": "appPreviews",
+          "id": "03809c13-eb06-4c7c-843e-c8a2c08c2cc7",
+          "attributes": {
+            "fileSize": 34413873,
+            "fileName": "00-Nanobeasts-Full-App-Tour-ASC.mov",
+            "sourceFileChecksum": "e7edb6f4559eb1c22fe73bc3296845a2",
+            "previewFrameTimeCode": "00:00:05:01",
+            "videoUrl": "https://apptrailers.itunes.apple.com/itunes-assets/PurpleVideo221/v4/ac/42/52/ac425261-5087-a693-f294-b0951592a3f6/P1474937988_default.m3u8",
+            "previewImage": {
+              "templateUrl": "https://is1-ssl.mzstatic.com/image/thumb/PurpleVideo211/v4/67/a9/06/67a906ee-88db-0959-f207-c2f874c032a8/OBJECT_PROXY78070b97-c43d-45c8-ac1f-b12620694fd6_KEY_FRAME_OUTPUT_5033_OBJECT_PROXY78070b97-c43d-45c8-ac1f-b12620694fd6.png/{w}x{h}bb.{f}",
+              "width": 886,
+              "height": 1920
+            },
+            "assetDeliveryState": {
+              "state": "COMPLETE"
+            }
+          },
+          "links": {
+            "self": "https://api.appstoreconnect.apple.com/v1/appPreviews/03809c13-eb06-4c7c-843e-c8a2c08c2cc7"
+          }
+        }
+      ]
+    }
+  ]
+}

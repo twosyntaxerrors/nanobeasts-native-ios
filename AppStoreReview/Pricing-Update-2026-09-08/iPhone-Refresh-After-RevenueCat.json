@@ -1,0 +1,57 @@
+{
+  "info" : {
+    "arguments" : [
+      "devicectl",
+      "device",
+      "process",
+      "launch",
+      "--device",
+      "8BA04153-18F7-58B9-BC45-9495DB63F230",
+      "--terminate-existing",
+      "com.twosyntaxerrors.nanobeasts.native",
+      "--json-output",
+      "AppStoreReview/Pricing-Update-2026-09-08/iPhone-Refresh-After-RevenueCat.json"
+    ],
+    "commandType" : "devicectl.device.process.launch",
+    "environment" : {
+      "TERM" : "dumb"
+    },
+    "jsonVersion" : 3,
+    "outcome" : "success",
+    "version" : "518.31"
+  },
+  "result" : {
+    "deviceIdentifier" : "8BA04153-18F7-58B9-BC45-9495DB63F230",
+    "launchOptions" : {
+      "activatedWhenStarted" : true,
+      "arguments" : [
+
+      ],
+      "environmentVariables" : {
+        "TERM" : "dumb"
+      },
+      "platformSpecificOptions" : {
+
+      },
+      "startStopped" : false,
+      "terminateExistingInstances" : true,
+      "user" : {
+        "active" : true
+      }
+    },
+    "process" : {
+      "auditToken" : [
+        4294967295,
+        501,
+        501,
+        501,
+        501,
+        7654,
+        0,
+        21302
+      ],
+      "executable" : "file:///private/var/containers/Bundle/Application/B72BBE9B-ABC2-4BE2-BAB6-BF965A76AE6A/Nanobeasts.app/Nanobeasts",
+      "processIdentifier" : 7654
+    }
+  }
+}

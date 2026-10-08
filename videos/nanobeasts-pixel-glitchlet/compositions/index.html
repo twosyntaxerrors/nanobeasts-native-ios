@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"></head>
+<body>
+<template>
+  <style>
+    @font-face { font-family: Aldrich; src: url("assets/Aldrich_400Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; }
+    #stage { width: 100%; height: 100%; position: absolute; inset: 0; background: #000; }
+    #glitchlet-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(134,240,171,.035) 1.94px, transparent 1.94px), linear-gradient(90deg, rgba(134,240,171,.035) 1.94px, transparent 1.94px); background-size: 66.4615px 66.4615px; }
+    #glitchlet-run-clip { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 66.4615px; }
+    #glitchlet-pose-stack { width: 288px; height: 288px; position: relative; }
+    .glitchlet-pose { width: 100%; height: 100%; position: absolute; inset: 0; opacity: 0; image-rendering: pixelated; }
+    #glitchlet-pose-0 { opacity: 1; }
+    #glitchlet-wordmark { font: 400 66.4615px/1.2 Aldrich; display: flex; gap: 8.3077px; color: #fff; white-space: nowrap; }
+    .hf-bottom-up-letters-char { display: inline-block; opacity: 0; }
+  </style>
+  <div data-hf-id="hf-eijo" id="stage" data-composition-id="glitchlet-loop" data-start="0" data-duration="3.2" data-fps="30" data-width="1080" data-height="2340">
+    <div id="glitchlet-grid" class="clip" data-start="0" data-duration="3.2" data-track-index="0"></div>
+    <section data-hf-id="hf-5w4a" id="glitchlet-run-clip" class="clip" data-start="0" data-duration="3.2" data-track-index="1" aria-label="Pixel Glitchlet jogging in place">
+      <div data-hf-id="hf-tx16" id="glitchlet-pose-stack">
+      <img data-hf-id="hf-345y" id="glitchlet-pose-0" class="glitchlet-pose" src="assets/glitchlet-run-0.png" width="96" height="96" alt="" draggable="false">
+      <img data-hf-id="hf-bsb0" id="glitchlet-pose-1" class="glitchlet-pose" src="assets/glitchlet-run-1.png" width="96" height="96" alt="" draggable="false">
+      <img data-hf-id="hf-wfkq" id="glitchlet-pose-2" class="glitchlet-pose" src="assets/glitchlet-run-2.png" width="96" height="96" alt="" draggable="false">
+      <img data-hf-id="hf-la8c" id="glitchlet-pose-3" class="glitchlet-pose" src="assets/glitchlet-run-3.png" width="96" height="96" alt="" draggable="false">
+      <img data-hf-id="hf-71z2" id="glitchlet-pose-4" class="glitchlet-pose" src="assets/glitchlet-run-4.png" width="96" height="96" alt="" draggable="false">
+      <img data-hf-id="hf-3vnw" id="glitchlet-pose-5" class="glitchlet-pose" src="assets/glitchlet-run-5.png" width="96" height="96" alt="" draggable="false">
+      <img data-hf-id="hf-9zpm" id="glitchlet-pose-6" class="glitchlet-pose" src="assets/glitchlet-run-6.png" width="96" height="96" alt="" draggable="false">
+      <img data-hf-id="hf-w0y4" id="glitchlet-pose-7" class="glitchlet-pose" src="assets/glitchlet-run-7.png" width="96" height="96" alt="" draggable="false">
+      </div>
+      <div id="glitchlet-wordmark" class="clip" data-start="0" data-duration="3.2" data-track-index="2" aria-label="NANOBEASTS">NANOBEASTS</div>
+    </section>
+  </div>
+  <script>
+    // Adapted from the registry bottom-up-letters splitter. Keep letter slots
+    // in the layout; GSAP owns transforms for deterministic backward seeks.
+    const wordmark = document.querySelector("#glitchlet-wordmark");
+    const wordmarkText = wordmark.textContent;
+    wordmark.textContent = "";
+    for (const letter of Array.from(wordmarkText)) {
+      const span = document.createElement("span");
+      span.className = "hf-bottom-up-letters-char";
+      span.textContent = letter;
+      span.setAttribute("aria-hidden", "true");
+      wordmark.appendChild(span);
+    }
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#glitchlet-wordmark .hf-bottom-up-letters-char",
+      { opacity: 0, y: 11.0769 },
+      { opacity: 1, y: 0, duration: 0.18, stagger: 0.085, ease: "power1.out" },
+      0.12);
+
+    const poses = Array.from({ length: 8 }, (_, i) => "#glitchlet-pose-" + i);
+    // Fixed raster holds: 8 poses × 0.1 seconds, repeated four times.
+    // Explicit resets make both forward and backward timeline seeks predictable.
+    for (let tick = 0; tick <= 32; tick += 1) {
+      const time = tick / 10;
+      tl.set(poses, { opacity: 0 }, time);
+      tl.set(poses[tick % 8], { opacity: 1 }, time);
+    }
+    window.__timelines["glitchlet-loop"] = tl;
+    tl.seek(0);
+  </script>
+</template>
+</body>
+</html>

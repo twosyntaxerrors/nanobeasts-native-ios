@@ -1,0 +1,26 @@
+{
+  "data": [
+    {
+      "type": "reviewSubmissionItems",
+      "id": "Y2E3YjEzYTQtMGY3Zi00MjdiLThiOWEtZTFkMDJlMzk3ZjVlfDE5fGQ2MGE4MTZiLWY2NjctNDZmZC1iMTFhLWJhOTcwOWViNjY3YQ",
+      "attributes": {
+        "state": "READY_FOR_REVIEW"
+      }
+    },
+    {
+      "type": "reviewSubmissionItems",
+      "id": "Y2E3YjEzYTQtMGY3Zi00MjdiLThiOWEtZTFkMDJlMzk3ZjVlfDE4fDU4OGQ2N2Q0LTNjYTgtNGFmZi04MDk2LTk2N2EzNzMxYjdiNg",
+      "attributes": {
+        "state": "READY_FOR_REVIEW"
+      }
+    },
+    {
+      "type": "reviewSubmissionItems",
+      "id": "Y2E3YjEzYTQtMGY3Zi00MjdiLThiOWEtZTFkMDJlMzk3ZjVlfDE4fDhlZmM2ZjRiLTZlYTQtNDcxZS04MGUzLWI0MGYzMjZiZWM3MA",
+      "attributes": {
+        "state": "READY_FOR_REVIEW"
+      }
+    }
+  ],
+  "links": {}
+}

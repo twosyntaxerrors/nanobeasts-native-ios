@@ -1,0 +1,46 @@
+{
+  "app": {
+    "id": "6794927950",
+    "bundleId": "com.twosyntaxerrors.nanobeasts.native",
+    "name": "Nanobeasts"
+  },
+  "summary": {
+    "health": "yellow",
+    "nextAction": "Wait for App Store review outcome.",
+    "blockers": []
+  },
+  "builds": {
+    "latest": {
+      "id": "14fc4d3b-77d4-439c-8464-bb8176ffdd83",
+      "version": "1.0",
+      "buildNumber": "4",
+      "processingState": "VALID",
+      "uploadedDate": "2026-09-07T18:22:43-07:00",
+      "platform": "IOS"
+    }
+  },
+  "testflight": {},
+  "appstore": {
+    "versionId": "32278c73-aaf4-41a9-b5c4-d168047ab1d1",
+    "version": "1.0",
+    "state": "PREPARE_FOR_SUBMISSION",
+    "platform": "IOS",
+    "createdDate": "2026-07-26T13:10:30-07:00"
+  },
+  "submission": {
+    "inFlight": true,
+    "blockingIssues": []
+  },
+  "review": {
+    "latestSubmissionId": "ca7b13a4-0f7f-427b-8b9a-e1d02e397f5e",
+    "state": "READY_FOR_REVIEW"
+  },
+  "phasedRelease": {
+    "configured": true
+  },
+  "links": {
+    "appStoreConnect": "https://appstoreconnect.apple.com/apps/6794927950",
+    "testFlight": "https://appstoreconnect.apple.com/apps/6794927950/testflight/ios",
+    "review": "https://appstoreconnect.apple.com/apps/6794927950/appstore/review"
+  }
+}

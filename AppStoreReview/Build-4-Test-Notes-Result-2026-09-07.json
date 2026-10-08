@@ -1,0 +1,24 @@
+{
+  "data": {
+    "type": "betaBuildLocalizations",
+    "id": "c9a051ce-53f5-49ef-98a1-f81e5b867e8c",
+    "attributes": {
+      "locale": "en-US",
+      "whatsNew": "The Watch app name and workout header now read Nanobeasts.\n\nSettings and Apple Watch update\n\nIn Settings, turn notifications off and confirm later local reminders stay off. Turn them back on and check that the saved preference survives closing and reopening the app. Confirm Privacy Policy, Terms of Service, Support, and Manage Subscription remain accessible. An active Nanobeasts Pro badge should open Apple's subscription management.\n\nOn Apple Watch, check the current creature or egg beside today's steps, the weekly activity chart, and calories, distance, and exercise time. Scroll down for hourly steps and swipe to the workout page. Verify the companion briefly animates on arrival and respects Reduce Motion.\n\nRecord a short outdoor walk with location and route recording enabled. Check live metrics, pause/resume, completion, and the saved iPhone workout with its route. Reopen the app to confirm previously granted permissions do not need to be enabled again.\n\nBefore release, verify monthly and yearly subscription purchases, restore, cancellation, and expiration using TestFlight's sandbox. Confirm purchases unlock the daily creature-progression limit and that free Apple Health tracking remains available."
+    },
+    "relationships": {
+      "build": {
+        "links": {
+          "self": "https://api.appstoreconnect.apple.com/v1/betaBuildLocalizations/c9a051ce-53f5-49ef-98a1-f81e5b867e8c/relationships/build",
+          "related": "https://api.appstoreconnect.apple.com/v1/betaBuildLocalizations/c9a051ce-53f5-49ef-98a1-f81e5b867e8c/build"
+        }
+      }
+    },
+    "links": {
+      "self": "https://api.appstoreconnect.apple.com/v1/betaBuildLocalizations/c9a051ce-53f5-49ef-98a1-f81e5b867e8c"
+    }
+  },
+  "links": {
+    "self": "https://api.appstoreconnect.apple.com/v1/betaBuildLocalizations/c9a051ce-53f5-49ef-98a1-f81e5b867e8c"
+  }
+}

@@ -1,0 +1,313 @@
+{
+  "versionLocalizationId": "a1235984-ab7f-4aa2-b5fe-aae317136b3a",
+  "sets": [
+    {
+      "set": {
+        "type": "appScreenshotSets",
+        "id": "70ef79e6-4a32-4a1d-9df5-db429a23f0d7",
+        "attributes": {
+          "screenshotDisplayType": "APP_IPHONE_67"
+        },
+        "relationships": {
+          "appScreenshots": {
+            "links": {
+              "self": "https://api.appstoreconnect.apple.com/v1/appScreenshotSets/70ef79e6-4a32-4a1d-9df5-db429a23f0d7/relationships/appScreenshots",
+              "related": "https://api.appstoreconnect.apple.com/v1/appScreenshotSets/70ef79e6-4a32-4a1d-9df5-db429a23f0d7/appScreenshots"
+            }
+          }
+        },
+        "links": {
+          "self": "https://api.appstoreconnect.apple.com/v1/appScreenshotSets/70ef79e6-4a32-4a1d-9df5-db429a23f0d7"
+        }
+      },
+      "screenshots": [
+        {
+          "type": "appScreenshots",
+          "id": "c6ca09f7-e32b-4f89-852b-4986d883c32f",
+          "attributes": {
+            "fileSize": 3288620,
+            "fileName": "01-home-bloomwraith-v1.png",
+            "sourceFileChecksum": "c3ea8ccb30ea30716203fa6a5dba57be",
+            "imageAsset": {
+              "templateUrl": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/08/c1/64/08c16497-956a-b239-8c21-75b1629a86e2/01-home-bloomwraith-v1.png/{w}x{h}bb.{f}",
+              "width": 1290,
+              "height": 2796
+            },
+            "assetToken": "PurpleSource221/v4/08/c1/64/08c16497-956a-b239-8c21-75b1629a86e2/01-home-bloomwraith-v1.png",
+            "assetType": "SortedD74ScreenShot",
+            "assetDeliveryState": {
+              "state": "COMPLETE"
+            }
+          },
+          "links": {
+            "self": "https://api.appstoreconnect.apple.com/v1/appScreenshots/c6ca09f7-e32b-4f89-852b-4986d883c32f"
+          }
+        },
+        {
+          "type": "appScreenshots",
+          "id": "42f88fc6-bb50-4224-bba9-f376c6786cd0",
+          "attributes": {
+            "fileSize": 3575273,
+            "fileName": "02-evolution-devicore-v3.png",
+            "sourceFileChecksum": "ac9339414e1ada3d9786d461e89a0645",
+            "imageAsset": {
+              "templateUrl": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/20/37/bd/2037bda9-b81a-7995-c513-3c6cff82f850/02-evolution-devicore-v3.png/{w}x{h}bb.{f}",
+              "width": 1290,
+              "height": 2796
+            },
+            "assetToken": "PurpleSource221/v4/20/37/bd/2037bda9-b81a-7995-c513-3c6cff82f850/02-evolution-devicore-v3.png",
+            "assetType": "SortedD74ScreenShot",
+            "assetDeliveryState": {
+              "state": "COMPLETE"
+            }
+          },
+          "links": {
+            "self": "https://api.appstoreconnect.apple.com/v1/appScreenshots/42f88fc6-bb50-4224-bba9-f376c6786cd0"
+          }
+        },
+        {
+          "type": "appScreenshots",
+          "id": "b52975be-7814-4866-9387-a42bc6d116c4",
+          "attributes": {
+            "fileSize": 3776462,
+            "fileName": "03-goals-personalized-insights.png",
+            "sourceFileChecksum": "c9bb0e7476650dbb993df75d8d4b75fb",
+            "imageAsset": {
+              "templateUrl": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/6d/d3/78/6dd37895-a97c-b0c1-6a94-9b724d2ee7a0/03-goals-personalized-insights.png/{w}x{h}bb.{f}",
+              "width": 1290,
+              "height": 2796
+            },
+            "assetToken": "PurpleSource211/v4/6d/d3/78/6dd37895-a97c-b0c1-6a94-9b724d2ee7a0/03-goals-personalized-insights.png",
+            "assetType": "SortedD74ScreenShot",
+            "assetDeliveryState": {
+              "state": "COMPLETE"
+            }
+          },
+          "links": {
+            "self": "https://api.appstoreconnect.apple.com/v1/appScreenshots/b52975be-7814-4866-9387-a42bc6d116c4"
+          }
+        },
+        {
+          "type": "appScreenshots",
+          "id": "3b1eb904-0e13-4412-b006-701bb799bb7b",
+          "attributes": {
+            "fileSize": 3813040,
+            "fileName": "04-dex-new-capture.png",
+            "sourceFileChecksum": "b901ef7f6c89a839aa9c9a6726f2058e",
+            "imageAsset": {
+              "templateUrl": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/a2/e4/79/a2e479fa-032f-0a0e-ea4c-0d3d7a064d69/04-dex-new-capture.png/{w}x{h}bb.{f}",
+              "width": 1290,
+              "height": 2796
+            },
+            "assetToken": "PurpleSource221/v4/a2/e4/79/a2e479fa-032f-0a0e-ea4c-0d3d7a064d69/04-dex-new-capture.png",
+            "assetType": "SortedD74ScreenShot",
+            "assetDeliveryState": {
+              "state": "COMPLETE"
+            }
+          },
+          "links": {
+            "self": "https://api.appstoreconnect.apple.com/v1/appScreenshots/3b1eb904-0e13-4412-b006-701bb799bb7b"
+          }
+        },
+        {
+          "type": "appScreenshots",
+          "id": "2d60a655-2eb8-4b04-a3a4-70172f1891b6",
+          "attributes": {
+            "fileSize": 3925442,
+            "fileName": "05-badges-new-capture.png",
+            "sourceFileChecksum": "a370bcc970065625df43c5c43f154ef8",
+            "imageAsset": {
+              "templateUrl": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/26/33/0e/26330e20-c8cd-31e8-cb2b-f5eac7654901/05-badges-new-capture.png/{w}x{h}bb.{f}",
+              "width": 1290,
+              "height": 2796
+            },
+            "assetToken": "PurpleSource211/v4/26/33/0e/26330e20-c8cd-31e8-cb2b-f5eac7654901/05-badges-new-capture.png",
+            "assetType": "SortedD74ScreenShot",
+            "assetDeliveryState": {
+              "state": "COMPLETE"
+            }
+          },
+          "links": {
+            "self": "https://api.appstoreconnect.apple.com/v1/appScreenshots/2d60a655-2eb8-4b04-a3a4-70172f1891b6"
+          }
+        },
+        {
+          "type": "appScreenshots",
+          "id": "8bc366f6-25cd-4a46-9bac-42e620af3950",
+          "attributes": {
+            "fileSize": 2999134,
+            "fileName": "06-eggs-tutoria-v2.png",
+            "sourceFileChecksum": "f2a3f46fb7417df55c9a889f6ac5f925",
+            "imageAsset": {
+              "templateUrl": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/a1/53/24/a153248e-1b6e-714d-72b3-01d871e69ca8/06-eggs-tutoria-v2.png/{w}x{h}bb.{f}",
+              "width": 1290,
+              "height": 2796
+            },
+            "assetToken": "PurpleSource211/v4/a1/53/24/a153248e-1b6e-714d-72b3-01d871e69ca8/06-eggs-tutoria-v2.png",
+            "assetType": "SortedD74ScreenShot",
+            "assetDeliveryState": {
+              "state": "COMPLETE"
+            }
+          },
+          "links": {
+            "self": "https://api.appstoreconnect.apple.com/v1/appScreenshots/8bc366f6-25cd-4a46-9bac-42e620af3950"
+          }
+        },
+        {
+          "type": "appScreenshots",
+          "id": "c7ff9acb-cf17-438f-acc2-b1d5ce39561c",
+          "attributes": {
+            "fileSize": 4005094,
+            "fileName": "07-stats-new-capture.png",
+            "sourceFileChecksum": "5ca1797ccc82fbf28212cfa2783fb3ea",
+            "imageAsset": {
+              "templateUrl": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/1a/7c/13/1a7c136c-9925-1d26-d38a-830305b0a5fd/07-stats-new-capture.png/{w}x{h}bb.{f}",
+              "width": 1290,
+              "height": 2796
+            },
+            "assetToken": "PurpleSource211/v4/1a/7c/13/1a7c136c-9925-1d26-d38a-830305b0a5fd/07-stats-new-capture.png",
+            "assetType": "SortedD74ScreenShot",
+            "assetDeliveryState": {
+              "state": "COMPLETE"
+            }
+          },
+          "links": {
+            "self": "https://api.appstoreconnect.apple.com/v1/appScreenshots/c7ff9acb-cf17-438f-acc2-b1d5ce39561c"
+          }
+        },
+        {
+          "type": "appScreenshots",
+          "id": "8e9cda23-09ff-4645-b071-8b566901ec08",
+          "attributes": {
+            "fileSize": 3765172,
+            "fileName": "08-profile-overnode-v3.png",
+            "sourceFileChecksum": "15e302a8981d91dd2f8bac1a621c57b1",
+            "imageAsset": {
+              "templateUrl": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/30/2a/78/302a7803-1519-715a-5434-563adc76b4f5/08-profile-overnode-v3.png/{w}x{h}bb.{f}",
+              "width": 1290,
+              "height": 2796
+            },
+            "assetToken": "PurpleSource221/v4/30/2a/78/302a7803-1519-715a-5434-563adc76b4f5/08-profile-overnode-v3.png",
+            "assetType": "SortedD74ScreenShot",
+            "assetDeliveryState": {
+              "state": "COMPLETE"
+            }
+          },
+          "links": {
+            "self": "https://api.appstoreconnect.apple.com/v1/appScreenshots/8e9cda23-09ff-4645-b071-8b566901ec08"
+          }
+        },
+        {
+          "type": "appScreenshots",
+          "id": "8f73ce79-10a4-4521-8f0c-075cf9f03774",
+          "attributes": {
+            "fileSize": 4506553,
+            "fileName": "09-completed-outdoor-walk.png",
+            "sourceFileChecksum": "41c4190df254c51db6dc1580c8822aa2",
+            "imageAsset": {
+              "templateUrl": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/64/7e/68/647e68b1-f3f3-bad0-6057-a0d13491d1f6/09-completed-outdoor-walk.png/{w}x{h}bb.{f}",
+              "width": 1290,
+              "height": 2796
+            },
+            "assetToken": "PurpleSource211/v4/64/7e/68/647e68b1-f3f3-bad0-6057-a0d13491d1f6/09-completed-outdoor-walk.png",
+            "assetType": "SortedD74ScreenShot",
+            "assetDeliveryState": {
+              "state": "COMPLETE"
+            }
+          },
+          "links": {
+            "self": "https://api.appstoreconnect.apple.com/v1/appScreenshots/8f73ce79-10a4-4521-8f0c-075cf9f03774"
+          }
+        }
+      ]
+    },
+    {
+      "set": {
+        "type": "appScreenshotSets",
+        "id": "90c435c6-ce67-40fb-b94a-94acfa3bbe0b",
+        "attributes": {
+          "screenshotDisplayType": "APP_WATCH_SERIES_4"
+        },
+        "relationships": {
+          "appScreenshots": {
+            "links": {
+              "self": "https://api.appstoreconnect.apple.com/v1/appScreenshotSets/90c435c6-ce67-40fb-b94a-94acfa3bbe0b/relationships/appScreenshots",
+              "related": "https://api.appstoreconnect.apple.com/v1/appScreenshotSets/90c435c6-ce67-40fb-b94a-94acfa3bbe0b/appScreenshots"
+            }
+          }
+        },
+        "links": {
+          "self": "https://api.appstoreconnect.apple.com/v1/appScreenshotSets/90c435c6-ce67-40fb-b94a-94acfa3bbe0b"
+        }
+      },
+      "screenshots": [
+        {
+          "type": "appScreenshots",
+          "id": "f1667771-5cf1-49cf-819e-e47e9d5f2d3a",
+          "attributes": {
+            "fileSize": 83894,
+            "fileName": "01-daily-activity.jpg",
+            "sourceFileChecksum": "58096f46dcfe07472089b995212930e7",
+            "imageAsset": {
+              "templateUrl": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/d7/2f/81/d72f813b-2d2d-0f37-d123-002c3c4a96a4/01-daily-activity.jpg/{w}x{h}bb.{f}",
+              "width": 368,
+              "height": 448
+            },
+            "assetToken": "PurpleSource211/v4/d7/2f/81/d72f813b-2d2d-0f37-d123-002c3c4a96a4/01-daily-activity.jpg",
+            "assetType": "SortedN131ScreenShot",
+            "assetDeliveryState": {
+              "state": "COMPLETE"
+            }
+          },
+          "links": {
+            "self": "https://api.appstoreconnect.apple.com/v1/appScreenshots/f1667771-5cf1-49cf-819e-e47e9d5f2d3a"
+          }
+        },
+        {
+          "type": "appScreenshots",
+          "id": "c94cac56-f999-44be-a678-4947d2c766a0",
+          "attributes": {
+            "fileSize": 40023,
+            "fileName": "02-hourly-steps.jpg",
+            "sourceFileChecksum": "42c8082b30f6928b2cd1051d2b30e2c9",
+            "imageAsset": {
+              "templateUrl": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource211/v4/ae/09/3c/ae093ca8-a997-9a01-2cfe-fa19013d37ec/02-hourly-steps.jpg/{w}x{h}bb.{f}",
+              "width": 368,
+              "height": 448
+            },
+            "assetToken": "PurpleSource211/v4/ae/09/3c/ae093ca8-a997-9a01-2cfe-fa19013d37ec/02-hourly-steps.jpg",
+            "assetType": "SortedN131ScreenShot",
+            "assetDeliveryState": {
+              "state": "COMPLETE"
+            }
+          },
+          "links": {
+            "self": "https://api.appstoreconnect.apple.com/v1/appScreenshots/c94cac56-f999-44be-a678-4947d2c766a0"
+          }
+        },
+        {
+          "type": "appScreenshots",
+          "id": "e04c3a61-d81e-4641-acd2-356dd1728241",
+          "attributes": {
+            "fileSize": 47626,
+            "fileName": "03-workouts.jpg",
+            "sourceFileChecksum": "49fef14365f7b7a05e3e8cceec46bfa9",
+            "imageAsset": {
+              "templateUrl": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/05/3c/50/053c50f2-aa8e-ae09-41e4-c66e7f71fd30/03-workouts.jpg/{w}x{h}bb.{f}",
+              "width": 368,
+              "height": 448
+            },
+            "assetToken": "PurpleSource221/v4/05/3c/50/053c50f2-aa8e-ae09-41e4-c66e7f71fd30/03-workouts.jpg",
+            "assetType": "SortedN131ScreenShot",
+            "assetDeliveryState": {
+              "state": "COMPLETE"
+            }
+          },
+          "links": {
+            "self": "https://api.appstoreconnect.apple.com/v1/appScreenshots/e04c3a61-d81e-4641-acd2-356dd1728241"
+          }
+        }
+      ]
+    }
+  ]
+}

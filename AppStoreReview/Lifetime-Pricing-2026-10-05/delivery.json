@@ -1,0 +1,112 @@
+{
+  "date": "2026-10-05",
+  "bundle_id": "com.twosyntaxerrors.nanobeasts.native",
+  "configuration": "Debug",
+  "device": "Ervenst\u2019s iPhone 12",
+  "project_id": "proj83b947c7",
+  "app_id": "app968f260a40",
+  "products": [
+    {
+      "store_identifier": "nanobeasts_native_premium_lifetime",
+      "revenuecat_id": "prod7a881dd01a",
+      "offering_id": "ofrngd55f111c65",
+      "offering_identifier": "nanobeasts_native_lifetime",
+      "package_id": "pkgee9172a316c",
+      "desired_usd": 29.99,
+      "app_store_id": "6819176507"
+    },
+    {
+      "store_identifier": "nanobeasts_native_premium_lifetime_winback",
+      "revenuecat_id": "prod324317e5ab",
+      "offering_id": "ofrng42f9d5a1c5",
+      "offering_identifier": "nanobeasts_native_lifetime_winback",
+      "package_id": "pkge8f3e4fd0cd",
+      "desired_usd": 19.99,
+      "app_store_id": "6819176707"
+    }
+  ],
+  "entitlement": "premium",
+  "entitlement_id": "entlf0ee1d6d28",
+  "store_plan_id": "68936231-f6b5-44df-9f7f-c06a8a5fe7e6",
+  "store_plan_status": "applied",
+  "store_blocker": null,
+  "app_store_changes_applied": true,
+  "pending_store_changes": [],
+  "winback_behavior": "Keep $4.99/month and $29.99 lifetime on the main paywall. Closing shows a small $19.99 lifetime popup; declining closes the paywall. Discount uses same-currency available StoreKit products.",
+  "price_source": "Real checkout reads StoreKit localized prices. RevenueCat metadata amounts are intended prices, not live Apple prices.",
+  "completed": [
+    "Removed trial and renewal paywall copy and preview trial",
+    "Registered lifetime products and offerings through RevenueCat MCP",
+    "Attached both products to premium and their lifetime packages",
+    "Preserved legacy subscription access and restore handling",
+    "Added verified lifetime recovery and permanent-access reconciliation",
+    "Signed Debug device build passed; codesign verification passed",
+    "Installed final app in place on physical iPhone; no uninstall",
+    "devicectl launch succeeded",
+    "Verified Nanobeasts process still running after launch (PID 2659)",
+    "Corrected scope: retained $4.99 monthly and two-card main paywall",
+    "Added monthly product to explicit native RevenueCat offering through MCP",
+    "Verified real $4.99 monthly/$29.99 lifetime/$19.99 popup prices render on physical iPhone",
+    "Replaced both temporary lifetime review images with matching physical-device screenshots; Apple delivery COMPLETE and checksums verified",
+    "Updated App Store description and review notes to monthly/lifetime billing; description readback matches",
+    "Removed all temporary screenshot capture code from final source",
+    "Final corrected signed Debug build passed; codesign verification passed",
+    "Final corrected app installed in place and launched normally on physical iPhone",
+    "Confirmed final Nanobeasts process running after launch (PID 3097)"
+  ],
+  "validation": {
+    "lifetime_pricing_checks": 25,
+    "access_checks_debug": 100,
+    "access_checks_release": 100,
+    "shared_access_states": 16,
+    "grace_checks": 6,
+    "onboarding_journey_checks": "passed updated journey suite",
+    "preview_isolation_checks": "passed",
+    "git_diff_check": "passed",
+    "simulator_used": false,
+    "replay_profile_checks": 44,
+    "final_build": "passed without warnings",
+    "physical_prices": "All three real StoreKit prices rendered and captured; no purchase performed",
+    "final_launch_observation": "Launch succeeded and process was observed. Subsequent exits return code 0, with no Nanobeasts crash reports. Awaiting whether owner is manually closing the app."
+  },
+  "review_rejection": "Automatic approval review rejected export of app-preference snapshot as unnecessary sensitive data export. No export was performed; installation and launch completed without it.",
+  "future_pricing_test": "Owner intends to test yearly pricing after the first month. No automatic switch is scheduled. Existing lifetime buyers retain permanent access.",
+  "availability": "Owner confirmed worldwide: all 175 storefronts; Apple equalizes from US base pricing",
+  "monthly": {
+    "store_identifier": "nanobeasts_native_premium_monthly",
+    "revenuecat_id": "prod431d497fe4",
+    "package_id": "pkge9651ce1fe1",
+    "us_price_usd": 4.99,
+    "trial": null
+  },
+  "apple_prices": {
+    "standard": {
+      "US": "29.99 USD",
+      "ES": "34.99 EUR"
+    },
+    "winback": {
+      "US": "19.99 USD",
+      "ES": "22.99 EUR"
+    },
+    "available_storefronts": 175,
+    "yearly_trial": null,
+    "monthly_trial": null
+  },
+  "app_store_submission_status": "Lifetime products are READY_TO_SUBMIT; not submitted for Apple review or released. First IAP must be submitted with the app version.",
+  "final_launch_pid": 3097,
+  "review_screenshots": {
+    "standard_lifetime": {
+      "status": "COMPLETE",
+      "checksum_verified": true,
+      "file": "Lifetime-Review.png"
+    },
+    "winback_lifetime": {
+      "status": "COMPLETE",
+      "checksum_verified": true,
+      "file": "Lifetime-Winback-Review.png"
+    },
+    "monthly_existing": {
+      "status": "Existing screenshot unchanged; Apple API refuses deletion of this completed asset. Monthly pricing remains verified at $4.99 with no trial."
+    }
+  }
+}
