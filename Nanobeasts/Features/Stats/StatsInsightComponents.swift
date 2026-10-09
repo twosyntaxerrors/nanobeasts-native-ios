@@ -30,7 +30,9 @@ struct StatsBadgeSection: Identifiable {
 actor BadgeArtworkImageCache {
     static let shared = BadgeArtworkImageCache()
 
-    nonisolated static func key(_ url: URL) -> String { "badge:\(url.absoluteString)" }
+    nonisolated static func key(_ url: URL, maxPixel: Int? = nil) -> String {
+        maxPixel.map { "badge:\(url.absoluteString)@\($0)" } ?? "badge:\(url.absoluteString)"
+    }
 
     private var processedData: [URL: Data] = [:]
     private var activeLoads: [URL: Task<Data, Error>] = [:]
@@ -88,14 +90,19 @@ actor BadgeArtworkImageCache {
         }
     }
 
-    func prefetch(urls: [URL]) async {
+    func prefetch(urls: [URL], maxPixel: Int? = nil) async {
         let uniqueURLs = Array(Set(urls))
         await withTaskGroup(of: Void.self) { group in
             for url in uniqueURLs {
                 group.addTask {
                     // Decode ahead too, so the badge draws on its first frame.
                     guard let data = try? await self.data(for: url) else { return }
-                    _ = await NanoImageMemoryCache.shared.decode(data, for: Self.key(url))
+                    let key = Self.key(url, maxPixel: maxPixel)
+                    if let maxPixel {
+                        _ = await NanoImageMemoryCache.shared.thumbnail(data, maxPixel: maxPixel, for: key)
+                    } else {
+                        _ = await NanoImageMemoryCache.shared.decode(data, for: key)
+                    }
                 }
             }
         }
@@ -562,7 +569,8 @@ struct RecentAchievementsRow: View {
         }
         .task(id: artworkPrefetchID) {
             await BadgeArtworkImageCache.shared.prefetch(
-                urls: unlockedArtworkURLs
+                urls: unlockedArtworkURLs,
+                maxPixel: AchievementCard.artworkMaxPixel
             )
         }
     }
@@ -576,17 +584,22 @@ private struct BadgeDestination: Identifiable {
 private struct BadgeArtworkView: View {
     let badge: StatsBadge
     let size: CGFloat
+    /// Small badges pass a pixel size to get a downsampled, pre-decoded thumbnail.
+    var maxPixel: Int? = nil
     var onReady: (() -> Void)? = nil
 
     @State private var image: UIImage?
     @State private var failed = false
 
-    init(badge: StatsBadge, size: CGFloat, onReady: (() -> Void)? = nil) {
+    init(badge: StatsBadge, size: CGFloat, maxPixel: Int? = nil, onReady: (() -> Void)? = nil) {
         self.badge = badge
         self.size = size
+        self.maxPixel = maxPixel
         self.onReady = onReady
         _image = State(initialValue: badge.unlocked
-            ? badge.artworkURL.flatMap { NanoImageMemoryCache.shared.image(for: BadgeArtworkImageCache.key($0)) }
+            ? badge.artworkURL.flatMap {
+                NanoImageMemoryCache.shared.image(for: BadgeArtworkImageCache.key($0, maxPixel: maxPixel))
+            }
             : nil)
     }
 
@@ -599,6 +612,7 @@ private struct BadgeArtworkView: View {
                         .scaledToFit()
                         .padding(size * 0.025)
                         .shadow(color: badge.tint.opacity(0.32), radius: size * 0.10)
+                        .modifier(ScrollFriendlyShadow(enabled: maxPixel != nil, margin: size * 0.25))
                 } else if failed {
                     fallbackMedallion
                 } else {
@@ -612,7 +626,7 @@ private struct BadgeArtworkView: View {
         .frame(width: size, height: size)
         .task(id: "\(badge.id)-\(badge.unlocked)") {
             if badge.unlocked, let url = badge.artworkURL,
-               let cached = NanoImageMemoryCache.shared.image(for: BadgeArtworkImageCache.key(url)) {
+               let cached = NanoImageMemoryCache.shared.image(for: BadgeArtworkImageCache.key(url, maxPixel: maxPixel)) {
                 image = cached
                 onReady?()
                 return
@@ -627,7 +641,12 @@ private struct BadgeArtworkView: View {
             do {
                 let data = try await BadgeArtworkImageCache.shared.data(for: artworkURL)
                 guard !Task.isCancelled else { return }
-                image = await NanoImageMemoryCache.shared.decode(data, for: BadgeArtworkImageCache.key(artworkURL))
+                let key = BadgeArtworkImageCache.key(artworkURL, maxPixel: maxPixel)
+                if let maxPixel {
+                    image = await NanoImageMemoryCache.shared.thumbnail(data, maxPixel: maxPixel, for: key)
+                } else {
+                    image = await NanoImageMemoryCache.shared.decode(data, for: key)
+                }
                 failed = image == nil
                 onReady?()
             } catch {
@@ -658,12 +677,30 @@ private struct BadgeArtworkView: View {
     }
 }
 
+/// Flattens a small badge's glow into one bitmap so it isn't redrawn every
+/// scroll frame. Large, animated medallions keep the live shadow.
+private struct ScrollFriendlyShadow: ViewModifier {
+    let enabled: Bool
+    let margin: CGFloat
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content.flattenedShadows(margin: margin)
+        } else {
+            content
+        }
+    }
+}
+
 private struct AchievementCard: View {
+    /// 72pt at 3x.
+    static let artworkMaxPixel = 216
+
     let badge: StatsBadge
 
     var body: some View {
         VStack(spacing: 10) {
-            BadgeArtworkView(badge: badge, size: 72)
+            BadgeArtworkView(badge: badge, size: 72, maxPixel: Self.artworkMaxPixel)
             Text(badge.title)
                 .font(NanoFont.aldrich(10))
                 .foregroundStyle(NanoTheme.text)

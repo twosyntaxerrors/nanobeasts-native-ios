@@ -33,6 +33,13 @@ struct StatsPanelModifier: ViewModifier {
 }
 
 extension View {
+    /// Renders shadowed content into one bitmap, so scrolling moves a finished
+    /// image instead of recomputing every shadow each frame. The margin keeps
+    /// the shadows from being clipped.
+    func flattenedShadows(margin: CGFloat) -> some View {
+        padding(margin).drawingGroup().padding(-margin)
+    }
+
     func statsPanel(tint: Color = NanoTheme.teal, glow: Double = 0.16, padding: CGFloat = 18) -> some View {
         modifier(StatsPanelModifier(tint: tint, glow: glow, padding: padding))
     }
@@ -333,10 +340,11 @@ struct StatsRhythmCard: View {
                                                                  startPoint: .bottom, endPoint: .top))
                                   : AnyShapeStyle(NanoTheme.ink.opacity(0.13)))
                             .frame(height: max(4, 74 * fraction))
-                            .shadow(color: isPeak ? NanoTheme.teal.opacity(0.7) : .clear, radius: 6)
+                            .shadow(color: isPeak ? NanoTheme.teal.opacity(0.7) : .clear, radius: isPeak ? 6 : 0)
                     }
                 }
                 .frame(height: 74, alignment: .bottom)
+                .flattenedShadows(margin: 12)
                 HStack {
                     let labels = ["12A", "6A", "12P", "6P", "12A"]
                     ForEach(labels.indices, id: \.self) { index in
@@ -500,13 +508,16 @@ struct RecapLineupView: View {
     var body: some View {
         ZStack {
             ForEach(Array(stages.enumerated().reversed()), id: \.element.id) { position, stage in
-                CreatureArtworkView(stage: stage)
+                // Downsampled to the display size: full 1024px art was decoded
+                // and shadowed for a card under 100pt wide.
+                CreatureArtworkView(stage: stage, maxPixel: Int(size * 3))
                     .frame(width: size * (position == 0 ? 1 : 0.78), height: size * (position == 0 ? 1 : 0.78))
                     .offset(x: CGFloat(position) * -size * 0.48, y: CGFloat(position) * -size * 0.08)
                     .shadow(color: NanoTheme.shadow.opacity(0.35), radius: 10, y: 6)
             }
         }
         .frame(width: size * (1 + 0.48 * CGFloat(max(stages.count - 1, 0))), height: size, alignment: .trailing)
+        .flattenedShadows(margin: 24)
         .accessibilityHidden(true)
     }
 }
@@ -635,7 +646,7 @@ struct StatsRecapTeaser: View {
                 }
                 .padding(.top, 4)
             }
-            CreatureArtworkView(stage: companion)
+            CreatureArtworkView(stage: companion, maxPixel: 252)
                 .frame(width: 84, height: 84)
                 .saturation(0)
                 .opacity(0.35)

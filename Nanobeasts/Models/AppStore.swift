@@ -883,12 +883,11 @@ final class AppStore {
 
         let calendar = Calendar.autoupdatingCurrent
         let journeyStartDay = calendar.startOfDay(for: journeyStartedAt)
-        let importedStartDay = analyticsHistory.lazy
-            .map { calendar.startOfDay(for: $0.day) }
-            .filter { $0 < journeyStartDay }
-            .min()
-
-        guard let importedStartDay else { return nil }
+        // The Stats tab reads this on every render; take the earliest day with a
+        // plain comparison instead of calendar math over the whole history.
+        guard let earliestDay = analyticsHistory.lazy.map(\.day).min() else { return nil }
+        let importedStartDay = calendar.startOfDay(for: earliestDay)
+        guard importedStartDay < journeyStartDay else { return nil }
         return DateInterval(start: importedStartDay, end: journeyStartDay)
     }
 

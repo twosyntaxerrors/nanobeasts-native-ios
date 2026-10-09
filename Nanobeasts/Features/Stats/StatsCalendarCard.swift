@@ -30,11 +30,6 @@ struct ActivityCalendarCard: View {
         calendar.date(byAdding: .month, value: monthOffset, to: Date()) ?? Date()
     }
 
-    private var recordsByDay: [Date: Int] {
-        records.reduce(into: [Date: Int]()) { result, record in
-            result[calendar.startOfDay(for: record.day)] = record.steps
-        }
-    }
 
     private var importedHistoryStartDay: Date? {
         importedHistoryRange.map { calendar.startOfDay(for: $0.start) }
@@ -53,10 +48,12 @@ struct ActivityCalendarCard: View {
         }
 
         let leading = max(calendar.component(.weekday, from: interval.start) - 1, 0)
-        // Build this lookup once per presentation. Accessing the computed
-        // property inside the loop rebuilt the entire Health history for every
-        // calendar cell during the Home → Stats transition.
-        let stepsByDay = recordsByDay
+        // Only this month's records: a plain date comparison skips the rest of
+        // the (possibly years-long) Health history without calendar math.
+        var stepsByDay: [Date: Int] = [:]
+        for record in records where interval.contains(record.day) {
+            stepsByDay[calendar.startOfDay(for: record.day)] = record.steps
+        }
         var result = (0..<leading).map {
             StatsCalendarDay(slot: $0, date: nil, steps: 0)
         }
@@ -93,9 +90,10 @@ struct ActivityCalendarCard: View {
     }
 
     private var monthCard: some View {
-        VStack(spacing: 14) {
+        let monthDays = monthDays
+        return VStack(spacing: 14) {
             monthNavigation
-            monthSummary
+            monthSummary(monthDays)
 
             CalendarProvenanceLegend(
                 showsImportedHistory: monthDays.contains(where: \.isImportedFromAppleHealth),
@@ -125,7 +123,8 @@ struct ActivityCalendarCard: View {
     }
 
     /// Duolingo-style tally above the grid: goal days this month and streaks.
-    private var monthSummary: some View {
+    private func monthSummary(_ monthDays: [StatsCalendarDay]) -> some View {
+        let today = today
         let elapsed = monthDays.filter { $0.date.map { $0 <= today } ?? false }
         let hits = elapsed.filter { $0.steps >= dailyGoal }.count
         return HStack(spacing: 8) {

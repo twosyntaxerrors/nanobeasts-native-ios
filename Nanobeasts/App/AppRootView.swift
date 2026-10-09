@@ -930,6 +930,13 @@ struct AppTourOverlay: View {
                 Spacer(minLength: 8)
                 Text("\(step + 1)/\(pages.count)")
                     .font(.caption).foregroundStyle(NanoTheme.secondaryText)
+                if step < pages.count - 1 {
+                    Button("Skip", action: finish)
+                        .font(.caption.weight(.semibold))
+                        .tint(NanoTheme.teal)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .accessibilityLabel("Skip tour")
+                }
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: 7) {
@@ -952,9 +959,7 @@ struct AppTourOverlay: View {
                 }
                 Button {
                     if step == pages.count - 1 {
-                        onFocusChanged(nil)
-                        selectedTab = .lab
-                        onFinished()
+                        finish()
                     } else { move(to: step + 1) }
                 } label: {
                     Text(step == pages.count - 1 ? "Start Walking" : "Next")
@@ -972,6 +977,13 @@ struct AppTourOverlay: View {
         selectedTab = pages[step].tab
         onFocusChanged(pages[step].targets.first)
         cardHasFocus = true
+    }
+
+    /// Ends the tour back on the Lab, whether finished or skipped.
+    private func finish() {
+        onFocusChanged(nil)
+        selectedTab = .lab
+        onFinished()
     }
 
     private func move(to next: Int) {

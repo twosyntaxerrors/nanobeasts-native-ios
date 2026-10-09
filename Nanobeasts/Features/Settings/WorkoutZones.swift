@@ -449,17 +449,22 @@ struct WorkoutZoneCelebrationView: View {
                     }
                     .accessibilityLabel("Close")
                 }
-                Spacer(minLength: 0)
-                WorkoutZoneCard(completion: completion, map: map, accent: accent,
-                                stamped: stamped || reduceMotion, shimmers: !reduceMotion)
-                    .frame(width: 360, height: 640)
-                    .scaleEffect(min(1, 0.92 * UIScreen.main.bounds.height / 760))
-                    .frame(maxHeight: .infinity)
-                    .scaleEffect(revealed || reduceMotion ? 1 : 0.9)
-                    .opacity(revealed ? 1 : 0)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("Zone card: \(completion.name) mastered")
-                Spacer(minLength: 0)
+                // Fit the 360×640 card into the space left between the buttons.
+                // A bare scaleEffect kept its full 640pt layout height, which
+                // pushed the close button under the status bar.
+                GeometryReader { proxy in
+                    let scale = min(1, proxy.size.width / 360, proxy.size.height / 640)
+                    WorkoutZoneCard(completion: completion, map: map, accent: accent,
+                                    stamped: stamped || reduceMotion, shimmers: !reduceMotion)
+                        .frame(width: 360, height: 640)
+                        .scaleEffect(scale)
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                }
+                .scaleEffect(revealed || reduceMotion ? 1 : 0.9)
+                .opacity(revealed ? 1 : 0)
+                .allowsHitTesting(false)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Zone card: \(completion.name) mastered")
                 if let shareImage {
                     ShareLink(item: Image(uiImage: shareImage),
                               preview: SharePreview("\(completion.name) · Mastered", image: Image(uiImage: shareImage))) {
@@ -470,10 +475,14 @@ struct WorkoutZoneCelebrationView: View {
                             .background(Capsule().fill(accent))
                     }
                 }
-                Button("Keep exploring") { dismiss() }
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.8))
-                    .frame(minHeight: 44)
+                Button { dismiss() } label: {
+                    Text("Keep exploring")
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.8))
+                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 22).padding(.bottom, 8)
         }

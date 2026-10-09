@@ -12,6 +12,10 @@ struct StatsView: View {
     @State private var presentation = StatsWarmCache.presentation ?? .empty
     @State private var insights = StatsWarmCache.insights ?? .empty
     @State private var showsRecap = false
+    /// Live step ticks land here while a finger is on the page, so a refresh
+    /// never rebuilds the chart mid-scroll.
+    @State private var isScrolling = false
+    @State private var pendingInsights: StatsInsights?
 
     init(historyDefaults: UserDefaults = .standard) {
         _workoutHistoryStore = StateObject(wrappedValue: WorkoutHistoryStore(defaults: historyDefaults))
@@ -24,7 +28,9 @@ struct StatsView: View {
 
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 16) {
+                    // Eager on purpose: the page is a handful of cards, and a lazy
+                    // stack built (and tore down) the chart and artwork mid-scroll.
+                    VStack(alignment: .leading, spacing: 16) {
                         StatsScreenHeader()
 
                         StatsSectionHeader(number: 1, title: "ACTIVITY LOG")
@@ -75,6 +81,7 @@ struct StatsView: View {
                     .padding(.bottom, 28)
                 }
                 .scrollIndicators(.hidden)
+                .onScrollPhaseChangeIfAvailable { isScrolling = $0 }
                 .task(id: tourFocus) {
                     guard let tourFocus, tourFocus == .stats || tourFocus == .badges else { return }
                     await Task.yield()
@@ -145,7 +152,16 @@ struct StatsView: View {
             }.value
             guard !Task.isCancelled else { return }
             StatsWarmCache.insights = prepared
-            insights = prepared
+            if isScrolling {
+                pendingInsights = prepared
+            } else {
+                insights = prepared
+            }
+        }
+        .onChange(of: isScrolling) {
+            guard !isScrolling, let pendingInsights else { return }
+            insights = pendingInsights
+            self.pendingInsights = nil
         }
         .fullScreenCover(isPresented: $showsRecap) {
             if let recap = insights.recap {
@@ -211,6 +227,18 @@ extension StatsView {
         }.value
         if StatsWarmCache.presentation == nil { StatsWarmCache.presentation = presentation }
         if StatsWarmCache.insights == nil { StatsWarmCache.insights = insights }
+    }
+}
+
+private extension View {
+    /// Reports whether the scroll view is moving (iOS 18+; a no-op before).
+    @ViewBuilder
+    func onScrollPhaseChangeIfAvailable(_ action: @escaping (Bool) -> Void) -> some View {
+        if #available(iOS 18.0, *) {
+            onScrollPhaseChange { _, phase in action(phase.isScrolling) }
+        } else {
+            self
+        }
     }
 }
 
