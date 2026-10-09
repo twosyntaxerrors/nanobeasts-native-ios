@@ -186,23 +186,39 @@ async function uploadSteps(user, input, env) {
 
   const local = localNow(timeZone);
   const thisWeek = addDays(local.date, -local.weekday);
+  const lastWeek = addDays(thisWeek, -7);
   const inGrace = local.weekday === 0 && local.hour < GRACE_HOUR;
-  const earliest = inGrace ? addDays(thisWeek, -7) : thisWeek;
   // A day ahead is allowed for a phone that has just crossed midnight.
   const latest = addDays(local.date, 1);
 
+  // After the grace period last week is frozen, except for a player with nothing
+  // in it yet (someone who joined this week): their last week fills in once, so
+  // their first results show what they walked. Filling never overwrites a day.
+  let backfillsLastWeek = false;
+  if (!inGrace) {
+    const existing = await env.DB.prepare(
+      'SELECT COUNT(*) AS total FROM daily_steps WHERE user_id = ? AND day >= ? AND day < ?',
+    )
+      .bind(user.id, lastWeek, thisWeek)
+      .first();
+    backfillsLastWeek = existing.total === 0;
+  }
+
   const now = Date.now();
+  const upsert = `INSERT INTO daily_steps (user_id, day, steps, updated_at) VALUES (?, ?, ?, ?)
+    ON CONFLICT (user_id, day) DO UPDATE SET steps = excluded.steps, updated_at = excluded.updated_at`;
+  const insertOnly = `INSERT INTO daily_steps (user_id, day, steps, updated_at) VALUES (?, ?, ?, ?)
+    ON CONFLICT (user_id, day) DO NOTHING`;
   const statements = [];
   for (const entry of days) {
     const day = typeof entry?.date === 'string' ? entry.date : '';
     const steps = Math.round(Number(entry?.steps));
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day < earliest || day > latest) continue;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day < lastWeek || day > latest) continue;
     if (!Number.isFinite(steps) || steps < 0) continue;
+    const isLastWeek = day < thisWeek;
+    if (isLastWeek && !inGrace && !backfillsLastWeek) continue;
     statements.push(
-      env.DB.prepare(
-        `INSERT INTO daily_steps (user_id, day, steps, updated_at) VALUES (?, ?, ?, ?)
-         ON CONFLICT (user_id, day) DO UPDATE SET steps = excluded.steps, updated_at = excluded.updated_at`,
-      ).bind(user.id, day, Math.min(steps, MAX_DAILY_STEPS), now),
+      env.DB.prepare(isLastWeek && !inGrace ? insertOnly : upsert).bind(user.id, day, Math.min(steps, MAX_DAILY_STEPS), now),
     );
   }
   if (statements.length) {
@@ -261,14 +277,19 @@ async function leaderboard(user, env) {
       .all()
   ).results;
 
-  const totals = new Map(people.map((person) => [person.id, { today: 0, week: 0, lastWeek: 0 }]));
+  const totals = new Map(people.map((person) => [person.id, { today: 0, week: 0, lastWeek: 0, bestDay: null }]));
   for (const row of rows) {
     const window = windows.get(row.user_id);
     const total = totals.get(row.user_id);
     if (row.day > window.today) continue;
     if (row.day === window.today) total.today = row.steps;
-    if (row.day >= window.weekStart) total.week += row.steps;
-    else if (row.day >= window.lastWeekStart) total.lastWeek += row.steps;
+    if (row.day >= window.weekStart) {
+      total.week += row.steps;
+      // Each player's biggest single day this week, for the "Best day" badge.
+      if (row.steps > 0 && (!total.bestDay || row.steps > total.bestDay.steps)) {
+        total.bestDay = { date: row.day, steps: row.steps };
+      }
+    } else if (row.day >= window.lastWeekStart) total.lastWeek += row.steps;
   }
 
   const mine = windows.get(user.id);

@@ -20,6 +20,14 @@ struct LeaderboardEntry: Codable, Identifiable, Equatable, Sendable {
     let today: Int
     let week: Int
     let lastWeek: Int
+    /// The player's biggest single day this week, in their own time zone.
+    let bestDay: BestDay?
+
+    struct BestDay: Codable, Equatable, Sendable {
+        /// "YYYY-MM-DD"
+        let date: String
+        let steps: Int
+    }
 
     var lastSync: Date? {
         updatedAt.map { Date(timeIntervalSince1970: $0 / 1000) }

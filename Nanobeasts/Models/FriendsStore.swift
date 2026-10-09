@@ -65,26 +65,112 @@ final class FriendsStore {
         weekRanking.firstIndex(where: \.isMe).map { $0 + 1 }
     }
 
-    /// Last week's top three, offered on Sunday and Monday until dismissed.
-    var pendingPodium: [LeaderboardEntry]? {
-        guard let board, hasFriends, seenPodiumWeek != board.weekStart else { return nil }
-        guard board.today <= Self.addDays(board.weekStart, 1) else { return nil }
-        let podium = ranked(by: \.lastWeek).filter { $0.lastWeek > 0 }.prefix(3)
-        return podium.count >= 2 ? Array(podium) : nil
+    var lastWeekRanking: [LeaderboardEntry] {
+        ranked(by: \.lastWeek)
     }
 
-    func dismissPodium() {
+    /// Last week's results exist once a friend is on the board and someone walked.
+    var hasLastWeekResults: Bool {
+        hasFriends && (board?.entries.contains { $0.lastWeek > 0 } ?? false)
+    }
+
+    /// Home shows last week's results on Sunday and Monday until they're dismissed.
+    var weeklyResultsDue: Bool {
+        guard let board, hasLastWeekResults, seenPodiumWeek != board.weekStart else { return false }
+        return board.today <= Self.addDays(board.weekStart, 1)
+    }
+
+    func dismissWeeklyResults() {
         guard let board else { return }
         seenPodiumWeek = board.weekStart
         defaults.set(board.weekStart, forKey: Self.podiumKey)
     }
 
+    /// "Sep 27 – Oct 3" for the week that just ended.
+    var lastWeekLabel: String {
+        guard let board else { return "Last week" }
+        return Self.rangeLabel(from: Self.addDays(board.weekStart, -7), to: Self.addDays(board.weekStart, -1))
+            ?? "Last week"
+    }
+
+    // MARK: - Race details
+
+    /// "Oct 4 – Oct 10" for the current week.
+    var thisWeekLabel: String? {
+        guard let board else { return nil }
+        return Self.rangeLabel(from: board.weekStart, to: Self.addDays(board.weekStart, 6))
+    }
+
+    /// The week's number in the year, as on a race calendar.
+    var weekNumber: Int? {
+        guard let board, let start = Self.parseDay(board.weekStart) else { return nil }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        return calendar.component(.weekOfYear, from: start)
+    }
+
+    /// Which day of the seven-day race it is, from 1 (Sunday) to 7.
+    var raceDay: Int {
+        guard let board, let start = Self.parseDay(board.weekStart), let today = Self.parseDay(board.today)
+        else { return 1 }
+        return min(max(Int((today.timeIntervalSince(start) / 86_400).rounded()) + 1, 1), 7)
+    }
+
+    /// Places gained (positive) or lost since the end of yesterday, by player ID.
+    /// Empty on Sunday, when there is no earlier standing to compare with.
+    var weeklyMovement: [String: Int] {
+        guard raceDay > 1, let entries = board?.entries else { return [:] }
+        let now = weekRanking.map(\.id)
+        let before = sorted(entries) { $0.week - $0.today }.map(\.id)
+        var movement: [String: Int] = [:]
+        for (index, id) in now.enumerated() {
+            if let previous = before.firstIndex(of: id), previous != index {
+                movement[id] = previous - index
+            }
+        }
+        return movement
+    }
+
+    /// The biggest single day anyone on the board has walked this week.
+    var bestDayOfWeek: (entry: LeaderboardEntry, day: LeaderboardEntry.BestDay)? {
+        board?.entries
+            .compactMap { entry in entry.bestDay.map { (entry: entry, day: $0) } }
+            .max { $0.day.steps < $1.day.steps }
+    }
+
+    /// "Tuesday" for a "YYYY-MM-DD" day.
+    static func weekdayName(_ day: String) -> String {
+        guard let date = parseDay(day) else { return "" }
+        var style = Date.FormatStyle.dateTime.weekday(.wide)
+        style.timeZone = TimeZone(identifier: "UTC")!
+        return date.formatted(style)
+    }
+
     private func ranked(by steps: KeyPath<LeaderboardEntry, Int>) -> [LeaderboardEntry] {
-        (board?.entries ?? []).sorted {
-            if $0[keyPath: steps] != $1[keyPath: steps] { return $0[keyPath: steps] > $1[keyPath: steps] }
+        sorted(board?.entries ?? []) { $0[keyPath: steps] }
+    }
+
+    private func sorted(_ entries: [LeaderboardEntry], by steps: (LeaderboardEntry) -> Int) -> [LeaderboardEntry] {
+        entries.sorted {
+            if steps($0) != steps($1) { return steps($0) > steps($1) }
             if $0.isMe != $1.isMe { return $0.isMe }
             return $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
         }
+    }
+
+    private static func parseDay(_ day: String) -> Date? {
+        let parser = DateFormatter()
+        parser.locale = Locale(identifier: "en_US_POSIX")
+        parser.timeZone = TimeZone(identifier: "UTC")
+        parser.dateFormat = "yyyy-MM-dd"
+        return parser.date(from: day)
+    }
+
+    private static func rangeLabel(from first: String, to last: String) -> String? {
+        guard let start = parseDay(first), let end = parseDay(last) else { return nil }
+        var style = Date.FormatStyle.dateTime.month(.abbreviated).day()
+        style.timeZone = TimeZone(identifier: "UTC")!
+        return "\(start.formatted(style)) – \(end.formatted(style))"
     }
 
     // MARK: - Lifecycle

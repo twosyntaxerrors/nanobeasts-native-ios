@@ -102,6 +102,7 @@
 		C7E5FD4367445EE562B44E82 /* WorkoutLocationTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA9C5B553135876601B459CA /* WorkoutLocationTracker.swift */; };
 		CA53F78E3377B5325425BC78 /* SolarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96FFB2549BE8C712C97C67C2 /* SolarIcon.swift */; };
 		CB0F4D54D118C676B4298EAA /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 2FBF8B025D78BA8E96FC78EB /* PrivacyInfo.xcprivacy */; };
+		CCDFF09B59C1E5DBD8B19E50 /* TimingTower.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B47682FE1AEFE76A6E86D39 /* TimingTower.swift */; };
 		CEF144099F2F8C44253D699E /* FriendsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0A3900E598A733F68EFB5D /* FriendsStore.swift */; };
 		D39B603182555AE061D538D5 /* WatchWorkoutMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 842D59263B54A8593B9E9853 /* WatchWorkoutMessage.swift */; };
 		D47A213BD745CDB996862A45 /* NanoSubscriptionAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3390327C6AB36EBDB4A42549 /* NanoSubscriptionAccess.swift */; };
@@ -181,6 +182,7 @@
 		278CA47963D9A99BF3F63E5A /* WorkoutReplayVideo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutReplayVideo.swift; sourceTree = "<group>"; };
 		28F027BDB9855F5E7E3BE5F7 /* SubscriptionReturnView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionReturnView.swift; sourceTree = "<group>"; };
 		2B0A3900E598A733F68EFB5D /* FriendsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsStore.swift; sourceTree = "<group>"; };
+		2B47682FE1AEFE76A6E86D39 /* TimingTower.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimingTower.swift; sourceTree = "<group>"; };
 		2D6C953B0D4D97ED41B44DF7 /* WatchWorkoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWorkoutView.swift; sourceTree = "<group>"; };
 		2F02754C9A75A5903524FBA7 /* WorkoutLiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLiveActivityController.swift; sourceTree = "<group>"; };
 		2FBF8B025D78BA8E96FC78EB /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -395,6 +397,7 @@
 			isa = PBXGroup;
 			children = (
 				87D3CA66B1DD0C6EAD36AEC6 /* LeaderboardView.swift */,
+				2B47682FE1AEFE76A6E86D39 /* TimingTower.swift */,
 			);
 			path = Friends;
 			sourceTree = "<group>";
@@ -806,6 +809,7 @@
 				DDCA7F24390EDB86A81E82DB /* StreakHistorySummary.swift in Sources */,
 				71931E842F2E67168822B144 /* StreakSummaryView.swift in Sources */,
 				7CD5A769D01B41C3B9705CCB /* SubscriptionReturnView.swift in Sources */,
+				CCDFF09B59C1E5DBD8B19E50 /* TimingTower.swift in Sources */,
 				01C47D560F0C24476824E806 /* WalkingPlanChart.swift in Sources */,
 				D39B603182555AE061D538D5 /* WatchWorkoutMessage.swift in Sources */,
 				79BD98FF4043C4D3D89489C4 /* WatchWorkoutPanel.swift in Sources */,

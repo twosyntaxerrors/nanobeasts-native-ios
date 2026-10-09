@@ -177,21 +177,6 @@ struct LabView: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.92)))
                 .zIndex(52)
             }
-
-            if let podium = friends?.pendingPodium, !showsDailyGoalCard, activeSheet == nil,
-               !defersCelebrations, !store.isOnboardingReplay {
-                Color.black.opacity(0.56)
-                    .ignoresSafeArea()
-                    .transition(.opacity)
-                    .zIndex(53)
-
-                WeeklyPodiumCard(podium: podium, stageForKey: stage(forImageKey:)) {
-                    withAnimation(.easeOut(duration: 0.22)) { friends?.dismissPodium() }
-                }
-                .padding(.horizontal, 24)
-                .transition(.opacity.combined(with: .scale(scale: 0.92)))
-                .zIndex(54)
-            }
         }
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
@@ -316,6 +301,9 @@ struct LabView: View {
                     .presentationDragIndicator(.hidden)
                 }
         }
+        .fullScreenCover(isPresented: showsWeeklyResults) {
+            WeeklyResultsView { friends?.dismissWeeklyResults() }
+        }
         .fullScreenCover(isPresented: $showsProgressionPaywall) {
             RevenueCatPaywallScreen(playerName: store.playerName, selectedGoals: store.onboardingGoals, primaryGoal: store.onboardingPrimaryGoal, selectedBlockers: store.onboardingBlockers)
         }
@@ -328,9 +316,16 @@ struct LabView: View {
         return .rank(rank)
     }
 
-    private func stage(forImageKey key: String?) -> CreatureStage? {
-        guard let key else { return nil }
-        return store.catalog.families.lazy.flatMap(\.stages).first { $0.imageKey == key }
+    /// Last week's results take over Home once, on Sunday or Monday.
+    private var showsWeeklyResults: Binding<Bool> {
+        Binding(
+            get: {
+                guard let friends, !store.isOnboardingReplay, !defersCelebrations else { return false }
+                return friends.weeklyResultsDue && activeSheet == nil && !showsDailyGoalCard
+                    && !showsProgressionPaywall
+            },
+            set: { if !$0 { friends?.dismissWeeklyResults() } }
+        )
     }
 
     private var greeting: String {
