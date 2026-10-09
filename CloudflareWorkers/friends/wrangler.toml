@@ -1,0 +1,24 @@
+# Friends and the weekly step leaderboard. The app signs in with Apple, uploads
+# its daily step totals, and reads a leaderboard of the player and their friends.
+# Apple Sign in token revocation (required on account deletion) needs secrets:
+#   wrangler secret put APPLE_KEY_ID
+#   wrangler secret put APPLE_PRIVATE_KEY   (contents of the .p8 file)
+name = "nanobeasts-friends"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+routes = [
+  { pattern = "nanobeasts.app/api/*", zone_name = "nanobeasts.app" },
+  { pattern = "nanobeasts.app/i/*", zone_name = "nanobeasts.app" },
+  { pattern = "nanobeasts.app/.well-known/apple-app-site-association", zone_name = "nanobeasts.app" }
+]
+
+[vars]
+APPLE_TEAM_ID = "C48J72F8MH"
+APPLE_BUNDLE_ID = "com.twosyntaxerrors.nanobeasts.native"
+APP_STORE_URL = "https://apps.apple.com/app/id6794927950"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "nanobeasts-friends"
+database_id = "f7b40a21-99c8-4ab1-b3f4-761426b4b658"

@@ -262,6 +262,9 @@ final class AppStore {
     private var testingPresentedBadgeIDs: Set<String> = []
     @ObservationIgnored private var lastConsumedStepSyncAnimationID: UUID?
     @ObservationIgnored private var persistenceTask: Task<Void, Never>?
+    /// Called after each Health or Motion refresh so the friends leaderboard
+    /// can upload the new totals, including from background HealthKit delivery.
+    @ObservationIgnored var onStepsRefreshed: (@MainActor () -> Void)?
 
     init(
         catalog: CreatureCatalog = .load(),
@@ -1047,6 +1050,7 @@ final class AppStore {
             applyActivityHistory(journey, merging: false, showsSyncStatus: true)
             lastHealthSync = Date()
             healthState = .connected
+            onStepsRefreshed?()
         } catch {
             healthState = .failed(error.localizedDescription)
             finishStepSyncImmediately()
@@ -1739,6 +1743,7 @@ final class AppStore {
             let history = try await pedometerClient.fetchRecentDailySteps(startingAt: journeyStartedAt)
             applyAnalyticsHistory(history, hourly: [], merging: true)
             applyActivityHistory(history, merging: true, showsSyncStatus: false)
+            onStepsRefreshed?()
         } catch {
             // A denied Motion permission leaves the journey at zero without
             // importing any other source or presenting stale progress.

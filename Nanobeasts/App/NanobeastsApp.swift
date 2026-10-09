@@ -37,6 +37,7 @@ struct NanobeastsApp: App {
     @UIApplicationDelegateAdaptor(WorkoutNotificationAppDelegate.self)
     private var workoutNotificationDelegate
     @State private var store = AppStore()
+    @State private var friends = FriendsStore()
     @AppStorage(NanoAppearance.storageKey) private var appearance: NanoAppearance = .dark
     @State private var goldieRootID = 0
 #if targetEnvironment(simulator)
@@ -106,6 +107,7 @@ struct NanobeastsApp: App {
         WindowGroup {
             rootContent
                 .environment(store)
+                .environment(friends)
                 .tint(Color.nanoVivid(store.interfaceAccent.color))
                 .foregroundStyle(NanoTheme.text)
                 // Applied to the window, so sheets, alerts, the keyboard and the

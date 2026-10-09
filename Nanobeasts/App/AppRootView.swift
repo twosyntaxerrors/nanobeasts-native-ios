@@ -42,6 +42,7 @@ private enum AppWorkoutPresentation: Identifiable {
 
 struct AppRootView: View {
     @Environment(AppStore.self) private var store
+    @Environment(FriendsStore.self) private var friends: FriendsStore?
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.requestReview) private var requestReview
     @AppStorage("nanobeasts.didCompleteAppTour") private var didCompleteAppTour = false
@@ -179,6 +180,11 @@ struct AppRootView: View {
             presentPendingWorkoutNotificationIfNeeded()
         }
         .onOpenURL { url in
+            // Invites are kept until sign-in, so they're handled before the access check.
+            if friends?.handleInviteURL(url) == true {
+                if hasAppAccess { selectedTab = .lab }
+                return
+            }
             guard url.scheme?.lowercased() == "nanobeasts" else { return }
             guard hasAppAccess else { return }
             switch url.host?.lowercased() {

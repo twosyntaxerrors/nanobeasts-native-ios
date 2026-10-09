@@ -55,7 +55,12 @@ final class HealthKitClient: @unchecked Sendable {
         }
     }
 
-    func fetchDailySteps(startingAt journeyStart: Date) async throws -> [DailyStepRecord] {
+    /// `excludingUserEntered` drops steps typed into the Health app by hand, so
+    /// the friends leaderboard only counts recorded walking.
+    func fetchDailySteps(
+        startingAt journeyStart: Date,
+        excludingUserEntered: Bool = false
+    ) async throws -> [DailyStepRecord] {
         guard isAvailable else {
             throw HealthKitClientError.unavailable
         }
@@ -67,11 +72,17 @@ final class HealthKitClient: @unchecked Sendable {
         let today = calendar.startOfDay(for: Date())
         let start = min(max(journeyStart, calendar.startOfDay(for: journeyStart)), Date())
         let end = Date()
-        let predicate = HKQuery.predicateForSamples(
+        var predicate = HKQuery.predicateForSamples(
             withStart: start,
             end: end,
             options: .strictStartDate
         )
+        if excludingUserEntered {
+            predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                predicate,
+                NSPredicate(format: "metadata.%K != YES", HKMetadataKeyWasUserEntered),
+            ])
+        }
 
         return try await withCheckedThrowingContinuation {
             (continuation: CheckedContinuation<[DailyStepRecord], Error>) in

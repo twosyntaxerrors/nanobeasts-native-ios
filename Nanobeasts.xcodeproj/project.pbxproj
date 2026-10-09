@@ -7,9 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		CC8113E9E473B2171723B111 /* Nanobeasts-Launch-Reveal-Poster.png in Resources */ = {isa = PBXBuildFile; fileRef = C1F2D84526004553A7D14312 /* Nanobeasts-Launch-Reveal-Poster.png */; };
-		CC8113E9E473B2171723B110 /* Nanobeasts-Launch-Reveal.mov in Resources */ = {isa = PBXBuildFile; fileRef = C1F2D84526004553A7D14311 /* Nanobeasts-Launch-Reveal.mov */; };
-		2C45EF77AF3E469AD9844C40 /* RefinedPaywallPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE076AAE591A40FE552ECE1F /* RefinedPaywallPage.swift */; };
 		01C47D560F0C24476824E806 /* WalkingPlanChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC830BAC33D43213184964C7 /* WalkingPlanChart.swift */; };
 		023C03CC11DCE8F38DC55261 /* NanoTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04B07D2491F65D95341247FF /* NanoTheme.swift */; };
 		027CB681557F4E5D12FE8DBD /* WorkoutHealthRouteWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18DC96C5FEF96FA06C6DB6AB /* WorkoutHealthRouteWriter.swift */; };
@@ -20,21 +17,21 @@
 		0F739692B71915AA5A31A585 /* WorkoutCameraPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C289D723AFE486193714A3E /* WorkoutCameraPicker.swift */; };
 		0FB006B216CAD3D02D41CA72 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2BE5D20E3855483907F2BFB /* WidgetSnapshot.swift */; };
 		152B0DD9A3207F7C40DBBB3E /* SpaceMono_400Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CEBE772CDEFFAEE45F2EA1E1 /* SpaceMono_400Regular.ttf */; };
-		C5A0E4D9BC1A3F7E5D6208A4 /* Nanobeasts-Core-Loop-Streaming.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = E6B8E16AC5A7C3D9F4012B77 /* Nanobeasts-Core-Loop-Streaming.mp4 */; };
 		156AAAA0D0825B2EE2C7E41F /* WorkoutShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CD8C64C0E0A95B0EE27BFC7 /* WorkoutShareView.swift */; };
 		168BBFC2A5F8049BD4E28468 /* WidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2BE5D20E3855483907F2BFB /* WidgetSnapshot.swift */; };
 		17EB280306404DD72B152CB4 /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0B1280D1F67B5643C5DA44EE /* MapKit.framework */; };
+		1C3DE5D414F9BBEA9CB17742 /* Nanobeasts-Core-Loop-Streaming.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 8294D534892CEA4994489D9C /* Nanobeasts-Core-Loop-Streaming.mp4 */; };
+		1D80F563886A038B40823F8E /* GoldieWalkFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = D11D510853353A782AC14604 /* GoldieWalkFixture.swift */; };
 		1ED8FCFB314944D71628F9DE /* OnboardingProgressViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CE533B22939989714C1AAA4 /* OnboardingProgressViews.swift */; };
 		2C0F324194A590EB01A74666 /* WatchAuthorizationQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455CCE99D413F73C7ACACDCB /* WatchAuthorizationQueue.swift */; };
+		2C45EF77AF3E469AD9844C40 /* RefinedPaywallPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE076AAE591A40FE552ECE1F /* RefinedPaywallPage.swift */; };
 		32E81C82DC1723082710F49C /* StatsCalendarCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5A00EF4D1E1D0A56280F240 /* StatsCalendarCard.swift */; };
+		3669EA5268AD2B4A1859C07C /* Nanobeasts-Launch-Reveal.mov in Resources */ = {isa = PBXBuildFile; fileRef = AC7267FDED7C5EDAD432BBC9 /* Nanobeasts-Launch-Reveal.mov */; };
 		3A7F1666CE3507B4D61D87B2 /* WorkoutRoutePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9602D85601B0ACB47FB241C4 /* WorkoutRoutePolicy.swift */; };
 		3DD8C3D4321B12CF9810DD75 /* WorkoutHealthSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = E461B58A1FF3B6808CB1292C /* WorkoutHealthSync.swift */; };
 		49C0D1DAF25B6CBA2C092594 /* WidgetSnapshotWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99567E0E6223E9E0C9AE7567 /* WidgetSnapshotWriter.swift */; };
 		49DA32568507BF3F9EAB5BA7 /* WatchWorkoutFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14BC40C3450CF6AB40DAF05D /* WatchWorkoutFeedback.swift */; };
 		4C82280224E759E6D874C179 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7120E22E464324EDAAC61846 /* StatsView.swift */; };
-		91FB727AFB26B59D68A7016B /* StatsRecapStory.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED470C632C28B3E05926312C /* StatsRecapStory.swift */; };
-		792C40A381311FF3C944C0AA /* StatsInsightViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = F35C45C3F85C113DF6A523FC /* StatsInsightViews.swift */; };
-		87799AE7F0490A2830B62643 /* StatsInsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A06112A6B225C56F570C675 /* StatsInsightEngine.swift */; };
 		4D8F8662E2A119B7C1540968 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 4D93B51DCD9F409C19D54E9C /* PrivacyInfo.xcprivacy */; };
 		4F774C62827DD84A2BF3B7FE /* WatchDailyActivityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 421DCA931CCF112C068CFC67 /* WatchDailyActivityStore.swift */; };
 		51790D041718BD210E5EDF1B /* RemoteArtwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43651F962B35823A78896183 /* RemoteArtwork.swift */; };
@@ -43,15 +40,17 @@
 		5FBB6709FFF71BBA73B98A2F /* WorkoutLiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F02754C9A75A5903524FBA7 /* WorkoutLiveActivityController.swift */; };
 		6352FCFAE6E236CF2563EB22 /* WorkoutHealthRouteWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18DC96C5FEF96FA06C6DB6AB /* WorkoutHealthRouteWriter.swift */; };
 		6496C48DAEFAC3946A008CF9 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 43A4E4E4168C4A60489A3181 /* PrivacyInfo.xcprivacy */; };
+		66CE2B6EB26778AA38484063 /* badge-streak-5.png in Resources */ = {isa = PBXBuildFile; fileRef = FC5C6FCE4DBC758E7587D800 /* badge-streak-5.png */; };
+		6E0F46FBE2E082D75D43B75A /* WorkoutZones.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE22D4EE1002DF27E6BAEE0D /* WorkoutZones.swift */; };
 		6EBA8A443A106ED6B1C2E996 /* NanoSubscriptionAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3390327C6AB36EBDB4A42549 /* NanoSubscriptionAccess.swift */; };
 		6ED86CBF2B92A1B2A7426435 /* WorkoutReplayVideoArtwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = 518D41324EBA326BCB6210B3 /* WorkoutReplayVideoArtwork.swift */; };
 		71931E842F2E67168822B144 /* StreakSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AF408365E11E945871D59BD /* StreakSummaryView.swift */; };
 		7229B00545C80BE38F2D8AF6 /* SpaceMono_700Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5490E15EB04B5013B5FD57B2 /* SpaceMono_700Bold.ttf */; };
 		72F00C8BCC955A46CA180FB8 /* NanobeastsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 073C0BE16B3122F2D1A8F119 /* NanobeastsApp.swift */; };
-		D1E2F3A4B5C60718293A4B6D /* GoldieWalkFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1D2E3F4A5B60718293A4B6C /* GoldieWalkFixture.swift */; };
+		7533BF667266CBDCD64D042E /* badge-streak-14.png in Resources */ = {isa = PBXBuildFile; fileRef = 9283FC54C2F28F16BC67D4B2 /* badge-streak-14.png */; };
 		76F39F9A97CB2A31C0A2D6B4 /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 402C641B5AEFF0D8633F834D /* CoreMotion.framework */; };
+		77F2681693E5643383FB7659 /* StatsInsightViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC72EF3A3826E94B8F561F8C /* StatsInsightViews.swift */; };
 		79BD98FF4043C4D3D89489C4 /* WatchWorkoutPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB4B1E454056CC1981D88C3 /* WatchWorkoutPanel.swift */; };
-		B1C2D3E4F5A60718293A4B5D /* WorkoutZones.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* WorkoutZones.swift */; };
 		7A41BD9A03FAF66FB122D9B4 /* CreatureModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD58ED5FCF9FC74E056AEA86 /* CreatureModels.swift */; };
 		7C2D3BF5B8AB255259FB3694 /* WatchWorkoutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = D94CEEB9D9B5F6AC4FCD5E8C /* WatchWorkoutRecorder.swift */; };
 		7CB2009589F63D893EF4965A /* Aldrich_400Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F71666E6FDE7E18BD0CED383 /* Aldrich_400Regular.ttf */; };
@@ -61,6 +60,7 @@
 		8120B1F455E2E3BF0CF27C4D /* WorkoutRoutePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9602D85601B0ACB47FB241C4 /* WorkoutRoutePolicy.swift */; };
 		83CF2382E8D5C3686E46D2B0 /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14F66223E287359D3D441B46 /* AppStore.swift */; };
 		843B21310939B126B3366953 /* NanoAccent.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5C7A21EF6EE0E9B7A6DBFDC /* NanoAccent.swift */; };
+		85FBA8C34132A91C2FE19887 /* LeaderboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87D3CA66B1DD0C6EAD36AEC6 /* LeaderboardView.swift */; };
 		862A738009C3FD70C0F461A0 /* WatchWorkoutMetricsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6E5EBCDF208D99EFF10DB6E /* WatchWorkoutMetricsView.swift */; };
 		8829C84FC6CCC4E5E3CBECF4 /* OnboardingLocationPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66CE83593841637E9CFCBF0F /* OnboardingLocationPermission.swift */; };
 		89F85618436BAC9BB62AB0D4 /* LabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE777600852058010F877B65 /* LabView.swift */; };
@@ -70,8 +70,11 @@
 		8DD15DD7041A153888A23AD0 /* WatchHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81EDE2F42C1A2D8AB5CC2CF2 /* WatchHomeView.swift */; };
 		8E96A7385DB752349141F891 /* WatchWorkoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D6C953B0D4D97ED41B44DF7 /* WatchWorkoutView.swift */; };
 		901C8B2F967C9A5AEEA6E19C /* WorkoutActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AA40A76D1C67991B1F529FA /* WorkoutActivityAttributes.swift */; };
+		915BA7B3F729A7A9509BAEC5 /* StatsRecapStory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B4AC248E30C7C0DB96F4007 /* StatsRecapStory.swift */; };
+		93FDC99171FFB3BA8513798D /* Nanobeasts-Launch-Reveal-Poster.png in Resources */ = {isa = PBXBuildFile; fileRef = 68645C657FF3F754E8D18B96 /* Nanobeasts-Launch-Reveal-Poster.png */; };
 		9583AEF2734BB01DB5C93BE1 /* WorkoutSessionTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63CAEE4A1F8DB6B82683A8B9 /* WorkoutSessionTracker.swift */; };
 		9A695056D77A3638972D57CF /* ProfessorNanoArtwork.swift in Sources */ = {isa = PBXBuildFile; fileRef = F34404BA913AFAF4DC979145 /* ProfessorNanoArtwork.swift */; };
+		9BA2D1667DC698DD9AFB8C79 /* FriendsAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D5F29A7D5AFE826A8741EDF /* FriendsAPI.swift */; };
 		9BABA964D9321EAC4D9FB1F4 /* Charts.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C31C3C4A391F94189BC90B64 /* Charts.framework */; };
 		9DB8F3B00FBD02DEFCB83A3D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8E15620BA40F8F4EDC0AF537 /* Assets.xcassets */; };
 		A15D88ADD6AD7CACD441FD7B /* NanobeastsWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3032BCCEF0B4BA67E83B57D /* NanobeastsWidgets.swift */; };
@@ -81,6 +84,7 @@
 		A86995FEF6FC95571F314CD4 /* WorkoutPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C599645F8D1720EEA8B463A5 /* WorkoutPreviewView.swift */; };
 		A93B5F77D18776F58298B926 /* NanoSubscriptionAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3390327C6AB36EBDB4A42549 /* NanoSubscriptionAccess.swift */; };
 		AB38A58E5FEFACB7E6EA1F73 /* NanoAccent.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5C7A21EF6EE0E9B7A6DBFDC /* NanoAccent.swift */; };
+		AC1171B125ABCF0DBCC424E6 /* StatsInsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C794B62D160C99A7AD712F8B /* StatsInsightEngine.swift */; };
 		B2B5E8A622850A8A31DBD45E /* NanoAccent.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5C7A21EF6EE0E9B7A6DBFDC /* NanoAccent.swift */; };
 		B4C9FCBB0D193DED3ED65337 /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4DBA2D51A67BE7D278607BF /* OnboardingFlowView.swift */; };
 		B61DD36C8F79ADFD6DA40098 /* WatchWorkoutMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 842D59263B54A8593B9E9853 /* WatchWorkoutMessage.swift */; };
@@ -98,12 +102,11 @@
 		C7E5FD4367445EE562B44E82 /* WorkoutLocationTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA9C5B553135876601B459CA /* WorkoutLocationTracker.swift */; };
 		CA53F78E3377B5325425BC78 /* SolarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96FFB2549BE8C712C97C67C2 /* SolarIcon.swift */; };
 		CB0F4D54D118C676B4298EAA /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 2FBF8B025D78BA8E96FC78EB /* PrivacyInfo.xcprivacy */; };
+		CEF144099F2F8C44253D699E /* FriendsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0A3900E598A733F68EFB5D /* FriendsStore.swift */; };
 		D39B603182555AE061D538D5 /* WatchWorkoutMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 842D59263B54A8593B9E9853 /* WatchWorkoutMessage.swift */; };
 		D47A213BD745CDB996862A45 /* NanoSubscriptionAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3390327C6AB36EBDB4A42549 /* NanoSubscriptionAccess.swift */; };
 		D67EA7691EA72573C9E13E5B /* StatsSummaryComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8B03C217D21273932F6ADF2 /* StatsSummaryComponents.swift */; };
 		D867626DB379B579293A32BA /* creatures-by-family.json in Resources */ = {isa = PBXBuildFile; fileRef = BCDC79962D319D23C13AC516 /* creatures-by-family.json */; };
-		E56DE1FB99D1F6FAE87B4617 /* badge-streak-5.png in Resources */ = {isa = PBXBuildFile; fileRef = 2A9585E7E35B46E4E67A9C89 /* badge-streak-5.png */; };
-		570932FAE0552CEAE6CE4F47 /* badge-streak-14.png in Resources */ = {isa = PBXBuildFile; fileRef = B7E6F135D1DF3DFC347C3D87 /* badge-streak-14.png */; };
 		DB6265D75A1D233E7A7EE4CA /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = 279E1759D6DA15EAA194BF92 /* RevenueCat */; };
 		DBDD2A632B77D6EC9C0B3BD7 /* WorkoutCreatureProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB695A88E325A711FE619E4C /* WorkoutCreatureProgressView.swift */; };
 		DDCA7F24390EDB86A81E82DB /* StreakHistorySummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57BBFBDC499C95D90E9E4426 /* StreakHistorySummary.swift */; };
@@ -164,12 +167,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		C1F2D84526004553A7D14312 /* Nanobeasts-Launch-Reveal-Poster.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Nanobeasts-Launch-Reveal-Poster.png; sourceTree = "<group>"; };
-		C1F2D84526004553A7D14311 /* Nanobeasts-Launch-Reveal.mov */ = {isa = PBXFileReference; lastKnownFileType = video.quicktime; path = Nanobeasts-Launch-Reveal.mov; sourceTree = "<group>"; };
-		AE076AAE591A40FE552ECE1F /* RefinedPaywallPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefinedPaywallPage.swift; sourceTree = "<group>"; };
 		04B07D2491F65D95341247FF /* NanoTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NanoTheme.swift; sourceTree = "<group>"; };
 		073C0BE16B3122F2D1A8F119 /* NanobeastsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NanobeastsApp.swift; sourceTree = "<group>"; };
-		C1D2E3F4A5B60718293A4B6C /* GoldieWalkFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoldieWalkFixture.swift; sourceTree = "<group>"; };
 		081645D42D7D5B244A7CCD54 /* AppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRootView.swift; sourceTree = "<group>"; };
 		0AA40A76D1C67991B1F529FA /* WorkoutActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutActivityAttributes.swift; sourceTree = "<group>"; };
 		0B1280D1F67B5643C5DA44EE /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
@@ -181,12 +180,14 @@
 		1CF28184851B19D746CCB0B5 /* WorkoutRouteReplayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRouteReplayView.swift; sourceTree = "<group>"; };
 		278CA47963D9A99BF3F63E5A /* WorkoutReplayVideo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutReplayVideo.swift; sourceTree = "<group>"; };
 		28F027BDB9855F5E7E3BE5F7 /* SubscriptionReturnView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionReturnView.swift; sourceTree = "<group>"; };
+		2B0A3900E598A733F68EFB5D /* FriendsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsStore.swift; sourceTree = "<group>"; };
 		2D6C953B0D4D97ED41B44DF7 /* WatchWorkoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWorkoutView.swift; sourceTree = "<group>"; };
 		2F02754C9A75A5903524FBA7 /* WorkoutLiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLiveActivityController.swift; sourceTree = "<group>"; };
 		2FBF8B025D78BA8E96FC78EB /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		3044D2396255497E1C495C9C /* PaywallPreviewOffering.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallPreviewOffering.swift; sourceTree = "<group>"; };
 		3390327C6AB36EBDB4A42549 /* NanoSubscriptionAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NanoSubscriptionAccess.swift; sourceTree = "<group>"; };
 		3AF408365E11E945871D59BD /* StreakSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreakSummaryView.swift; sourceTree = "<group>"; };
+		3D5F29A7D5AFE826A8741EDF /* FriendsAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendsAPI.swift; sourceTree = "<group>"; };
 		3DEE6A6396F3EB4931A83331 /* HealthKitClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitClient.swift; sourceTree = "<group>"; };
 		402C641B5AEFF0D8633F834D /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
 		421DCA931CCF112C068CFC67 /* WatchDailyActivityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchDailyActivityStore.swift; sourceTree = "<group>"; };
@@ -204,30 +205,33 @@
 		64C5E9B65F1FCBFE5D23C523 /* WatchLocationAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchLocationAccess.swift; sourceTree = "<group>"; };
 		64DB4B0240991B8B08848C71 /* DexView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DexView.swift; sourceTree = "<group>"; };
 		66CE83593841637E9CFCBF0F /* OnboardingLocationPermission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingLocationPermission.swift; sourceTree = "<group>"; };
+		68645C657FF3F754E8D18B96 /* Nanobeasts-Launch-Reveal-Poster.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Nanobeasts-Launch-Reveal-Poster.png"; sourceTree = "<group>"; };
 		7120E22E464324EDAAC61846 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
-		ED470C632C28B3E05926312C /* StatsRecapStory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsRecapStory.swift; sourceTree = "<group>"; };
-		F35C45C3F85C113DF6A523FC /* StatsInsightViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsInsightViews.swift; sourceTree = "<group>"; };
-		2A06112A6B225C56F570C675 /* StatsInsightEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsInsightEngine.swift; sourceTree = "<group>"; };
 		7B1D08B3F26DDDC2D9E05E89 /* Nanobeasts.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Nanobeasts.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B4A7063452E42E856603CD4 /* PaywallIntroduction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallIntroduction.swift; sourceTree = "<group>"; };
 		7C4EF918849303E16B68980F /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		7E011591D996D3BB369DDD96 /* OnboardingJourney.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingJourney.swift; sourceTree = "<group>"; };
 		81EDE2F42C1A2D8AB5CC2CF2 /* WatchHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHomeView.swift; sourceTree = "<group>"; };
+		8294D534892CEA4994489D9C /* Nanobeasts-Core-Loop-Streaming.mp4 */ = {isa = PBXFileReference; path = "Nanobeasts-Core-Loop-Streaming.mp4"; sourceTree = "<group>"; };
 		8327017EA990373271E0A318 /* OnboardingReplayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingReplayView.swift; sourceTree = "<group>"; };
 		841A11299998CA57A30223C3 /* BattlePreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BattlePreviewView.swift; sourceTree = "<group>"; };
 		842D59263B54A8593B9E9853 /* WatchWorkoutMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWorkoutMessage.swift; sourceTree = "<group>"; };
+		87D3CA66B1DD0C6EAD36AEC6 /* LeaderboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeaderboardView.swift; sourceTree = "<group>"; };
 		8E15620BA40F8F4EDC0AF537 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8FE97E45D69C9E6125862517 /* WatchWorkoutSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWorkoutSettingsView.swift; sourceTree = "<group>"; };
+		9283FC54C2F28F16BC67D4B2 /* badge-streak-14.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "badge-streak-14.png"; sourceTree = "<group>"; };
 		9438E43A6C73DC6FA1096DF6 /* WorkoutMilestoneAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutMilestoneAction.swift; sourceTree = "<group>"; };
 		9602D85601B0ACB47FB241C4 /* WorkoutRoutePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRoutePolicy.swift; sourceTree = "<group>"; };
 		96FFB2549BE8C712C97C67C2 /* SolarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SolarIcon.swift; sourceTree = "<group>"; };
 		99567E0E6223E9E0C9AE7567 /* WidgetSnapshotWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshotWriter.swift; sourceTree = "<group>"; };
 		9B11992296BE2DDD72801DA5 /* OnboardingCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingCopy.swift; sourceTree = "<group>"; };
+		9B4AC248E30C7C0DB96F4007 /* StatsRecapStory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsRecapStory.swift; sourceTree = "<group>"; };
 		A1EBB128E27074B7FFF2BF6F /* BattleArenaScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BattleArenaScene.swift; sourceTree = "<group>"; };
 		A6E5EBCDF208D99EFF10DB6E /* WatchWorkoutMetricsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWorkoutMetricsView.swift; sourceTree = "<group>"; };
 		A8B03C217D21273932F6ADF2 /* StatsSummaryComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsSummaryComponents.swift; sourceTree = "<group>"; };
+		AC7267FDED7C5EDAD432BBC9 /* Nanobeasts-Launch-Reveal.mov */ = {isa = PBXFileReference; lastKnownFileType = video.quicktime; path = "Nanobeasts-Launch-Reveal.mov"; sourceTree = "<group>"; };
+		AE076AAE591A40FE552ECE1F /* RefinedPaywallPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefinedPaywallPage.swift; sourceTree = "<group>"; };
 		AFB4B1E454056CC1981D88C3 /* WatchWorkoutPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWorkoutPanel.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718293A4B5C /* WorkoutZones.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutZones.swift; sourceTree = "<group>"; };
 		B0D08876B243279E3B90F2A8 /* NanobeastsWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = NanobeastsWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		B3032BCCEF0B4BA67E83B57D /* NanobeastsWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NanobeastsWidgets.swift; sourceTree = "<group>"; };
 		B5A00EF4D1E1D0A56280F240 /* StatsCalendarCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsCalendarCard.swift; sourceTree = "<group>"; };
@@ -235,17 +239,17 @@
 		B69AFA3700E5D5D3F995C829 /* WorkoutHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHistoryView.swift; sourceTree = "<group>"; };
 		BB695A88E325A711FE619E4C /* WorkoutCreatureProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCreatureProgressView.swift; sourceTree = "<group>"; };
 		BCDC79962D319D23C13AC516 /* creatures-by-family.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "creatures-by-family.json"; sourceTree = "<group>"; };
-		2A9585E7E35B46E4E67A9C89 /* badge-streak-5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "badge-streak-5.png"; sourceTree = "<group>"; };
-		B7E6F135D1DF3DFC347C3D87 /* badge-streak-14.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "badge-streak-14.png"; sourceTree = "<group>"; };
 		BEA3B03F76017C31AB05CC35 /* BadgeAwardDelivery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BadgeAwardDelivery.swift; sourceTree = "<group>"; };
 		BECD0D5E349149B98AA66C87 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C31C3C4A391F94189BC90B64 /* Charts.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Charts.framework; path = System/Library/Frameworks/Charts.framework; sourceTree = SDKROOT; };
 		C599645F8D1720EEA8B463A5 /* WorkoutPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutPreviewView.swift; sourceTree = "<group>"; };
+		C794B62D160C99A7AD712F8B /* StatsInsightEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsInsightEngine.swift; sourceTree = "<group>"; };
 		C9888442E06A3B613910C9EE /* PressStart2P_400Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = PressStart2P_400Regular.ttf; sourceTree = "<group>"; };
 		CC308DB4575B2ED7CDF4EBF0 /* WorkoutRouteReplayTrack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutRouteReplayTrack.swift; sourceTree = "<group>"; };
 		CD58ED5FCF9FC74E056AEA86 /* CreatureModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatureModels.swift; sourceTree = "<group>"; };
 		CEBE772CDEFFAEE45F2EA1E1 /* SpaceMono_400Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = SpaceMono_400Regular.ttf; sourceTree = "<group>"; };
 		CF0E43A9B31C24CA266BD9FC /* WatchWorkoutStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWorkoutStyle.swift; sourceTree = "<group>"; };
+		D11D510853353A782AC14604 /* GoldieWalkFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoldieWalkFixture.swift; sourceTree = "<group>"; };
 		D42B984D54942B93E7A28536 /* WatchConnectivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WatchConnectivity.framework; path = System/Library/Frameworks/WatchConnectivity.framework; sourceTree = SDKROOT; };
 		D4DBA2D51A67BE7D278607BF /* OnboardingFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowView.swift; sourceTree = "<group>"; };
 		D4EEB51A130A04F365E9AA1A /* WorkoutWatchBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutWatchBridge.swift; sourceTree = "<group>"; };
@@ -253,17 +257,19 @@
 		D62B34E916C1A5520A6F4CEC /* RevenueCatPaywallScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevenueCatPaywallScreen.swift; sourceTree = "<group>"; };
 		D94CEEB9D9B5F6AC4FCD5E8C /* WatchWorkoutRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWorkoutRecorder.swift; sourceTree = "<group>"; };
 		DA9C5B553135876601B459CA /* WorkoutLocationTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLocationTracker.swift; sourceTree = "<group>"; };
+		DC72EF3A3826E94B8F561F8C /* StatsInsightViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsInsightViews.swift; sourceTree = "<group>"; };
 		DE777600852058010F877B65 /* LabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabView.swift; sourceTree = "<group>"; };
 		E3F7634A69D2BD61A510DA63 /* WorkoutLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLiveActivityWidget.swift; sourceTree = "<group>"; };
 		E461B58A1FF3B6808CB1292C /* WorkoutHealthSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHealthSync.swift; sourceTree = "<group>"; };
-		E6B8E16AC5A7C3D9F4012B77 /* Nanobeasts-Core-Loop-Streaming.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Nanobeasts-Core-Loop-Streaming.mp4"; sourceTree = "<group>"; };
 		E82E8C3D5FA7479C86BC8153 /* NanobeastsWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NanobeastsWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EC830BAC33D43213184964C7 /* WalkingPlanChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalkingPlanChart.swift; sourceTree = "<group>"; };
+		EE22D4EE1002DF27E6BAEE0D /* WorkoutZones.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutZones.swift; sourceTree = "<group>"; };
 		F2BE5D20E3855483907F2BFB /* WidgetSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSnapshot.swift; sourceTree = "<group>"; };
 		F34404BA913AFAF4DC979145 /* ProfessorNanoArtwork.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfessorNanoArtwork.swift; sourceTree = "<group>"; };
 		F35564E312C5269DC756C863 /* ActivityKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ActivityKit.framework; path = System/Library/Frameworks/ActivityKit.framework; sourceTree = SDKROOT; };
 		F6DB38627158CD819C7A4B94 /* NanobeastsWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NanobeastsWatchApp.swift; sourceTree = "<group>"; };
 		F71666E6FDE7E18BD0CED383 /* Aldrich_400Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = Aldrich_400Regular.ttf; sourceTree = "<group>"; };
+		FC5C6FCE4DBC758E7587D800 /* badge-streak-5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "badge-streak-5.png"; sourceTree = "<group>"; };
 		FFD55438B2DCF469CC20B15A /* NanoNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NanoNotifications.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -315,6 +321,7 @@
 		231F2A5AB7F1CEA64F3A4034 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				3D5F29A7D5AFE826A8741EDF /* FriendsAPI.swift */,
 				3DEE6A6396F3EB4931A83331 /* HealthKitClient.swift */,
 				FFD55438B2DCF469CC20B15A /* NanoNotifications.swift */,
 				43651F962B35823A78896183 /* RemoteArtwork.swift */,
@@ -349,8 +356,8 @@
 			isa = PBXGroup;
 			children = (
 				081645D42D7D5B244A7CCD54 /* AppRootView.swift */,
+				D11D510853353A782AC14604 /* GoldieWalkFixture.swift */,
 				073C0BE16B3122F2D1A8F119 /* NanobeastsApp.swift */,
-				C1D2E3F4A5B60718293A4B6C /* GoldieWalkFixture.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -359,6 +366,7 @@
 			isa = PBXGroup;
 			children = (
 				26C69B37C21095410AE7034E /* Dex */,
+				6F3E44FADBE9ECDDDDB36B42 /* Friends */,
 				2C90C2E6D4FC26C9F603F785 /* Lab */,
 				03DFC97DDE0F46C937167C89 /* Onboarding */,
 				8E58A5EBACC1BF358B376940 /* Paywall */,
@@ -372,15 +380,23 @@
 			isa = PBXGroup;
 			children = (
 				8E15620BA40F8F4EDC0AF537 /* Assets.xcassets */,
+				FC5C6FCE4DBC758E7587D800 /* badge-streak-5.png */,
+				9283FC54C2F28F16BC67D4B2 /* badge-streak-14.png */,
 				BCDC79962D319D23C13AC516 /* creatures-by-family.json */,
-				2A9585E7E35B46E4E67A9C89 /* badge-streak-5.png */,
-				B7E6F135D1DF3DFC347C3D87 /* badge-streak-14.png */,
-				E6B8E16AC5A7C3D9F4012B77 /* Nanobeasts-Core-Loop-Streaming.mp4 */,
-				C1F2D84526004553A7D14312 /* Nanobeasts-Launch-Reveal-Poster.png */,
-				C1F2D84526004553A7D14311 /* Nanobeasts-Launch-Reveal.mov */,
+				8294D534892CEA4994489D9C /* Nanobeasts-Core-Loop-Streaming.mp4 */,
+				68645C657FF3F754E8D18B96 /* Nanobeasts-Launch-Reveal-Poster.png */,
+				AC7267FDED7C5EDAD432BBC9 /* Nanobeasts-Launch-Reveal.mov */,
 				F3142605B27AF9D6201B61A8 /* Fonts */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		6F3E44FADBE9ECDDDDB36B42 /* Friends */ = {
+			isa = PBXGroup;
+			children = (
+				87D3CA66B1DD0C6EAD36AEC6 /* LeaderboardView.swift */,
+			);
+			path = Friends;
 			sourceTree = "<group>";
 		};
 		7C8C12FE9B9FFB9FC033A967 /* Settings */ = {
@@ -390,7 +406,6 @@
 				841A11299998CA57A30223C3 /* BattlePreviewView.swift */,
 				4C0517627428A45D78D71858 /* SettingsView.swift */,
 				AFB4B1E454056CC1981D88C3 /* WatchWorkoutPanel.swift */,
-				A1B2C3D4E5F60718293A4B5C /* WorkoutZones.swift */,
 				1C289D723AFE486193714A3E /* WorkoutCameraPicker.swift */,
 				BB695A88E325A711FE619E4C /* WorkoutCreatureProgressView.swift */,
 				B69AFA3700E5D5D3F995C829 /* WorkoutHistoryView.swift */,
@@ -401,6 +416,7 @@
 				CC308DB4575B2ED7CDF4EBF0 /* WorkoutRouteReplayTrack.swift */,
 				1CF28184851B19D746CCB0B5 /* WorkoutRouteReplayView.swift */,
 				1CD8C64C0E0A95B0EE27BFC7 /* WorkoutShareView.swift */,
+				EE22D4EE1002DF27E6BAEE0D /* WorkoutZones.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -410,11 +426,11 @@
 			children = (
 				B5A00EF4D1E1D0A56280F240 /* StatsCalendarCard.swift */,
 				B60C5F42DFA7A71078D55E05 /* StatsInsightComponents.swift */,
+				C794B62D160C99A7AD712F8B /* StatsInsightEngine.swift */,
+				DC72EF3A3826E94B8F561F8C /* StatsInsightViews.swift */,
+				9B4AC248E30C7C0DB96F4007 /* StatsRecapStory.swift */,
 				A8B03C217D21273932F6ADF2 /* StatsSummaryComponents.swift */,
 				7120E22E464324EDAAC61846 /* StatsView.swift */,
-				ED470C632C28B3E05926312C /* StatsRecapStory.swift */,
-				F35C45C3F85C113DF6A523FC /* StatsInsightViews.swift */,
-				2A06112A6B225C56F570C675 /* StatsInsightEngine.swift */,
 			);
 			path = Stats;
 			sourceTree = "<group>";
@@ -422,9 +438,9 @@
 		8E58A5EBACC1BF358B376940 /* Paywall */ = {
 			isa = PBXGroup;
 			children = (
-				AE076AAE591A40FE552ECE1F /* RefinedPaywallPage.swift */,
 				7B4A7063452E42E856603CD4 /* PaywallIntroduction.swift */,
 				3044D2396255497E1C495C9C /* PaywallPreviewOffering.swift */,
+				AE076AAE591A40FE552ECE1F /* RefinedPaywallPage.swift */,
 				D62B34E916C1A5520A6F4CEC /* RevenueCatPaywallScreen.swift */,
 				28F027BDB9855F5E7E3BE5F7 /* SubscriptionReturnView.swift */,
 			);
@@ -534,6 +550,7 @@
 				14F66223E287359D3D441B46 /* AppStore.swift */,
 				BEA3B03F76017C31AB05CC35 /* BadgeAwardDelivery.swift */,
 				CD58ED5FCF9FC74E056AEA86 /* CreatureModels.swift */,
+				2B0A3900E598A733F68EFB5D /* FriendsStore.swift */,
 				57BBFBDC499C95D90E9E4426 /* StreakHistorySummary.swift */,
 			);
 			path = Models;
@@ -682,16 +699,16 @@
 			files = (
 				7CB2009589F63D893EF4965A /* Aldrich_400Regular.ttf in Resources */,
 				9DB8F3B00FBD02DEFCB83A3D /* Assets.xcassets in Resources */,
+				1C3DE5D414F9BBEA9CB17742 /* Nanobeasts-Core-Loop-Streaming.mp4 in Resources */,
+				93FDC99171FFB3BA8513798D /* Nanobeasts-Launch-Reveal-Poster.png in Resources */,
+				3669EA5268AD2B4A1859C07C /* Nanobeasts-Launch-Reveal.mov in Resources */,
 				F00B1470F734BD3B095EA13D /* PressStart2P_400Regular.ttf in Resources */,
 				4D8F8662E2A119B7C1540968 /* PrivacyInfo.xcprivacy in Resources */,
 				152B0DD9A3207F7C40DBBB3E /* SpaceMono_400Regular.ttf in Resources */,
 				7229B00545C80BE38F2D8AF6 /* SpaceMono_700Bold.ttf in Resources */,
+				7533BF667266CBDCD64D042E /* badge-streak-14.png in Resources */,
+				66CE2B6EB26778AA38484063 /* badge-streak-5.png in Resources */,
 				D867626DB379B579293A32BA /* creatures-by-family.json in Resources */,
-				E56DE1FB99D1F6FAE87B4617 /* badge-streak-5.png in Resources */,
-				570932FAE0552CEAE6CE4F47 /* badge-streak-14.png in Resources */,
-				C5A0E4D9BC1A3F7E5D6208A4 /* Nanobeasts-Core-Loop-Streaming.mp4 in Resources */,
-				CC8113E9E473B2171723B111 /* Nanobeasts-Launch-Reveal-Poster.png in Resources */,
-				CC8113E9E473B2171723B110 /* Nanobeasts-Launch-Reveal.mov in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -753,15 +770,18 @@
 				F04B7C8459986BB851D6D749 /* BattlePreviewView.swift in Sources */,
 				7A41BD9A03FAF66FB122D9B4 /* CreatureModels.swift in Sources */,
 				F8002A3C2D6C60F670FC1659 /* DexView.swift in Sources */,
+				9BA2D1667DC698DD9AFB8C79 /* FriendsAPI.swift in Sources */,
+				CEF144099F2F8C44253D699E /* FriendsStore.swift in Sources */,
+				1D80F563886A038B40823F8E /* GoldieWalkFixture.swift in Sources */,
 				B94F8F03F7A3E9CCC35A2E0A /* HealthKitClient.swift in Sources */,
 				89F85618436BAC9BB62AB0D4 /* LabView.swift in Sources */,
+				85FBA8C34132A91C2FE19887 /* LeaderboardView.swift in Sources */,
 				AB38A58E5FEFACB7E6EA1F73 /* NanoAccent.swift in Sources */,
 				E3BD0E0E944B1D641529EB77 /* NanoComponents.swift in Sources */,
 				040DF6B411F2F904CA223670 /* NanoNotifications.swift in Sources */,
 				D47A213BD745CDB996862A45 /* NanoSubscriptionAccess.swift in Sources */,
 				023C03CC11DCE8F38DC55261 /* NanoTheme.swift in Sources */,
 				72F00C8BCC955A46CA180FB8 /* NanobeastsApp.swift in Sources */,
-				D1E2F3A4B5C60718293A4B6D /* GoldieWalkFixture.swift in Sources */,
 				51A365EE89818AC61AB33151 /* OnboardingCopy.swift in Sources */,
 				B4C9FCBB0D193DED3ED65337 /* OnboardingFlowView.swift in Sources */,
 				8A00691E4F41B446CB53461A /* OnboardingJourney.swift in Sources */,
@@ -771,25 +791,24 @@
 				8B3AF3720DA2B1128410A446 /* PaywallIntroduction.swift in Sources */,
 				8DB17DEC818331F1AC901824 /* PaywallPreviewOffering.swift in Sources */,
 				9A695056D77A3638972D57CF /* ProfessorNanoArtwork.swift in Sources */,
+				2C45EF77AF3E469AD9844C40 /* RefinedPaywallPage.swift in Sources */,
 				51790D041718BD210E5EDF1B /* RemoteArtwork.swift in Sources */,
 				EF6E520259DD8B20C1D09D1C /* RevenueCatPaywallScreen.swift in Sources */,
-				2C45EF77AF3E469AD9844C40 /* RefinedPaywallPage.swift in Sources */,
 				BB3CE763B49814B729F64CEF /* SettingsView.swift in Sources */,
 				CA53F78E3377B5325425BC78 /* SolarIcon.swift in Sources */,
 				32E81C82DC1723082710F49C /* StatsCalendarCard.swift in Sources */,
 				C08D2B609449C70D5310F3CD /* StatsInsightComponents.swift in Sources */,
+				AC1171B125ABCF0DBCC424E6 /* StatsInsightEngine.swift in Sources */,
+				77F2681693E5643383FB7659 /* StatsInsightViews.swift in Sources */,
+				915BA7B3F729A7A9509BAEC5 /* StatsRecapStory.swift in Sources */,
 				D67EA7691EA72573C9E13E5B /* StatsSummaryComponents.swift in Sources */,
 				4C82280224E759E6D874C179 /* StatsView.swift in Sources */,
-				91FB727AFB26B59D68A7016B /* StatsRecapStory.swift in Sources */,
-				792C40A381311FF3C944C0AA /* StatsInsightViews.swift in Sources */,
-				87799AE7F0490A2830B62643 /* StatsInsightEngine.swift in Sources */,
 				DDCA7F24390EDB86A81E82DB /* StreakHistorySummary.swift in Sources */,
 				71931E842F2E67168822B144 /* StreakSummaryView.swift in Sources */,
 				7CD5A769D01B41C3B9705CCB /* SubscriptionReturnView.swift in Sources */,
 				01C47D560F0C24476824E806 /* WalkingPlanChart.swift in Sources */,
 				D39B603182555AE061D538D5 /* WatchWorkoutMessage.swift in Sources */,
 				79BD98FF4043C4D3D89489C4 /* WatchWorkoutPanel.swift in Sources */,
-				B1C2D3E4F5A60718293A4B5D /* WorkoutZones.swift in Sources */,
 				0FB006B216CAD3D02D41CA72 /* WidgetSnapshot.swift in Sources */,
 				49C0D1DAF25B6CBA2C092594 /* WidgetSnapshotWriter.swift in Sources */,
 				901C8B2F967C9A5AEEA6E19C /* WorkoutActivityAttributes.swift in Sources */,
@@ -810,6 +829,7 @@
 				9583AEF2734BB01DB5C93BE1 /* WorkoutSessionTracker.swift in Sources */,
 				156AAAA0D0825B2EE2C7E41F /* WorkoutShareView.swift in Sources */,
 				A2FB1E21F619AD65B9AC3C52 /* WorkoutWatchBridge.swift in Sources */,
+				6E0F46FBE2E082D75D43B75A /* WorkoutZones.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1085,7 +1105,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.twosyntaxerrors.nanobeasts.native;
 				PRODUCT_NAME = Nanobeasts;
-				PROVISIONING_PROFILE_SPECIFIER = "Nanobeasts Native Development";
+				PROVISIONING_PROFILE_SPECIFIER = "Nanobeasts Native Development 2026-10-08";
 				REVENUECAT_PUBLIC_SDK_KEY = appl_RZwqUISPAKgFHefFFZAtDpyOvdC;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;

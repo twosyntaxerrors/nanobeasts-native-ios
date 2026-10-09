@@ -3,6 +3,7 @@ import UIKit
 
 struct LabView: View {
     @Environment(AppStore.self) private var store
+    @Environment(FriendsStore.self) private var friends: FriendsStore?
     @Environment(\.appTourFocus) private var tourFocus
     var onReplayNameTap: (() -> Void)? = nil
     /// The replay opens its own scripted paywall instead of the live one.
@@ -45,7 +46,9 @@ struct LabView: View {
                             playerName: store.playerName,
                             streak: store.displayedCurrentStreak,
                             onStreakTap: { activeSheet = .streak },
-                            onNameTap: onReplayNameTap
+                            onNameTap: onReplayNameTap,
+                            friendsReadout: friendsReadout,
+                            onFriendsTap: { activeSheet = .leaderboard }
                         )
                         .id(AppTourTarget.streak)
 
@@ -174,6 +177,21 @@ struct LabView: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.92)))
                 .zIndex(52)
             }
+
+            if let podium = friends?.pendingPodium, !showsDailyGoalCard, activeSheet == nil,
+               !defersCelebrations, !store.isOnboardingReplay {
+                Color.black.opacity(0.56)
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+                    .zIndex(53)
+
+                WeeklyPodiumCard(podium: podium, stageForKey: stage(forImageKey:)) {
+                    withAnimation(.easeOut(duration: 0.22)) { friends?.dismissPodium() }
+                }
+                .padding(.horizontal, 24)
+                .transition(.opacity.combined(with: .scale(scale: 0.92)))
+                .zIndex(54)
+            }
         }
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
@@ -181,6 +199,15 @@ struct LabView: View {
             animatedTodaySteps = Double(store.displayedTodaySteps)
             animatedHatchProgress = store.hatchProgress
             hasInitializedActivityAnimation = true
+        }
+        .task {
+            guard !store.isOnboardingReplay, let friends else { return }
+            friends.attach(to: store)
+            await friends.refresh()
+        }
+        .onChange(of: friends?.leaderboardRequestID) {
+            guard !store.isOnboardingReplay else { return }
+            activeSheet = .leaderboard
         }
         .onChange(of: store.evolutionEventID) {
             guard store.hapticsEnabled else { return }
@@ -283,11 +310,27 @@ struct LabView: View {
                 CreatureDetailView(stage: homeCreatureStage, isLocked: false)
                     .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
+            case .leaderboard:
+                LeaderboardView()
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.hidden)
                 }
         }
         .fullScreenCover(isPresented: $showsProgressionPaywall) {
             RevenueCatPaywallScreen(playerName: store.playerName, selectedGoals: store.onboardingGoals, primaryGoal: store.onboardingPrimaryGoal, selectedBlockers: store.onboardingBlockers)
         }
+    }
+
+    private var friendsReadout: FriendsReadout? {
+        guard let friends, !store.isOnboardingReplay, AppScreenshotScenario.active == nil else { return nil }
+        guard friends.isSignedIn else { return .race }
+        guard friends.hasFriends, let rank = friends.weeklyRank else { return .invite }
+        return .rank(rank)
+    }
+
+    private func stage(forImageKey key: String?) -> CreatureStage? {
+        guard let key else { return nil }
+        return store.catalog.families.lazy.flatMap(\.stages).first { $0.imageKey == key }
     }
 
     private var greeting: String {
@@ -451,6 +494,7 @@ private struct DailyGoalCompletionCard: View {
 private enum LabSheet: String, Identifiable {
     case streak
     case creature
+    case leaderboard
 
     var id: String { rawValue }
 }
@@ -463,6 +507,8 @@ struct LabHeader: View {
     let streak: Int
     let onStreakTap: () -> Void
     var onNameTap: (() -> Void)? = nil
+    var friendsReadout: FriendsReadout? = nil
+    var onFriendsTap: () -> Void = {}
 
     @State private var flameAnimationTrigger = 0
 
@@ -487,6 +533,14 @@ struct LabHeader: View {
             }
 
             Spacer(minLength: 4)
+
+            if let friendsReadout {
+                Button(action: onFriendsTap) {
+                    FriendsReadoutLabel(readout: friendsReadout)
+                }
+                .buttonStyle(StreakReadoutButtonStyle())
+                .accessibilityLabel(friendsReadout.accessibilityLabel)
+            }
 
             Button {
                 flameAnimationTrigger &+= 1
@@ -548,6 +602,78 @@ struct LabHeader: View {
             .lineLimit(1)
             .minimumScaleFactor(0.72)
             .contentShape(Rectangle())
+    }
+}
+
+enum FriendsReadout: Equatable {
+    /// Signed out: opens Sign in with Apple.
+    case race
+    /// Signed in without friends yet.
+    case invite
+    case rank(Int)
+
+    var accessibilityLabel: String {
+        switch self {
+        case .race: "Race friends. Open the leaderboard."
+        case .invite: "Invite friends to your leaderboard."
+        case let .rank(rank): "Ranked number \(rank) this week. Open the leaderboard."
+        }
+    }
+}
+
+/// Mirrors the streak readout: a small label, a value, and the accent underline.
+private struct FriendsReadoutLabel: View {
+    let readout: FriendsReadout
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 3) {
+            Text(title)
+                .font(NanoFont.aldrich(8))
+                .tracking(1.4)
+                .foregroundStyle(NanoTheme.secondaryText)
+
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                switch readout {
+                case let .rank(rank):
+                    Image(systemName: "trophy.fill")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color(red: 0.96, green: 0.78, blue: 0.29))
+                    Text("#\(rank)")
+                        .font(NanoFont.spaceMono(16, bold: true))
+                        .monospacedDigit()
+                        .foregroundStyle(NanoTheme.text)
+                    Text("WEEK")
+                        .font(NanoFont.aldrich(8))
+                        .tracking(0.8)
+                        .foregroundStyle(NanoTheme.secondaryText)
+                case .race, .invite:
+                    Image(systemName: "person.2.fill")
+                        .font(.system(size: 11))
+                        .foregroundStyle(NanoTheme.teal)
+                    Text(readout == .race ? "RACE" : "INVITE")
+                        .font(NanoFont.aldrich(12))
+                        .tracking(0.8)
+                        .foregroundStyle(NanoTheme.teal)
+                }
+            }
+            .frame(minHeight: 21)
+
+            HStack(spacing: 3) {
+                Rectangle()
+                    .fill(NanoTheme.teal.opacity(0.30))
+                    .frame(width: 24, height: 1)
+                Rectangle()
+                    .fill(NanoTheme.teal.opacity(0.82))
+                    .frame(width: 5, height: 2)
+            }
+        }
+        .frame(minWidth: 64, minHeight: 44, alignment: .trailing)
+        .contentShape(Rectangle())
+    }
+
+    private var title: String {
+        if case .rank = readout { return "RANK" }
+        return "FRIENDS"
     }
 }
 

@@ -64,7 +64,7 @@ targets:
       configs:
         Debug:
           CODE_SIGN_STYLE: Manual
-          PROVISIONING_PROFILE_SPECIFIER: Nanobeasts Native Development
+          PROVISIONING_PROFILE_SPECIFIER: Nanobeasts Native Development 2026-10-08
           REVENUECAT_PUBLIC_SDK_KEY: "appl_RZwqUISPAKgFHefFFZAtDpyOvdC"
         Release:
           CODE_SIGN_STYLE: Automatic
